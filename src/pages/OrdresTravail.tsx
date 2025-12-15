@@ -239,16 +239,131 @@ export default function OrdresTravail() {
 
   const renderTransportForm = () => (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Lieu de départ *</Label>
-          <Input placeholder="Ex: Port d'Owendo" />
-        </div>
-        <div className="space-y-2">
-          <Label>Lieu d'arrivée *</Label>
-          <Input placeholder="Ex: Port-Gentil" />
+      {/* Point A et Point B */}
+      <div className="border rounded-lg p-4 border-border bg-muted/30">
+        <h4 className="font-medium mb-3 text-foreground">Trajet</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Point de départ (A) *</Label>
+            <Input placeholder="Ex: Port d'Owendo" />
+          </div>
+          <div className="space-y-2">
+            <Label>Point d'arrivée (B) *</Label>
+            <Input placeholder="Ex: Port-Gentil" />
+          </div>
         </div>
       </div>
+
+      {selectedSubType === "import" && (
+        <div className="border rounded-lg p-4 border-blue-200 bg-blue-50">
+          <h4 className="font-medium mb-3 text-blue-700">Import sur Libreville</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>N° Connaissement (BL) *</Label>
+              <Input placeholder="BL-XXXX" />
+            </div>
+            <div className="space-y-2">
+              <Label>N° Container</Label>
+              <Input placeholder="MSKU1234567" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="space-y-2">
+              <Label>Compagnie Maritime *</Label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir une compagnie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="msc">MSC</SelectItem>
+                  <SelectItem value="maersk">Maersk</SelectItem>
+                  <SelectItem value="cmacgm">CMA CGM</SelectItem>
+                  <SelectItem value="hapag">Hapag-Lloyd</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Navire</Label>
+              <Input placeholder="Nom du navire" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="space-y-2">
+              <Label>Transitaire *</Label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un transitaire" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="transgabon">Trans Gabon Logistics</SelectItem>
+                  <SelectItem value="bollore">Bolloré Transport & Logistics</SelectItem>
+                  <SelectItem value="sdv">SDV Gabon</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Prime de Transitaire</Label>
+              <Input type="number" step="0.1" placeholder="0" disabled className="bg-muted" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="space-y-2">
+              <Label>Représentant</Label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un représentant" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ndong">Jean-Paul Ndong</SelectItem>
+                  <SelectItem value="obame">Marie Obame</SelectItem>
+                  <SelectItem value="nguema">Pierre Nguema</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Prime de Représentant</Label>
+              <Input type="number" step="0.1" placeholder="0" disabled className="bg-muted" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedSubType === "export" && (
+        <div className="border rounded-lg p-4 border-green-200 bg-green-50">
+          <h4 className="font-medium mb-3 text-green-700">Export</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Destination finale *</Label>
+              <Input placeholder="Ex: Douala, Cameroun" />
+            </div>
+            <div className="space-y-2">
+              <Label>N° Booking</Label>
+              <Input placeholder="Booking number" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="space-y-2">
+              <Label>Compagnie Maritime *</Label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir une compagnie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="msc">MSC</SelectItem>
+                  <SelectItem value="maersk">Maersk</SelectItem>
+                  <SelectItem value="cmacgm">CMA CGM</SelectItem>
+                  <SelectItem value="hapag">Hapag-Lloyd</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>N° Container</Label>
+              <Input placeholder="MSKU1234567" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedSubType === "exceptionnel" && (
         <div className="border rounded-lg p-4 border-amber-200 bg-amber-50">
           <h4 className="font-medium mb-3 text-amber-700">Transport Exceptionnel</h4>
@@ -282,43 +397,14 @@ export default function OrdresTravail() {
           </div>
         </div>
       )}
-      {selectedSubType === "import" && (
-        <div className="border rounded-lg p-4 border-blue-200 bg-blue-50">
-          <h4 className="font-medium mb-3 text-blue-700">Import sur Libreville</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>N° Connaissement (BL)</Label>
-              <Input placeholder="BL-XXXX" />
-            </div>
-            <div className="space-y-2">
-              <Label>N° Container</Label>
-              <Input placeholder="MSKU1234567" />
-            </div>
-          </div>
-        </div>
-      )}
-      {selectedSubType === "export" && (
-        <div className="border rounded-lg p-4 border-green-200 bg-green-50">
-          <h4 className="font-medium mb-3 text-green-700">Export</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Destination finale</Label>
-              <Input placeholder="Ex: Douala, Cameroun" />
-            </div>
-            <div className="space-y-2">
-              <Label>N° Booking</Label>
-              <Input placeholder="Booking number" />
-            </div>
-          </div>
-        </div>
-      )}
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Date enlèvement *</Label>
+          <Label>Date d'enlèvement *</Label>
           <Input type="date" />
         </div>
         <div className="space-y-2">
-          <Label>Date livraison prévue</Label>
+          <Label>Date de livraison prévue</Label>
           <Input type="date" />
         </div>
       </div>
@@ -368,7 +454,39 @@ export default function OrdresTravail() {
 
   const renderStockageForm = () => (
     <div className="space-y-4">
+      <div className="border rounded-lg p-4 border-purple-200 bg-purple-50">
+        <h4 className="font-medium mb-3 text-purple-700">Période de stockage</h4>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>Date d'entrée *</Label>
+            <Input type="date" />
+          </div>
+          <div className="space-y-2">
+            <Label>Date de sortie prévue</Label>
+            <Input type="date" />
+          </div>
+          <div className="space-y-2">
+            <Label>Durée (jours)</Label>
+            <Input type="number" disabled placeholder="Calculé automatiquement" className="bg-muted" />
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Type de stockage *</Label>
+          <Select>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="entrepot">Entrepôt sécurisé</SelectItem>
+              <SelectItem value="plein-air">Stockage plein air</SelectItem>
+              <SelectItem value="refrigere">Stockage réfrigéré</SelectItem>
+              <SelectItem value="dangereux">Matières dangereuses</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-2">
           <Label>Entrepôt *</Label>
           <Select>
@@ -383,6 +501,9 @@ export default function OrdresTravail() {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Type de marchandise</Label>
           <Select>
@@ -397,19 +518,20 @@ export default function OrdresTravail() {
             </SelectContent>
           </Select>
         </div>
-      </div>
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label>Date entrée *</Label>
-          <Input type="date" />
-        </div>
-        <div className="space-y-2">
-          <Label>Date sortie prévue</Label>
-          <Input type="date" />
-        </div>
         <div className="space-y-2">
           <Label>Surface (m²)</Label>
           <Input type="number" placeholder="0" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Tarif journalier/m² (FCFA)</Label>
+          <Input type="number" placeholder="0" />
+        </div>
+        <div className="space-y-2">
+          <Label>Total estimé (FCFA)</Label>
+          <Input type="number" disabled placeholder="Calculé automatiquement" className="bg-muted" />
         </div>
       </div>
     </div>
@@ -417,6 +539,24 @@ export default function OrdresTravail() {
 
   const renderLocationForm = () => (
     <div className="space-y-4">
+      <div className="border rounded-lg p-4 border-green-200 bg-green-50">
+        <h4 className="font-medium mb-3 text-green-700">Période de location</h4>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>Date de début *</Label>
+            <Input type="date" />
+          </div>
+          <div className="space-y-2">
+            <Label>Date de fin *</Label>
+            <Input type="date" />
+          </div>
+          <div className="space-y-2">
+            <Label>Durée (jours)</Label>
+            <Input type="number" disabled placeholder="Calculé automatiquement" className="bg-muted" />
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         {selectedSubType === "engin" && (
           <div className="space-y-2">
@@ -464,23 +604,21 @@ export default function OrdresTravail() {
           </Select>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label>Date début *</Label>
-          <Input type="date" />
-        </div>
-        <div className="space-y-2">
-          <Label>Date fin *</Label>
-          <Input type="date" />
-        </div>
-        <div className="space-y-2">
-          <Label>Durée (jours)</Label>
-          <Input type="number" disabled placeholder="0" className="bg-muted" />
-        </div>
-      </div>
+
       <div className="space-y-2">
-        <Label>Lieu d'utilisation</Label>
+        <Label>Lieu d'utilisation *</Label>
         <Input placeholder="Ex: Chantier Owendo" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Tarif journalier (FCFA)</Label>
+          <Input type="number" placeholder="0" />
+        </div>
+        <div className="space-y-2">
+          <Label>Total estimé (FCFA)</Label>
+          <Input type="number" disabled placeholder="Calculé automatiquement" className="bg-muted" />
+        </div>
       </div>
     </div>
   );
