@@ -3,7 +3,16 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { AppLayout } from "@/components/layout/AppLayout";
+import Dashboard from "./pages/Dashboard";
+import Clients from "./pages/Clients";
+import Factures from "./pages/Factures";
+import OrdresTravail from "./pages/OrdresTravail";
+import Entreprise from "./pages/Entreprise";
+import Banques from "./pages/Banques";
+import Taxes from "./pages/Taxes";
+import Roles from "./pages/Roles";
+import Utilisateurs from "./pages/Utilisateurs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -15,8 +24,17 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/clients" element={<Clients />} />
+            <Route path="/factures" element={<Factures />} />
+            <Route path="/ordres-travail" element={<OrdresTravail />} />
+            <Route path="/entreprise" element={<Entreprise />} />
+            <Route path="/banques" element={<Banques />} />
+            <Route path="/taxes" element={<Taxes />} />
+            <Route path="/roles" element={<Roles />} />
+            <Route path="/utilisateurs" element={<Utilisateurs />} />
+          </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
