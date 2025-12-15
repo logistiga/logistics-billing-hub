@@ -1,0 +1,358 @@
+import { useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Plus,
+  Search,
+  Filter,
+  MoreHorizontal,
+  FileText,
+  Download,
+  Mail,
+  Trash2,
+  Edit,
+  Eye,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  Send,
+  ArrowRightLeft,
+} from "lucide-react";
+import { PageTransition } from "@/components/layout/PageTransition";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface Quote {
+  id: string;
+  number: string;
+  client: string;
+  date: string;
+  validUntil: string;
+  amount: number;
+  status: "draft" | "sent" | "accepted" | "rejected" | "expired" | "converted";
+  type: "Manutention" | "Transport" | "Stockage" | "Location";
+}
+
+const mockQuotes: Quote[] = [
+  {
+    id: "1",
+    number: "DEV-2024-0089",
+    client: "COMILOG SA",
+    date: "14/12/2024",
+    validUntil: "14/01/2025",
+    amount: 4500000,
+    status: "sent",
+    type: "Transport",
+  },
+  {
+    id: "2",
+    number: "DEV-2024-0088",
+    client: "OLAM Gabon",
+    date: "13/12/2024",
+    validUntil: "13/01/2025",
+    amount: 2350000,
+    status: "accepted",
+    type: "Manutention",
+  },
+  {
+    id: "3",
+    number: "DEV-2024-0087",
+    client: "Total Energies",
+    date: "12/12/2024",
+    validUntil: "12/01/2025",
+    amount: 6800000,
+    status: "converted",
+    type: "Transport",
+  },
+  {
+    id: "4",
+    number: "DEV-2024-0086",
+    client: "Assala Energy",
+    date: "10/12/2024",
+    validUntil: "10/01/2025",
+    amount: 1890000,
+    status: "rejected",
+    type: "Stockage",
+  },
+  {
+    id: "5",
+    number: "DEV-2024-0085",
+    client: "SEEG",
+    date: "05/12/2024",
+    validUntil: "05/01/2025",
+    amount: 750000,
+    status: "expired",
+    type: "Location",
+  },
+  {
+    id: "6",
+    number: "DEV-2024-0084",
+    client: "Perenco Oil",
+    date: "14/12/2024",
+    validUntil: "14/01/2025",
+    amount: 3200000,
+    status: "draft",
+    type: "Manutention",
+  },
+];
+
+const statusConfig = {
+  draft: {
+    label: "Brouillon",
+    class: "bg-muted text-muted-foreground",
+  },
+  sent: {
+    label: "Envoyé",
+    class: "bg-primary/20 text-primary border-primary/30",
+  },
+  accepted: {
+    label: "Accepté",
+    class: "bg-success text-success-foreground",
+  },
+  rejected: {
+    label: "Refusé",
+    class: "bg-destructive text-destructive-foreground",
+  },
+  expired: {
+    label: "Expiré",
+    class: "bg-warning/20 text-warning border-warning/30",
+  },
+  converted: {
+    label: "Converti",
+    class: "bg-accent text-accent-foreground",
+  },
+};
+
+const stats = [
+  { label: "Total devis", value: "19 490 000", unit: "FCFA" },
+  { label: "Acceptés", value: "9 150 000", unit: "FCFA" },
+  { label: "En attente", value: "7 700 000", unit: "FCFA" },
+  { label: "Devis", value: "6", unit: "ce mois" },
+];
+
+export default function Devis() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const filteredQuotes = mockQuotes.filter((quote) => {
+    const matchesSearch =
+      quote.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      quote.client.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || quote.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("fr-GA", {
+      style: "decimal",
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
+
+  return (
+    <PageTransition>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-heading font-bold text-foreground">
+              Devis
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Créez et gérez vos devis clients
+            </p>
+          </div>
+          <Button variant="gradient">
+            <Plus className="h-4 w-4 mr-2" />
+            Nouveau devis
+          </Button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  <p className="text-2xl font-bold font-heading mt-1">
+                    {stat.value}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{stat.unit}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher par numéro ou client..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Statut" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les statuts</SelectItem>
+              <SelectItem value="draft">Brouillons</SelectItem>
+              <SelectItem value="sent">Envoyés</SelectItem>
+              <SelectItem value="accepted">Acceptés</SelectItem>
+              <SelectItem value="rejected">Refusés</SelectItem>
+              <SelectItem value="expired">Expirés</SelectItem>
+              <SelectItem value="converted">Convertis</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline">
+            <Filter className="h-4 w-4 mr-2" />
+            Plus de filtres
+          </Button>
+        </div>
+
+        {/* Table */}
+        <Card className="border-border/50">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Numéro</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Validité</TableHead>
+                  <TableHead className="text-right">Montant</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredQuotes.map((quote, index) => {
+                  const status = statusConfig[quote.status];
+                  return (
+                    <motion.tr
+                      key={quote.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="group hover:bg-muted/50 cursor-pointer"
+                    >
+                      <TableCell className="font-medium">
+                        {quote.number}
+                      </TableCell>
+                      <TableCell>{quote.client}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-normal">
+                          {quote.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {quote.date}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {quote.validUntil}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {formatCurrency(quote.amount)} FCFA
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={status.class}>{status.label}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Voir
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Download className="h-4 w-4 mr-2" />
+                              Télécharger PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Mail className="h-4 w-4 mr-2" />
+                              Envoyer par email
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {(quote.status === "draft" || quote.status === "sent") && (
+                              <DropdownMenuItem>
+                                <Send className="h-4 w-4 mr-2" />
+                                Marquer comme envoyé
+                              </DropdownMenuItem>
+                            )}
+                            {quote.status === "accepted" && (
+                              <DropdownMenuItem>
+                                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                Convertir en facture
+                              </DropdownMenuItem>
+                            )}
+                            {quote.status !== "converted" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Supprimer
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </motion.tr>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </PageTransition>
+  );
+}
