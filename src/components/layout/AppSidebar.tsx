@@ -73,6 +73,7 @@ const navItems: NavItem[] = [
       { title: "Entreprise", href: "/entreprise", icon: Building2 },
       { title: "Banques", href: "/banques", icon: Landmark },
       { title: "Taxes", href: "/taxes", icon: Receipt },
+      { title: "Partenaires", href: "/partenaires", icon: Users },
       { title: "Rôles", href: "/roles", icon: Shield },
       { title: "Utilisateurs", href: "/utilisateurs", icon: UserCog },
       { title: "Emails", href: "/emails", icon: Mail },
