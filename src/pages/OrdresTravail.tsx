@@ -18,7 +18,15 @@ import {
   Package,
   Warehouse,
   Forklift,
-  FileText,
+  MapPin,
+  Ship,
+  ArrowRightLeft,
+  Sparkles,
+  Container,
+  PackageOpen,
+  Wrench,
+  Car,
+  Cog,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,7 +71,6 @@ interface WorkOrder {
   id: string;
   number: string;
   client: string;
-  category: "standard" | "note_debut";
   type: string;
   subType: string;
   date: string;
@@ -77,9 +84,8 @@ const mockOrders: WorkOrder[] = [
     id: "1",
     number: "OT-2024-0089",
     client: "COMILOG SA",
-    category: "standard",
     type: "Transport",
-    subType: "Transport Hors Libreville",
+    subType: "Hors Libreville",
     date: "15/12/2024",
     status: "in_progress",
     amount: 2500000,
@@ -87,21 +93,8 @@ const mockOrders: WorkOrder[] = [
   },
   {
     id: "2",
-    number: "ND-2024-0012",
-    client: "OLAM Gabon",
-    category: "note_debut",
-    type: "Note de début",
-    subType: "Ouverture de port",
-    date: "14/12/2024",
-    status: "completed",
-    amount: 850000,
-    description: "Ouverture de port - Container MSKU1234567",
-  },
-  {
-    id: "3",
     number: "OT-2024-0088",
     client: "OLAM Gabon",
-    category: "standard",
     type: "Manutention",
     subType: "Chargement/Déchargement",
     date: "14/12/2024",
@@ -110,22 +103,9 @@ const mockOrders: WorkOrder[] = [
     description: "Manutention containers au port",
   },
   {
-    id: "4",
-    number: "ND-2024-0011",
-    client: "Total Energies",
-    category: "note_debut",
-    type: "Note de début",
-    subType: "Surestaries",
-    date: "14/12/2024",
-    status: "pending",
-    amount: 1200000,
-    description: "Surestaries container 15 jours",
-  },
-  {
-    id: "5",
+    id: "3",
     number: "OT-2024-0087",
     client: "Total Energies",
-    category: "standard",
     type: "Stockage",
     subType: "Entrepôt sécurisé",
     date: "14/12/2024",
@@ -134,22 +114,20 @@ const mockOrders: WorkOrder[] = [
     description: "Stockage équipements pétroliers",
   },
   {
-    id: "6",
+    id: "4",
     number: "OT-2024-0086",
     client: "Assala Energy",
-    category: "standard",
     type: "Transport",
-    subType: "Transport Exceptionnel",
+    subType: "Exceptionnel",
     date: "13/12/2024",
     status: "completed",
     amount: 4500000,
     description: "Convoi exceptionnel équipement lourd",
   },
   {
-    id: "7",
+    id: "5",
     number: "OT-2024-0085",
     client: "SEEG",
-    category: "standard",
     type: "Location",
     subType: "Location engin",
     date: "12/12/2024",
@@ -159,20 +137,42 @@ const mockOrders: WorkOrder[] = [
   },
 ];
 
-const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  Manutention: Forklift,
-  Transport: Truck,
-  Stockage: Warehouse,
-  Location: Package,
-  "Note de début": FileText,
-};
-
-const typeColors: Record<string, string> = {
-  Manutention: "bg-blue-100 text-blue-700 border-blue-200",
-  Transport: "bg-amber-100 text-amber-700 border-amber-200",
-  Stockage: "bg-purple-100 text-purple-700 border-purple-200",
-  Location: "bg-green-100 text-green-700 border-green-200",
-  "Note de début": "bg-rose-100 text-rose-700 border-rose-200",
+const typeConfig = {
+  Manutention: {
+    icon: Forklift,
+    color: "bg-blue-100 text-blue-700 border-blue-200",
+    subTypes: [
+      { key: "chargement", label: "Chargement/Déchargement", icon: PackageOpen },
+      { key: "empotage", label: "Empotage/Dépotage", icon: Container },
+      { key: "autre", label: "Autre type", icon: Wrench },
+    ],
+  },
+  Transport: {
+    icon: Truck,
+    color: "bg-amber-100 text-amber-700 border-amber-200",
+    subTypes: [
+      { key: "hors-lbv", label: "Hors Libreville", icon: MapPin },
+      { key: "import", label: "Import sur Libreville", icon: Ship },
+      { key: "export", label: "Export", icon: ArrowRightLeft },
+      { key: "exceptionnel", label: "Exceptionnel", icon: Sparkles },
+    ],
+  },
+  Stockage: {
+    icon: Warehouse,
+    color: "bg-purple-100 text-purple-700 border-purple-200",
+    subTypes: [
+      { key: "entrepot", label: "Entrepôt sécurisé", icon: Warehouse },
+      { key: "plein-air", label: "Stockage plein air", icon: Package },
+    ],
+  },
+  Location: {
+    icon: Package,
+    color: "bg-green-100 text-green-700 border-green-200",
+    subTypes: [
+      { key: "engin", label: "Location engin", icon: Cog },
+      { key: "vehicule", label: "Location véhicule", icon: Car },
+    ],
+  },
 };
 
 const statusConfig = {
@@ -198,29 +198,26 @@ const statusConfig = {
   },
 };
 
-const categoryLabels = {
-  standard: "Ordre de travail",
-  note_debut: "Note de début",
-};
-
 const itemVariants = {
   hidden: { opacity: 0, x: -10 },
   visible: { opacity: 1, x: 0 },
 };
 
+type DialogStep = "type" | "subtype" | "form";
+
 export default function OrdresTravail() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<"" | "standard" | "note_debut">("");
+  const [dialogStep, setDialogStep] = useState<DialogStep>("type");
   const [selectedType, setSelectedType] = useState("");
+  const [selectedSubType, setSelectedSubType] = useState("");
 
   const filteredOrders = mockOrders.filter((order) => {
     const matchesSearch =
       order.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.client.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === "all" || order.type === typeFilter || 
-      (typeFilter === "note_debut" && order.category === "note_debut");
+    const matchesType = typeFilter === "all" || order.type === typeFilter;
     return matchesSearch && matchesType;
   });
 
@@ -232,8 +229,275 @@ export default function OrdresTravail() {
   };
 
   const resetDialog = () => {
-    setSelectedCategory("");
+    setDialogStep("type");
     setSelectedType("");
+    setSelectedSubType("");
+  };
+
+  const currentTypeConfig = selectedType ? typeConfig[selectedType as keyof typeof typeConfig] : null;
+  const currentSubTypeConfig = currentTypeConfig?.subTypes.find(st => st.key === selectedSubType);
+
+  const renderTransportForm = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Lieu de départ *</Label>
+          <Input placeholder="Ex: Port d'Owendo" />
+        </div>
+        <div className="space-y-2">
+          <Label>Lieu d'arrivée *</Label>
+          <Input placeholder="Ex: Port-Gentil" />
+        </div>
+      </div>
+      {selectedSubType === "exceptionnel" && (
+        <div className="border rounded-lg p-4 border-amber-200 bg-amber-50">
+          <h4 className="font-medium mb-3 text-amber-700">Transport Exceptionnel</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Poids total (tonnes)</Label>
+              <Input type="number" placeholder="0" />
+            </div>
+            <div className="space-y-2">
+              <Label>Dimensions (L x l x H)</Label>
+              <Input placeholder="Ex: 12m x 3m x 4m" />
+            </div>
+            <div className="space-y-2">
+              <Label>Type d'escorte</Label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="aucune">Aucune</SelectItem>
+                  <SelectItem value="vehicule">Véhicule pilote</SelectItem>
+                  <SelectItem value="police">Escorte police</SelectItem>
+                  <SelectItem value="gendarmerie">Escorte gendarmerie</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Autorisation spéciale</Label>
+              <Input placeholder="N° autorisation" />
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedSubType === "import" && (
+        <div className="border rounded-lg p-4 border-blue-200 bg-blue-50">
+          <h4 className="font-medium mb-3 text-blue-700">Import sur Libreville</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>N° Connaissement (BL)</Label>
+              <Input placeholder="BL-XXXX" />
+            </div>
+            <div className="space-y-2">
+              <Label>N° Container</Label>
+              <Input placeholder="MSKU1234567" />
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedSubType === "export" && (
+        <div className="border rounded-lg p-4 border-green-200 bg-green-50">
+          <h4 className="font-medium mb-3 text-green-700">Export</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Destination finale</Label>
+              <Input placeholder="Ex: Douala, Cameroun" />
+            </div>
+            <div className="space-y-2">
+              <Label>N° Booking</Label>
+              <Input placeholder="Booking number" />
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Date enlèvement *</Label>
+          <Input type="date" />
+        </div>
+        <div className="space-y-2">
+          <Label>Date livraison prévue</Label>
+          <Input type="date" />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderManutentionForm = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Lieu de prestation *</Label>
+          <Select>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="owendo">Port d'Owendo</SelectItem>
+              <SelectItem value="libreville">Port de Libreville</SelectItem>
+              <SelectItem value="portgentil">Port-Gentil</SelectItem>
+              <SelectItem value="autre">Autre</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Type de marchandise</Label>
+          <Input placeholder="Ex: Containers, Vrac..." />
+        </div>
+      </div>
+      {selectedSubType === "autre" && (
+        <div className="space-y-2">
+          <Label>Précisez le type de manutention *</Label>
+          <Input placeholder="Décrivez le type de manutention" />
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Date prestation *</Label>
+          <Input type="date" />
+        </div>
+        <div className="space-y-2">
+          <Label>Nombre d'unités</Label>
+          <Input type="number" placeholder="1" />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderStockageForm = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Entrepôt *</Label>
+          <Select>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="owendo-a">Owendo - Entrepôt A</SelectItem>
+              <SelectItem value="owendo-b">Owendo - Entrepôt B</SelectItem>
+              <SelectItem value="libreville">Libreville Central</SelectItem>
+              <SelectItem value="portgentil">Port-Gentil</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Type de marchandise</Label>
+          <Select>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="general">Marchandises générales</SelectItem>
+              <SelectItem value="dangereux">Marchandises dangereuses</SelectItem>
+              <SelectItem value="refrigere">Produits réfrigérés</SelectItem>
+              <SelectItem value="vrac">Vrac</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label>Date entrée *</Label>
+          <Input type="date" />
+        </div>
+        <div className="space-y-2">
+          <Label>Date sortie prévue</Label>
+          <Input type="date" />
+        </div>
+        <div className="space-y-2">
+          <Label>Surface (m²)</Label>
+          <Input type="number" placeholder="0" />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderLocationForm = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        {selectedSubType === "engin" && (
+          <div className="space-y-2">
+            <Label>Type d'engin *</Label>
+            <Select>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="grue">Grue</SelectItem>
+                <SelectItem value="chariot">Chariot élévateur</SelectItem>
+                <SelectItem value="reach">Reach stacker</SelectItem>
+                <SelectItem value="tracteur">Tracteur portuaire</SelectItem>
+                <SelectItem value="autre">Autre</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {selectedSubType === "vehicule" && (
+          <div className="space-y-2">
+            <Label>Type de véhicule *</Label>
+            <Select>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="camion">Camion</SelectItem>
+                <SelectItem value="semi">Semi-remorque</SelectItem>
+                <SelectItem value="plateau">Plateau</SelectItem>
+                <SelectItem value="citerne">Citerne</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div className="space-y-2">
+          <Label>Avec chauffeur/opérateur</Label>
+          <Select>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="oui">Oui</SelectItem>
+              <SelectItem value="non">Non</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label>Date début *</Label>
+          <Input type="date" />
+        </div>
+        <div className="space-y-2">
+          <Label>Date fin *</Label>
+          <Input type="date" />
+        </div>
+        <div className="space-y-2">
+          <Label>Durée (jours)</Label>
+          <Input type="number" disabled placeholder="0" className="bg-muted" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Lieu d'utilisation</Label>
+        <Input placeholder="Ex: Chantier Owendo" />
+      </div>
+    </div>
+  );
+
+  const renderFormByType = () => {
+    switch (selectedType) {
+      case "Transport":
+        return renderTransportForm();
+      case "Manutention":
+        return renderManutentionForm();
+      case "Stockage":
+        return renderStockageForm();
+      case "Location":
+        return renderLocationForm();
+      default:
+        return null;
+    }
   };
 
   return (
@@ -259,149 +523,131 @@ export default function OrdresTravail() {
                 Nouvel ordre
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-heading">
                   Nouvel ordre de travail
                 </DialogTitle>
                 <DialogDescription>
-                  Sélectionnez le type de document
+                  {dialogStep === "type" && "Sélectionnez le type de prestation"}
+                  {dialogStep === "subtype" && `Sélectionnez le type de ${selectedType.toLowerCase()}`}
+                  {dialogStep === "form" && `Remplissez les informations - ${currentSubTypeConfig?.label}`}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-6">
-                {!selectedCategory ? (
+                {/* Step 1: Select Type */}
+                {dialogStep === "type" && (
                   <div className="grid grid-cols-2 gap-4">
-                    <button
-                      onClick={() => setSelectedCategory("standard")}
-                      className="p-6 rounded-xl border-2 border-dashed transition-all hover:border-primary hover:bg-primary/5 bg-amber-50 text-amber-700 border-amber-200"
-                    >
-                      <Truck className="h-8 w-8 mx-auto mb-3" />
-                      <p className="font-semibold">Ordre de travail</p>
-                      <p className="text-xs mt-1 opacity-70">Manutention, Transport, Stockage, Location</p>
-                    </button>
-                    <button
-                      onClick={() => setSelectedCategory("note_debut")}
-                      className="p-6 rounded-xl border-2 border-dashed transition-all hover:border-primary hover:bg-primary/5 bg-rose-50 text-rose-700 border-rose-200"
-                    >
-                      <FileText className="h-8 w-8 mx-auto mb-3" />
-                      <p className="font-semibold">Note de début</p>
-                      <p className="text-xs mt-1 opacity-70">Ouverture de port, Détention, Surestaries, Magasinage</p>
-                    </button>
-                  </div>
-                ) : selectedCategory === "standard" && !selectedType ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-6">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedCategory("")}
-                      >
-                        ← Retour
-                      </Button>
-                      <Badge className="bg-amber-100 text-amber-700 border-amber-200">
-                        Ordre de travail
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      {Object.entries(typeIcons).filter(([type]) => type !== "Note de début").map(([type, Icon]) => (
+                    {Object.entries(typeConfig).map(([type, config]) => {
+                      const Icon = config.icon;
+                      return (
                         <button
                           key={type}
-                          onClick={() => setSelectedType(type)}
-                          className={`p-6 rounded-xl border-2 border-dashed transition-all hover:border-primary hover:bg-primary/5 ${typeColors[type]}`}
+                          onClick={() => {
+                            setSelectedType(type);
+                            setDialogStep("subtype");
+                          }}
+                          className={`p-6 rounded-xl border-2 border-dashed transition-all hover:border-primary hover:bg-primary/5 ${config.color}`}
                         >
                           <Icon className="h-8 w-8 mx-auto mb-3" />
                           <p className="font-semibold">{type}</p>
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                ) : (
+                )}
+
+                {/* Step 2: Select SubType */}
+                {dialogStep === "subtype" && currentTypeConfig && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-6">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          if (selectedCategory === "note_debut") {
-                            setSelectedCategory("");
-                          } else {
-                            setSelectedType("");
-                          }
+                          setDialogStep("type");
+                          setSelectedType("");
                         }}
                       >
                         ← Retour
                       </Button>
-                      <Badge className={selectedCategory === "note_debut" ? "bg-rose-100 text-rose-700 border-rose-200" : typeColors[selectedType]}>
-                        {selectedCategory === "note_debut" ? "Note de début" : selectedType}
+                      <Badge className={currentTypeConfig.color}>
+                        {selectedType}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Quel type de {selectedType.toLowerCase()} souhaitez-vous créer ?
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      {currentTypeConfig.subTypes.map((subType) => {
+                        const Icon = subType.icon;
+                        return (
+                          <button
+                            key={subType.key}
+                            onClick={() => {
+                              setSelectedSubType(subType.key);
+                              setDialogStep("form");
+                            }}
+                            className={`p-5 rounded-xl border-2 border-dashed transition-all hover:border-primary hover:bg-primary/5 ${currentTypeConfig.color}`}
+                          >
+                            <Icon className="h-6 w-6 mx-auto mb-2" />
+                            <p className="font-medium text-sm">{subType.label}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Form */}
+                {dialogStep === "form" && currentTypeConfig && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-6">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setDialogStep("subtype");
+                          setSelectedSubType("");
+                        }}
+                      >
+                        ← Retour
+                      </Button>
+                      <Badge className={currentTypeConfig.color}>
+                        {selectedType}
+                      </Badge>
+                      <Badge variant="outline">
+                        {currentSubTypeConfig?.label}
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Client *</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner un client" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="comilog">COMILOG SA</SelectItem>
-                            <SelectItem value="olam">OLAM Gabon</SelectItem>
-                            <SelectItem value="total">Total Energies</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Type *</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Type de prestation" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectedCategory === "note_debut" && (
-                              <>
-                                <SelectItem value="ouverture">Ouverture de port</SelectItem>
-                                <SelectItem value="detention">Détention</SelectItem>
-                                <SelectItem value="surestaries">Surestaries</SelectItem>
-                                <SelectItem value="magasinage">Magasinage</SelectItem>
-                              </>
-                            )}
-                            {selectedType === "Transport" && (
-                              <>
-                                <SelectItem value="hors-lbv">Hors Libreville</SelectItem>
-                                <SelectItem value="import">Import sur Libreville</SelectItem>
-                                <SelectItem value="export">Export</SelectItem>
-                                <SelectItem value="exceptionnel">Exceptionnel</SelectItem>
-                              </>
-                            )}
-                            {selectedType === "Manutention" && (
-                              <>
-                                <SelectItem value="chargement">Chargement/Déchargement</SelectItem>
-                                <SelectItem value="empotage">Empotage/Dépotage</SelectItem>
-                                <SelectItem value="autre">Autre (à préciser)</SelectItem>
-                              </>
-                            )}
-                            {selectedType === "Stockage" && (
-                              <>
-                                <SelectItem value="entrepot">Entrepôt sécurisé</SelectItem>
-                                <SelectItem value="plein-air">Stockage plein air</SelectItem>
-                              </>
-                            )}
-                            {selectedType === "Location" && (
-                              <>
-                                <SelectItem value="engin">Location engin</SelectItem>
-                                <SelectItem value="vehicule">Location véhicule</SelectItem>
-                              </>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    {/* Client */}
+                    <div className="space-y-2">
+                      <Label>Client *</Label>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un client" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="comilog">COMILOG SA</SelectItem>
+                          <SelectItem value="olam">OLAM Gabon</SelectItem>
+                          <SelectItem value="total">Total Energies</SelectItem>
+                          <SelectItem value="assala">Assala Energy</SelectItem>
+                          <SelectItem value="seeg">SEEG</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
+                    {/* Type-specific form */}
+                    {renderFormByType()}
+
+                    {/* Description */}
                     <div className="space-y-2">
                       <Label>Description</Label>
                       <Textarea placeholder="Description de la prestation..." />
                     </div>
 
+                    {/* Lignes de prestation */}
                     <div className="border rounded-lg p-4 mt-4">
                       <h4 className="font-medium mb-3">Lignes de prestation</h4>
                       <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-2">
@@ -424,7 +670,7 @@ export default function OrdresTravail() {
                   </div>
                 )}
               </div>
-              {(selectedCategory === "note_debut" || selectedType) && (
+              {dialogStep === "form" && (
                 <DialogFooter>
                   <Button variant="outline" onClick={() => {
                     setIsDialogOpen(false);
@@ -436,7 +682,7 @@ export default function OrdresTravail() {
                     setIsDialogOpen(false);
                     resetDialog();
                   }}>
-                    Créer
+                    Créer l'ordre
                   </Button>
                 </DialogFooter>
               )}
@@ -461,7 +707,6 @@ export default function OrdresTravail() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les types</SelectItem>
-              <SelectItem value="note_debut">Note de début</SelectItem>
               <SelectItem value="Transport">Transport</SelectItem>
               <SelectItem value="Manutention">Manutention</SelectItem>
               <SelectItem value="Stockage">Stockage</SelectItem>
@@ -492,7 +737,8 @@ export default function OrdresTravail() {
               </TableHeader>
               <TableBody>
                 {filteredOrders.map((order, index) => {
-                  const TypeIcon = typeIcons[order.type] || FileText;
+                  const config = typeConfig[order.type as keyof typeof typeConfig];
+                  const TypeIcon = config?.icon || Truck;
                   const status = statusConfig[order.status];
                   const StatusIcon = status.icon;
                   return (
@@ -509,7 +755,7 @@ export default function OrdresTravail() {
                       </TableCell>
                       <TableCell>{order.client}</TableCell>
                       <TableCell>
-                        <Badge className={`${typeColors[order.type] || "bg-muted"} border`}>
+                        <Badge className={`${config?.color || "bg-muted"} border`}>
                           <TypeIcon className="h-3 w-3 mr-1" />
                           {order.type}
                         </Badge>

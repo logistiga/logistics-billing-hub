@@ -50,6 +50,7 @@ const navItems: NavItem[] = [
     icon: FileText,
     children: [
       { title: "Ordres de travail", href: "/ordres-travail", icon: ClipboardList },
+      { title: "Notes de début", href: "/notes-debut", icon: FileText },
       { title: "Factures", href: "/factures", icon: FileCheck },
       { title: "Devis", href: "/devis", icon: Receipt },
     ],
