@@ -18,6 +18,7 @@ import {
   Package,
   Warehouse,
   Forklift,
+  FileText,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,12 +50,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface WorkOrder {
   id: string;
   number: string;
   client: string;
-  type: "Manutention" | "Transport" | "Stockage" | "Location";
+  category: "standard" | "note_debut";
+  type: string;
   subType: string;
   date: string;
   status: "pending" | "in_progress" | "completed" | "cancelled";
@@ -67,6 +77,7 @@ const mockOrders: WorkOrder[] = [
     id: "1",
     number: "OT-2024-0089",
     client: "COMILOG SA",
+    category: "standard",
     type: "Transport",
     subType: "Transport Hors Libreville",
     date: "15/12/2024",
@@ -76,8 +87,21 @@ const mockOrders: WorkOrder[] = [
   },
   {
     id: "2",
+    number: "ND-2024-0012",
+    client: "OLAM Gabon",
+    category: "note_debut",
+    type: "Note de début",
+    subType: "Ouverture de port",
+    date: "14/12/2024",
+    status: "completed",
+    amount: 850000,
+    description: "Ouverture de port - Container MSKU1234567",
+  },
+  {
+    id: "3",
     number: "OT-2024-0088",
     client: "OLAM Gabon",
+    category: "standard",
     type: "Manutention",
     subType: "Chargement/Déchargement",
     date: "14/12/2024",
@@ -86,9 +110,22 @@ const mockOrders: WorkOrder[] = [
     description: "Manutention containers au port",
   },
   {
-    id: "3",
+    id: "4",
+    number: "ND-2024-0011",
+    client: "Total Energies",
+    category: "note_debut",
+    type: "Note de début",
+    subType: "Surestaries",
+    date: "14/12/2024",
+    status: "pending",
+    amount: 1200000,
+    description: "Surestaries container 15 jours",
+  },
+  {
+    id: "5",
     number: "OT-2024-0087",
     client: "Total Energies",
+    category: "standard",
     type: "Stockage",
     subType: "Entrepôt sécurisé",
     date: "14/12/2024",
@@ -97,9 +134,10 @@ const mockOrders: WorkOrder[] = [
     description: "Stockage équipements pétroliers",
   },
   {
-    id: "4",
+    id: "6",
     number: "OT-2024-0086",
     client: "Assala Energy",
+    category: "standard",
     type: "Transport",
     subType: "Transport Exceptionnel",
     date: "13/12/2024",
@@ -108,9 +146,10 @@ const mockOrders: WorkOrder[] = [
     description: "Convoi exceptionnel équipement lourd",
   },
   {
-    id: "5",
+    id: "7",
     number: "OT-2024-0085",
     client: "SEEG",
+    category: "standard",
     type: "Location",
     subType: "Location engin",
     date: "12/12/2024",
@@ -120,18 +159,20 @@ const mockOrders: WorkOrder[] = [
   },
 ];
 
-const typeIcons = {
+const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   Manutention: Forklift,
   Transport: Truck,
   Stockage: Warehouse,
   Location: Package,
+  "Note de début": FileText,
 };
 
-const typeColors = {
+const typeColors: Record<string, string> = {
   Manutention: "bg-blue-100 text-blue-700 border-blue-200",
   Transport: "bg-amber-100 text-amber-700 border-amber-200",
   Stockage: "bg-purple-100 text-purple-700 border-purple-200",
   Location: "bg-green-100 text-green-700 border-green-200",
+  "Note de début": "bg-rose-100 text-rose-700 border-rose-200",
 };
 
 const statusConfig = {
@@ -157,30 +198,29 @@ const statusConfig = {
   },
 };
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 },
-  },
+const categoryLabels = {
+  standard: "Ordre de travail",
+  note_debut: "Note de début",
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0 },
+  hidden: { opacity: 0, x: -10 },
+  visible: { opacity: 1, x: 0 },
 };
 
 export default function OrdresTravail() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<"" | "standard" | "note_debut">("");
   const [selectedType, setSelectedType] = useState("");
 
   const filteredOrders = mockOrders.filter((order) => {
     const matchesSearch =
       order.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.client.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === "all" || order.type === typeFilter;
+    const matchesType = typeFilter === "all" || order.type === typeFilter || 
+      (typeFilter === "note_debut" && order.category === "note_debut");
     return matchesSearch && matchesType;
   });
 
@@ -189,6 +229,11 @@ export default function OrdresTravail() {
       style: "decimal",
       minimumFractionDigits: 0,
     }).format(value);
+  };
+
+  const resetDialog = () => {
+    setSelectedCategory("");
+    setSelectedType("");
   };
 
   return (
@@ -204,7 +249,10 @@ export default function OrdresTravail() {
               Gérez vos connaissements et ordres de travail
             </p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetDialog();
+          }}>
             <DialogTrigger asChild>
               <Button variant="gradient">
                 <Plus className="h-4 w-4 mr-2" />
@@ -217,22 +265,55 @@ export default function OrdresTravail() {
                   Nouvel ordre de travail
                 </DialogTitle>
                 <DialogDescription>
-                  Sélectionnez le type de prestation
+                  Sélectionnez le type de document
                 </DialogDescription>
               </DialogHeader>
               <div className="py-6">
-                {!selectedType ? (
+                {!selectedCategory ? (
                   <div className="grid grid-cols-2 gap-4">
-                    {Object.entries(typeIcons).map(([type, Icon]) => (
-                      <button
-                        key={type}
-                        onClick={() => setSelectedType(type)}
-                        className={`p-6 rounded-xl border-2 border-dashed transition-all hover:border-primary hover:bg-primary/5 ${typeColors[type as keyof typeof typeColors]}`}
+                    <button
+                      onClick={() => setSelectedCategory("standard")}
+                      className="p-6 rounded-xl border-2 border-dashed transition-all hover:border-primary hover:bg-primary/5 bg-amber-50 text-amber-700 border-amber-200"
+                    >
+                      <Truck className="h-8 w-8 mx-auto mb-3" />
+                      <p className="font-semibold">Ordre de travail</p>
+                      <p className="text-xs mt-1 opacity-70">Manutention, Transport, Stockage, Location</p>
+                    </button>
+                    <button
+                      onClick={() => setSelectedCategory("note_debut")}
+                      className="p-6 rounded-xl border-2 border-dashed transition-all hover:border-primary hover:bg-primary/5 bg-rose-50 text-rose-700 border-rose-200"
+                    >
+                      <FileText className="h-8 w-8 mx-auto mb-3" />
+                      <p className="font-semibold">Note de début</p>
+                      <p className="text-xs mt-1 opacity-70">Ouverture de port, Détention, Surestaries, Magasinage</p>
+                    </button>
+                  </div>
+                ) : selectedCategory === "standard" && !selectedType ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-6">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedCategory("")}
                       >
-                        <Icon className="h-8 w-8 mx-auto mb-3" />
-                        <p className="font-semibold">{type}</p>
-                      </button>
-                    ))}
+                        ← Retour
+                      </Button>
+                      <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                        Ordre de travail
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      {Object.entries(typeIcons).filter(([type]) => type !== "Note de début").map(([type, Icon]) => (
+                        <button
+                          key={type}
+                          onClick={() => setSelectedType(type)}
+                          className={`p-6 rounded-xl border-2 border-dashed transition-all hover:border-primary hover:bg-primary/5 ${typeColors[type]}`}
+                        >
+                          <Icon className="h-8 w-8 mx-auto mb-3" />
+                          <p className="font-semibold">{type}</p>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -240,12 +321,18 @@ export default function OrdresTravail() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setSelectedType("")}
+                        onClick={() => {
+                          if (selectedCategory === "note_debut") {
+                            setSelectedCategory("");
+                          } else {
+                            setSelectedType("");
+                          }
+                        }}
                       >
                         ← Retour
                       </Button>
-                      <Badge className={typeColors[selectedType as keyof typeof typeColors]}>
-                        {selectedType}
+                      <Badge className={selectedCategory === "note_debut" ? "bg-rose-100 text-rose-700 border-rose-200" : typeColors[selectedType]}>
+                        {selectedCategory === "note_debut" ? "Note de début" : selectedType}
                       </Badge>
                     </div>
 
@@ -264,16 +351,24 @@ export default function OrdresTravail() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Sous-type *</Label>
+                        <Label>Type *</Label>
                         <Select>
                           <SelectTrigger>
                             <SelectValue placeholder="Type de prestation" />
                           </SelectTrigger>
                           <SelectContent>
+                            {selectedCategory === "note_debut" && (
+                              <>
+                                <SelectItem value="ouverture">Ouverture de port</SelectItem>
+                                <SelectItem value="detention">Détention</SelectItem>
+                                <SelectItem value="surestaries">Surestaries</SelectItem>
+                                <SelectItem value="magasinage">Magasinage</SelectItem>
+                              </>
+                            )}
                             {selectedType === "Transport" && (
                               <>
                                 <SelectItem value="hors-lbv">Hors Libreville</SelectItem>
-                                <SelectItem value="import">Import</SelectItem>
+                                <SelectItem value="import">Import sur Libreville</SelectItem>
                                 <SelectItem value="export">Export</SelectItem>
                                 <SelectItem value="exceptionnel">Exceptionnel</SelectItem>
                               </>
@@ -282,6 +377,7 @@ export default function OrdresTravail() {
                               <>
                                 <SelectItem value="chargement">Chargement/Déchargement</SelectItem>
                                 <SelectItem value="empotage">Empotage/Dépotage</SelectItem>
+                                <SelectItem value="autre">Autre (à préciser)</SelectItem>
                               </>
                             )}
                             {selectedType === "Stockage" && (
@@ -328,13 +424,19 @@ export default function OrdresTravail() {
                   </div>
                 )}
               </div>
-              {selectedType && (
+              {(selectedCategory === "note_debut" || selectedType) && (
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => {
+                    setIsDialogOpen(false);
+                    resetDialog();
+                  }}>
                     Annuler
                   </Button>
-                  <Button variant="gradient" onClick={() => setIsDialogOpen(false)}>
-                    Créer l'ordre
+                  <Button variant="gradient" onClick={() => {
+                    setIsDialogOpen(false);
+                    resetDialog();
+                  }}>
+                    Créer
                   </Button>
                 </DialogFooter>
               )}
@@ -359,6 +461,7 @@ export default function OrdresTravail() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les types</SelectItem>
+              <SelectItem value="note_debut">Note de début</SelectItem>
               <SelectItem value="Transport">Transport</SelectItem>
               <SelectItem value="Manutention">Manutention</SelectItem>
               <SelectItem value="Stockage">Stockage</SelectItem>
@@ -371,106 +474,109 @@ export default function OrdresTravail() {
           </Button>
         </div>
 
-        {/* Orders Grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
-        >
-          {filteredOrders.map((order) => {
-            const TypeIcon = typeIcons[order.type];
-            const status = statusConfig[order.status];
-            const StatusIcon = status.icon;
-            return (
-              <motion.div key={order.id} variants={itemVariants}>
-                <Card className="hover-lift cursor-pointer border-border/50 group">
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`p-3 rounded-xl ${typeColors[order.type]}`}
-                        >
-                          <TypeIcon className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="font-semibold">{order.number}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {order.client}
-                          </p>
-                        </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Voir détails
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Modifier
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Download className="h-4 w-4 mr-2" />
-                            Télécharger PDF
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Mail className="h-4 w-4 mr-2" />
-                            Envoyer par email
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem>
-                            <FileCheck className="h-4 w-4 mr-2" />
-                            Convertir en facture
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Supprimer
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                      {order.description}
-                    </p>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="font-normal">
-                          {order.subType}
+        {/* Orders Table */}
+        <Card className="border-border/50">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Numéro</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Sous-type</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Montant</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredOrders.map((order, index) => {
+                  const TypeIcon = typeIcons[order.type] || FileText;
+                  const status = statusConfig[order.status];
+                  const StatusIcon = status.icon;
+                  return (
+                    <motion.tr
+                      key={order.id}
+                      variants={itemVariants}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: index * 0.05 }}
+                      className="group hover:bg-muted/50 cursor-pointer"
+                    >
+                      <TableCell className="font-medium">
+                        {order.number}
+                      </TableCell>
+                      <TableCell>{order.client}</TableCell>
+                      <TableCell>
+                        <Badge className={`${typeColors[order.type] || "bg-muted"} border`}>
+                          <TypeIcon className="h-3 w-3 mr-1" />
+                          {order.type}
                         </Badge>
-                      </div>
-                      <span
-                        className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${status.class}`}
-                      >
-                        <StatusIcon className="h-3 w-3" />
-                        {status.label}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">{order.date}</p>
-                      <p className="font-semibold text-primary">
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {order.subType}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {order.date}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
                         {formatCurrency(order.amount)} FCFA
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium w-fit ${status.class}`}>
+                          <StatusIcon className="h-3 w-3" />
+                          {status.label}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Voir détails
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Download className="h-4 w-4 mr-2" />
+                              Télécharger PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Mail className="h-4 w-4 mr-2" />
+                              Envoyer par email
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>
+                              <FileCheck className="h-4 w-4 mr-2" />
+                              Convertir en facture
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Supprimer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </motion.tr>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
     </PageTransition>
   );
