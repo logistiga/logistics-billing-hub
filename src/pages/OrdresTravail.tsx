@@ -920,45 +920,46 @@ export default function OrdresTravail() {
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
-                              size="icon"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              size="sm"
+                              className="text-muted-foreground hover:text-foreground"
                             >
-                              <MoreHorizontal className="h-4 w-4" />
+                              Actions
+                              <MoreHorizontal className="h-4 w-4 ml-1" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-popover">
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
+                          <DropdownMenuContent align="end" className="bg-popover w-52">
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Eye className="h-4 w-4 mr-2 text-muted-foreground" />
                               Voir détails
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Edit className="h-4 w-4 mr-2 text-muted-foreground" />
                               Modifier
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <Download className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Download className="h-4 w-4 mr-2 text-muted-foreground" />
                               Télécharger PDF
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Mail className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
                               Envoyer par email
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <FileCheck className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem className="cursor-pointer">
+                              <FileCheck className="h-4 w-4 mr-2 text-muted-foreground" />
                               Convertir en facture
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <CreditCard className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem className="cursor-pointer">
+                              <CreditCard className="h-4 w-4 mr-2 text-muted-foreground" />
                               Enregistrer paiement
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-warning">
+                            <DropdownMenuItem className="cursor-pointer text-amber-500">
                               <Ban className="h-4 w-4 mr-2" />
                               Annuler
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem className="cursor-pointer text-destructive">
                               <Trash2 className="h-4 w-4 mr-2" />
                               Supprimer
                             </DropdownMenuItem>
