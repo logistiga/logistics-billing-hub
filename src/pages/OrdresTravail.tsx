@@ -928,39 +928,39 @@ export default function OrdresTravail() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-popover w-52">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Eye className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <DropdownMenuItem className="cursor-pointer gap-2">
+                              <Eye className="h-4 w-4 text-slate-500" />
                               Voir détails
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Edit className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <DropdownMenuItem className="cursor-pointer gap-2">
+                              <Edit className="h-4 w-4 text-blue-500" />
                               Modifier
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Download className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <DropdownMenuItem className="cursor-pointer gap-2">
+                              <Download className="h-4 w-4 text-slate-500" />
                               Télécharger PDF
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <DropdownMenuItem className="cursor-pointer gap-2">
+                              <Mail className="h-4 w-4 text-green-500" />
                               Envoyer par email
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="cursor-pointer">
-                              <FileCheck className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <DropdownMenuItem className="cursor-pointer gap-2">
+                              <FileCheck className="h-4 w-4 text-indigo-500" />
                               Convertir en facture
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer">
-                              <CreditCard className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <DropdownMenuItem className="cursor-pointer gap-2">
+                              <CreditCard className="h-4 w-4 text-emerald-500" />
                               Enregistrer paiement
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="cursor-pointer text-amber-500">
-                              <Ban className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem className="cursor-pointer gap-2 text-amber-500">
+                              <Ban className="h-4 w-4" />
                               Annuler
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer text-destructive">
-                              <Trash2 className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem className="cursor-pointer gap-2 text-destructive">
+                              <Trash2 className="h-4 w-4" />
                               Supprimer
                             </DropdownMenuItem>
                           </DropdownMenuContent>
