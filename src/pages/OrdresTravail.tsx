@@ -27,6 +27,8 @@ import {
   Wrench,
   Car,
   Cog,
+  Ban,
+  CreditCard,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -924,7 +926,7 @@ export default function OrdresTravail() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="bg-popover">
                             <DropdownMenuItem>
                               <Eye className="h-4 w-4 mr-2" />
                               Voir détails
@@ -933,6 +935,7 @@ export default function OrdresTravail() {
                               <Edit className="h-4 w-4 mr-2" />
                               Modifier
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem>
                               <Download className="h-4 w-4 mr-2" />
                               Télécharger PDF
@@ -946,7 +949,15 @@ export default function OrdresTravail() {
                               <FileCheck className="h-4 w-4 mr-2" />
                               Convertir en facture
                             </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <CreditCard className="h-4 w-4 mr-2" />
+                              Enregistrer paiement
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-warning">
+                              <Ban className="h-4 w-4 mr-2" />
+                              Annuler
+                            </DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive">
                               <Trash2 className="h-4 w-4 mr-2" />
                               Supprimer
