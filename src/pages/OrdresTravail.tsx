@@ -915,56 +915,33 @@ export default function OrdresTravail() {
                           {status.label}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              Actions
-                              <MoreHorizontal className="h-4 w-4 ml-1" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-popover w-52">
-                            <DropdownMenuItem className="cursor-pointer gap-2">
-                              <Eye className="h-4 w-4 text-slate-500" />
-                              Voir détails
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer gap-2">
-                              <Edit className="h-4 w-4 text-blue-500" />
-                              Modifier
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="cursor-pointer gap-2">
-                              <Download className="h-4 w-4 text-slate-500" />
-                              Télécharger PDF
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer gap-2">
-                              <Mail className="h-4 w-4 text-green-500" />
-                              Envoyer par email
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="cursor-pointer gap-2">
-                              <FileCheck className="h-4 w-4 text-indigo-500" />
-                              Convertir en facture
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer gap-2">
-                              <CreditCard className="h-4 w-4 text-emerald-500" />
-                              Enregistrer paiement
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="cursor-pointer gap-2 text-amber-500">
-                              <Ban className="h-4 w-4" />
-                              Annuler
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer gap-2 text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                              Supprimer
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Voir détails">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700" title="Modifier">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Télécharger PDF">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-700" title="Envoyer par email">
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-500 hover:text-indigo-700" title="Convertir en facture">
+                            <FileCheck className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500 hover:text-emerald-700" title="Enregistrer paiement">
+                            <CreditCard className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-700" title="Annuler">
+                            <Ban className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" title="Supprimer">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </motion.tr>
                   );
