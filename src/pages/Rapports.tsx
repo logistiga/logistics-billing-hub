@@ -11,19 +11,17 @@ import {
   Receipt,
   Filter,
   Search,
-  ChevronDown,
   Building,
   TrendingUp,
-  Banknote,
-  Landmark,
   Package,
   Truck,
   Warehouse,
   Settings2,
   Eye,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -42,69 +40,85 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
+import {
+  generateRapport,
+  type RapportFilters,
+  type Client,
+  type Facture,
+  type OrdreTravail,
+  type TransactionTresorerie,
+  type Devis,
+} from "@/lib/generateRapportPDF";
 
-// Mock data
-const clients = [
-  { id: "1", nom: "Total Gabon", ville: "Libreville" },
-  { id: "2", nom: "Comilog", ville: "Moanda" },
-  { id: "3", nom: "Assala Energy", ville: "Port-Gentil" },
-  { id: "4", nom: "Perenco", ville: "Port-Gentil" },
-  { id: "5", nom: "Maurel & Prom", ville: "Libreville" },
-  { id: "6", nom: "SEEG", ville: "Libreville" },
-  { id: "7", nom: "Olam Gabon", ville: "Libreville" },
+// Mock data - Clients
+const mockClients: Client[] = [
+  { id: "1", nom: "Total Gabon", ville: "Libreville", telephone: "+241 01 76 00 00", email: "contact@total.ga" },
+  { id: "2", nom: "Comilog SA", ville: "Moanda", telephone: "+241 01 66 00 00", email: "info@comilog.com" },
+  { id: "3", nom: "Assala Energy", ville: "Port-Gentil", telephone: "+241 01 55 00 00", email: "contact@assala.com" },
+  { id: "4", nom: "Perenco Gabon", ville: "Port-Gentil", telephone: "+241 01 56 00 00", email: "info@perenco.com" },
+  { id: "5", nom: "Maurel & Prom", ville: "Libreville", telephone: "+241 01 77 00 00", email: "contact@maureletprom.fr" },
+  { id: "6", nom: "SEEG", ville: "Libreville", telephone: "+241 01 72 00 00", email: "contact@seeg.ga" },
+  { id: "7", nom: "Olam Gabon", ville: "Libreville", telephone: "+241 01 73 00 00", email: "info@olamgroup.com" },
+  { id: "8", nom: "GSEZ", ville: "Nkok", telephone: "+241 01 44 00 00", email: "contact@gsez.com" },
+];
+
+// Mock data - Factures
+const mockFactures: Facture[] = [
+  { id: "1", numero: "FAC-2024-0142", client: "Comilog SA", clientId: "2", date: "2024-12-14", dateEcheance: "2025-01-14", montant: 3250000, montantPaye: 3250000, statut: "payee", type: "Transport", sousType: "hors_libreville" },
+  { id: "2", numero: "FAC-2024-0141", client: "Olam Gabon", clientId: "7", date: "2024-12-13", dateEcheance: "2025-01-13", montant: 1875000, montantPaye: 0, statut: "en_attente", type: "Manutention" },
+  { id: "3", numero: "FAC-2024-0140", client: "Total Gabon", clientId: "1", date: "2024-12-12", dateEcheance: "2025-01-12", montant: 5420000, montantPaye: 5420000, statut: "payee", type: "Transport", sousType: "exportation" },
+  { id: "4", numero: "FAC-2024-0139", client: "Assala Energy", clientId: "3", date: "2024-12-10", dateEcheance: "2025-01-10", montant: 2100000, montantPaye: 0, statut: "en_retard", type: "Stockage" },
+  { id: "5", numero: "FAC-2024-0138", client: "SEEG", clientId: "6", date: "2024-12-09", dateEcheance: "2025-01-09", montant: 890000, montantPaye: 450000, statut: "partielle", type: "Location" },
+  { id: "6", numero: "FAC-2024-0137", client: "Perenco Gabon", clientId: "4", date: "2024-12-08", dateEcheance: "2025-01-08", montant: 4500000, montantPaye: 4500000, statut: "payee", type: "Transport", sousType: "importation" },
+  { id: "7", numero: "FAC-2024-0136", client: "GSEZ", clientId: "8", date: "2024-12-05", dateEcheance: "2025-01-05", montant: 2300000, montantPaye: 0, statut: "en_attente", type: "Manutention" },
+  { id: "8", numero: "FAC-2024-0135", client: "Maurel & Prom", clientId: "5", date: "2024-12-03", dateEcheance: "2025-01-03", montant: 1650000, montantPaye: 1650000, statut: "payee", type: "Transit" },
+];
+
+// Mock data - Ordres de travail
+const mockOrdres: OrdreTravail[] = [
+  { id: "1", numero: "OT-2024-0089", client: "Comilog SA", clientId: "2", date: "2024-12-14", type: "Transport", sousType: "hors_libreville", statut: "termine", montant: 3250000 },
+  { id: "2", numero: "OT-2024-0088", client: "Total Gabon", clientId: "1", date: "2024-12-13", type: "Manutention", statut: "en_cours", montant: 1500000 },
+  { id: "3", numero: "OT-2024-0087", client: "Olam Gabon", clientId: "7", date: "2024-12-12", type: "Stockage", statut: "termine", montant: 850000 },
+  { id: "4", numero: "OT-2024-0086", client: "Assala Energy", clientId: "3", date: "2024-12-11", type: "Transport", sousType: "exportation", statut: "planifie", montant: 2800000 },
+  { id: "5", numero: "OT-2024-0085", client: "SEEG", clientId: "6", date: "2024-12-10", type: "Manutention", statut: "termine", montant: 920000 },
+  { id: "6", numero: "OT-2024-0084", client: "Perenco Gabon", clientId: "4", date: "2024-12-09", type: "Transport", sousType: "importation", statut: "en_cours", montant: 4200000 },
+];
+
+// Mock data - Transactions trésorerie
+const mockTransactions: TransactionTresorerie[] = [
+  { id: "1", date: "2024-12-14", reference: "CAI-001", description: "Paiement client Comilog", type: "entree", montant: 3250000, categorie: "Règlement client", source: "caisse" },
+  { id: "2", date: "2024-12-13", reference: "BNK-045", description: "Virement Total Gabon", type: "entree", montant: 5420000, categorie: "Règlement client", source: "banque", banque: "BGFI Bank" },
+  { id: "3", date: "2024-12-12", reference: "CAI-002", description: "Achat carburant véhicules", type: "sortie", montant: 850000, categorie: "Carburant", source: "caisse" },
+  { id: "4", date: "2024-12-11", reference: "BNK-046", description: "Salaires décembre", type: "sortie", montant: 4500000, categorie: "Salaires", source: "banque", banque: "UGB" },
+  { id: "5", date: "2024-12-10", reference: "CAI-003", description: "Paiement client SEEG", type: "entree", montant: 450000, categorie: "Règlement client", source: "caisse" },
+  { id: "6", date: "2024-12-09", reference: "BNK-047", description: "Virement Perenco", type: "entree", montant: 4500000, categorie: "Règlement client", source: "banque", banque: "BGFI Bank" },
+  { id: "7", date: "2024-12-08", reference: "CAI-004", description: "Fournitures bureau", type: "sortie", montant: 125000, categorie: "Fournitures", source: "caisse" },
+  { id: "8", date: "2024-12-07", reference: "BNK-048", description: "Maintenance véhicules", type: "sortie", montant: 750000, categorie: "Entretien", source: "banque", banque: "BGFI Bank" },
+];
+
+// Mock data - Devis
+const mockDevis: Devis[] = [
+  { id: "1", numero: "DEV-2024-0056", client: "Comilog SA", clientId: "2", date: "2024-12-10", validite: "2025-01-10", montant: 4500000, statut: "accepte", type: "Transport" },
+  { id: "2", numero: "DEV-2024-0055", client: "Total Gabon", clientId: "1", date: "2024-12-08", validite: "2025-01-08", montant: 3200000, statut: "en_attente", type: "Manutention" },
+  { id: "3", numero: "DEV-2024-0054", client: "GSEZ", clientId: "8", date: "2024-12-05", validite: "2025-01-05", montant: 2100000, statut: "accepte", type: "Stockage" },
+  { id: "4", numero: "DEV-2024-0053", client: "Olam Gabon", clientId: "7", date: "2024-12-03", validite: "2025-01-03", montant: 1800000, statut: "refuse", type: "Transport" },
+  { id: "5", numero: "DEV-2024-0052", client: "Assala Energy", clientId: "3", date: "2024-12-01", validite: "2025-01-01", montant: 5500000, statut: "expire", type: "Transit" },
 ];
 
 const typesRapport = [
-  {
-    id: "clients",
-    titre: "Rapport Clients",
-    description: "Historique et statistiques par client",
-    icon: Users,
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
-  },
-  {
-    id: "factures",
-    titre: "Rapport Factures",
-    description: "Liste des factures par période et statut",
-    icon: FileCheck,
-    color: "text-emerald-500",
-    bgColor: "bg-emerald-500/10",
-  },
-  {
-    id: "ordres",
-    titre: "Rapport Ordres de Travail",
-    description: "Ordres par type d'opération",
-    icon: ClipboardList,
-    color: "text-purple-500",
-    bgColor: "bg-purple-500/10",
-  },
-  {
-    id: "tresorerie",
-    titre: "Rapport Trésorerie",
-    description: "Mouvements caisse et banque",
-    icon: TrendingUp,
-    color: "text-amber-500",
-    bgColor: "bg-amber-500/10",
-  },
-  {
-    id: "devis",
-    titre: "Rapport Devis",
-    description: "Devis émis et taux de conversion",
-    icon: Receipt,
-    color: "text-cyan-500",
-    bgColor: "bg-cyan-500/10",
-  },
+  { id: "clients", titre: "Rapport Clients", description: "Historique et statistiques par client", icon: Users, color: "text-blue-500", bgColor: "bg-blue-500/10" },
+  { id: "factures", titre: "Rapport Factures", description: "Liste des factures par période et statut", icon: FileCheck, color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
+  { id: "ordres", titre: "Rapport Ordres de Travail", description: "Ordres par type d'opération", icon: ClipboardList, color: "text-purple-500", bgColor: "bg-purple-500/10" },
+  { id: "tresorerie", titre: "Rapport Trésorerie", description: "Mouvements caisse et banque", icon: TrendingUp, color: "text-amber-500", bgColor: "bg-amber-500/10" },
+  { id: "devis", titre: "Rapport Devis", description: "Devis émis et taux de conversion", icon: Receipt, color: "text-cyan-500", bgColor: "bg-cyan-500/10" },
 ];
 
 const typesOperation = [
-  { id: "manutention", label: "Manutention", icon: Package },
-  { id: "transport", label: "Transport", icon: Truck },
-  { id: "stockage", label: "Stockage", icon: Warehouse },
-  { id: "transit", label: "Transit", icon: Building },
+  { id: "Manutention", label: "Manutention", icon: Package },
+  { id: "Transport", label: "Transport", icon: Truck },
+  { id: "Stockage", label: "Stockage", icon: Warehouse },
+  { id: "Transit", label: "Transit", icon: Building },
 ];
 
 const sousTypesTransport = [
@@ -148,16 +162,17 @@ export default function Rapports() {
   const [searchClient, setSearchClient] = useState("");
   const [includeDetails, setIncludeDetails] = useState(true);
   const [includeGraphiques, setIncludeGraphiques] = useState(false);
-  const [groupBy, setGroupBy] = useState("date");
+  const [groupBy, setGroupBy] = useState<"date" | "client" | "type" | "statut">("date");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const filteredClients = clients.filter((c) =>
+  const filteredClients = mockClients.filter((c) =>
     c.nom.toLowerCase().includes(searchClient.toLowerCase())
   );
 
   const handleSelectAllClients = (checked: boolean) => {
     setSelectAllClients(checked);
     if (checked) {
-      setSelectedClients(clients.map((c) => c.id));
+      setSelectedClients(mockClients.map((c) => c.id));
     } else {
       setSelectedClients([]);
     }
@@ -219,7 +234,46 @@ export default function Rapports() {
     }
   };
 
-  const handleGenerateReport = () => {
+  const filterData = () => {
+    // Filter factures
+    let filteredFactures = mockFactures.filter((f) => {
+      const dateOk = f.date >= dateDebut && f.date <= dateFin;
+      const clientOk = selectedClients.length === 0 || selectedClients.includes(f.clientId);
+      const typeOk = selectedOperations.length === 0 || selectedOperations.includes(f.type);
+      const statutOk = selectedStatuts.length === 0 || selectedStatuts.includes(f.statut);
+      return dateOk && clientOk && typeOk && statutOk;
+    });
+
+    // Filter ordres
+    let filteredOrdres = mockOrdres.filter((o) => {
+      const dateOk = o.date >= dateDebut && o.date <= dateFin;
+      const clientOk = selectedClients.length === 0 || selectedClients.includes(o.clientId);
+      const typeOk = selectedOperations.length === 0 || selectedOperations.includes(o.type);
+      return dateOk && clientOk && typeOk;
+    });
+
+    // Filter transactions
+    let filteredTransactions = mockTransactions.filter((t) => {
+      return t.date >= dateDebut && t.date <= dateFin;
+    });
+
+    // Filter devis
+    let filteredDevis = mockDevis.filter((d) => {
+      const dateOk = d.date >= dateDebut && d.date <= dateFin;
+      const clientOk = selectedClients.length === 0 || selectedClients.includes(d.clientId);
+      return dateOk && clientOk;
+    });
+
+    return {
+      factures: filteredFactures,
+      ordres: filteredOrdres,
+      transactions: filteredTransactions,
+      devis: filteredDevis,
+      clients: mockClients,
+    };
+  };
+
+  const handleGenerateReport = async () => {
     if (!selectedType) {
       toast({
         title: "Erreur",
@@ -229,18 +283,43 @@ export default function Rapports() {
       return;
     }
 
-    toast({
-      title: "Génération en cours",
-      description: `Le rapport ${formatExport.toUpperCase()} est en cours de génération...`,
-    });
+    setIsGenerating(true);
 
-    // Simulation de génération
-    setTimeout(() => {
+    try {
+      const filters: RapportFilters = {
+        typeRapport: selectedType as RapportFilters["typeRapport"],
+        dateDebut,
+        dateFin,
+        clientsIds: selectedClients,
+        typesOperation: selectedOperations,
+        sousTypesTransport: selectedSousTypes,
+        statutsFacture: selectedStatuts,
+        includeDetails,
+        includeGraphiques,
+        groupBy,
+      };
+
+      const data = filterData();
+
+      // Small delay for UX
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      generateRapport(filters, data, formatExport);
+
       toast({
-        title: "Rapport généré",
-        description: "Le téléchargement va commencer automatiquement",
+        title: "Rapport généré avec succès",
+        description: `Le fichier ${formatExport.toUpperCase()} a été téléchargé`,
       });
-    }, 1500);
+    } catch (error) {
+      console.error("Erreur génération rapport:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la génération du rapport",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handlePreview = () => {
@@ -253,10 +332,8 @@ export default function Rapports() {
       return;
     }
 
-    toast({
-      title: "Aperçu",
-      description: "Ouverture de l'aperçu du rapport...",
-    });
+    // For preview, we generate PDF and it opens in new tab
+    handleGenerateReport();
   };
 
   const getSelectedCount = () => {
@@ -265,6 +342,24 @@ export default function Rapports() {
     if (selectedOperations.length > 0) count++;
     if (selectedStatuts.length > 0) count++;
     return count;
+  };
+
+  const getDataSummary = () => {
+    const data = filterData();
+    switch (selectedType) {
+      case "factures":
+        return `${data.factures.length} facture(s) trouvée(s)`;
+      case "ordres":
+        return `${data.ordres.length} ordre(s) de travail trouvé(s)`;
+      case "tresorerie":
+        return `${data.transactions.length} transaction(s) trouvée(s)`;
+      case "devis":
+        return `${data.devis.length} devis trouvé(s)`;
+      case "clients":
+        return `${selectedClients.length || mockClients.length} client(s) à analyser`;
+      default:
+        return "";
+    }
   };
 
   return (
@@ -357,6 +452,20 @@ export default function Rapports() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Data Summary */}
+          {selectedType && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="p-4">
+                  <p className="text-sm font-medium text-primary">{getDataSummary()}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </div>
 
         {/* Right Panel - Filters and Options */}
@@ -524,7 +633,7 @@ export default function Rapports() {
                         ))}
                       </div>
 
-                      {selectedOperations.includes("transport") && (
+                      {selectedOperations.includes("Transport") && (
                         <div className="pt-2 border-t">
                           <Label className="text-sm mb-2 block">Sous-types Transport</Label>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -615,7 +724,7 @@ export default function Rapports() {
                 </div>
                 <div className="space-y-2">
                   <Label>Regrouper par</Label>
-                  <Select value={groupBy} onValueChange={setGroupBy}>
+                  <Select value={groupBy} onValueChange={(value) => setGroupBy(value as typeof groupBy)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -637,6 +746,7 @@ export default function Rapports() {
               variant="outline"
               className="flex-1"
               onClick={handlePreview}
+              disabled={isGenerating}
             >
               <Eye className="h-4 w-4 mr-2" />
               Aperçu
@@ -644,16 +754,21 @@ export default function Rapports() {
             <Button
               className="flex-1"
               onClick={handleGenerateReport}
+              disabled={isGenerating}
             >
-              <Download className="h-4 w-4 mr-2" />
-              Générer et télécharger
+              {isGenerating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              {isGenerating ? "Génération..." : "Générer et télécharger"}
             </Button>
             <Button
               variant="secondary"
               onClick={() => {
                 handleGenerateReport();
-                setTimeout(() => window.print(), 2000);
               }}
+              disabled={isGenerating}
             >
               <Printer className="h-4 w-4 mr-2" />
               Imprimer
