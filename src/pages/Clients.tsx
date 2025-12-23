@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -134,6 +135,7 @@ const itemVariants = {
 };
 
 export default function Clients() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([
@@ -352,7 +354,7 @@ export default function Clients() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/clients/${client.id}`)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Voir détails
                         </DropdownMenuItem>
