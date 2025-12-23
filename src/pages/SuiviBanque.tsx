@@ -61,6 +61,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ExportDialog } from "@/components/ExportDialog";
+import { generateExportPDF, generateExportExcel } from "@/lib/exportComptabilite";
 
 interface TransactionBanque {
   id: string;
@@ -234,6 +236,7 @@ export default function SuiviBanque() {
   const [filterBanque, setFilterBanque] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<"entree" | "sortie">("entree");
   
   const [formData, setFormData] = useState({
@@ -333,6 +336,47 @@ export default function SuiviBanque() {
     setTransactionType(type);
     setFormData({ ...formData, categorie: "" });
     setDialogOpen(true);
+  };
+
+  const handleExport = (format: "pdf" | "excel", dateDebut: string, dateFin: string) => {
+    const filteredByDate = transactions.filter((t) => {
+      return t.date >= dateDebut && t.date <= dateFin;
+    });
+
+    const totaux = {
+      entrees: filteredByDate.filter((t) => t.type === "entree").reduce((sum, t) => sum + t.montant, 0),
+      sorties: filteredByDate.filter((t) => t.type === "sortie").reduce((sum, t) => sum + t.montant, 0),
+      solde: 0,
+    };
+    totaux.solde = totaux.entrees - totaux.sorties;
+
+    const exportTransactions = filteredByDate.map((t) => ({
+      date: t.date,
+      reference: t.reference,
+      description: t.description,
+      categorie: t.categorie,
+      type: t.type,
+      montant: t.montant,
+      client: t.client,
+      modePaiement: t.modePaiement,
+      banque: t.banque,
+    }));
+
+    const options = {
+      titre: "Journal Bancaire",
+      sousTitre: "Transactions bancaires (virements, chèques, cartes)",
+      periodeDebut: dateDebut,
+      periodeFin: dateFin,
+      transactions: exportTransactions,
+      totaux,
+      type: "banque" as const,
+    };
+
+    if (format === "pdf") {
+      generateExportPDF(options);
+    } else {
+      generateExportExcel(options);
+    }
   };
 
   return (
@@ -493,7 +537,7 @@ export default function SuiviBanque() {
                   <SelectItem value="rapproche">Rapproché</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
                 <Download className="h-4 w-4 mr-2" />
                 Exporter
               </Button>
@@ -762,6 +806,14 @@ export default function SuiviBanque() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        onExport={handleExport}
+        title="Journal Bancaire"
+      />
     </div>
   );
 }

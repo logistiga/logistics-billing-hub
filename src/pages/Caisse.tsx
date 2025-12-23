@@ -53,6 +53,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ExportDialog } from "@/components/ExportDialog";
+import { generateExportPDF, generateExportExcel } from "@/lib/exportComptabilite";
 
 interface Transaction {
   id: string;
@@ -179,6 +181,7 @@ export default function Caisse() {
   const [filterType, setFilterType] = useState<"all" | "entree" | "sortie">("all");
   const [filterPeriod, setFilterPeriod] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<"entree" | "sortie">("entree");
   
   const [formData, setFormData] = useState({
@@ -251,6 +254,35 @@ export default function Caisse() {
     setTransactionType(type);
     setFormData({ ...formData, categorie: "" });
     setDialogOpen(true);
+  };
+
+  const handleExport = (format: "pdf" | "excel", dateDebut: string, dateFin: string) => {
+    const filteredByDate = transactions.filter((t) => {
+      return t.date >= dateDebut && t.date <= dateFin;
+    });
+
+    const totaux = {
+      entrees: filteredByDate.filter((t) => t.type === "entree").reduce((sum, t) => sum + t.montant, 0),
+      sorties: filteredByDate.filter((t) => t.type === "sortie").reduce((sum, t) => sum + t.montant, 0),
+      solde: 0,
+    };
+    totaux.solde = totaux.entrees - totaux.sorties;
+
+    const options = {
+      titre: "Journal de Caisse",
+      sousTitre: "Transactions en espèces",
+      periodeDebut: dateDebut,
+      periodeFin: dateFin,
+      transactions: filteredByDate,
+      totaux,
+      type: "caisse" as const,
+    };
+
+    if (format === "pdf") {
+      generateExportPDF(options);
+    } else {
+      generateExportExcel(options);
+    }
   };
 
   const stats = [
@@ -387,7 +419,7 @@ export default function Caisse() {
                   <SelectItem value="sortie">Sorties</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
                 <Download className="h-4 w-4 mr-2" />
                 Exporter
               </Button>
@@ -589,6 +621,14 @@ export default function Caisse() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        onExport={handleExport}
+        title="Journal de Caisse"
+      />
     </div>
   );
 }
