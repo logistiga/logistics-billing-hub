@@ -25,6 +25,7 @@ import {
   Clock,
   Banknote,
   CreditCard,
+  ReceiptText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
@@ -57,6 +58,7 @@ const navItems: NavItem[] = [
       { title: "Notes de début", href: "/notes-debut", icon: FileText },
       { title: "Factures", href: "/factures", icon: FileCheck },
       { title: "Devis", href: "/devis", icon: Receipt },
+      { title: "Avoirs", href: "/avoirs", icon: ReceiptText },
     ],
   },
   {
