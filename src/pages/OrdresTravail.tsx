@@ -21,6 +21,7 @@ import {
   Ban,
   CreditCard,
   AlertTriangle,
+  Banknote,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,16 +64,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { PaymentDialog, type PayableDocument, type Payment } from "@/components/PaymentDialog";
 
 interface WorkOrder {
   id: string;
   number: string;
   client: string;
+  clientId: string;
   type: string;
   subType: string;
   date: string;
   status: "pending" | "in_progress" | "completed" | "cancelled";
   amount: number;
+  paid: number;
+  advance: number;
   description: string;
 }
 
@@ -81,55 +86,70 @@ const mockOrders: WorkOrder[] = [
     id: "1",
     number: "OT-2024-0089",
     client: "COMILOG SA",
+    clientId: "c1",
     type: "Transport",
     subType: "Hors Libreville",
     date: "15/12/2024",
     status: "in_progress",
     amount: 2500000,
+    paid: 0,
+    advance: 750000,
     description: "Transport de minerai vers Port-Gentil",
   },
   {
     id: "2",
     number: "OT-2024-0088",
     client: "OLAM Gabon",
+    clientId: "c2",
     type: "Manutention",
     subType: "Chargement/Déchargement",
     date: "14/12/2024",
     status: "completed",
     amount: 850000,
+    paid: 850000,
+    advance: 0,
     description: "Manutention containers au port",
   },
   {
     id: "3",
     number: "OT-2024-0087",
     client: "Total Energies",
+    clientId: "c3",
     type: "Stockage",
     subType: "Entrepôt sécurisé",
     date: "14/12/2024",
     status: "pending",
     amount: 1200000,
+    paid: 0,
+    advance: 0,
     description: "Stockage équipements pétroliers",
   },
   {
     id: "4",
     number: "OT-2024-0086",
     client: "Assala Energy",
+    clientId: "c4",
     type: "Transport",
     subType: "Exceptionnel",
     date: "13/12/2024",
     status: "completed",
     amount: 4500000,
+    paid: 4500000,
+    advance: 0,
     description: "Convoi exceptionnel équipement lourd",
   },
   {
     id: "5",
     number: "OT-2024-0085",
     client: "SEEG",
+    clientId: "c5",
     type: "Location",
     subType: "Location engin",
     date: "12/12/2024",
     status: "cancelled",
     amount: 750000,
+    paid: 0,
+    advance: 0,
     description: "Location grue - Annulé",
   },
 ];
@@ -192,12 +212,14 @@ export default function OrdresTravail() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [emailAddress, setEmailAddress] = useState("");
-  const [paymentAmount, setPaymentAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
+  
+  // Payment dialog states
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<"single" | "group" | "advance">("single");
+  const [paymentDocuments, setPaymentDocuments] = useState<PayableDocument[]>([]);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -260,22 +282,42 @@ export default function OrdresTravail() {
     });
   };
 
+  const toPayableDocument = (order: WorkOrder): PayableDocument => ({
+    id: order.id,
+    number: order.number,
+    client: order.client,
+    clientId: order.clientId,
+    date: order.date,
+    amount: order.amount,
+    paid: order.paid + order.advance,
+    type: "ordre",
+    documentType: order.type,
+  });
+
   const handleRecordPayment = (order: WorkOrder) => {
-    setSelectedOrder(order);
-    setPaymentAmount(order.amount.toString());
-    setPaymentMethod("");
+    setPaymentDocuments([toPayableDocument(order)]);
+    setPaymentMode("single");
     setPaymentDialogOpen(true);
   };
 
-  const confirmPayment = () => {
-    if (!paymentMethod) {
-      toast.error("Veuillez sélectionner un mode de paiement");
-      return;
-    }
-    toast.success(`Paiement enregistré`, {
-      description: `${formatCurrency(Number(paymentAmount))} FCFA reçu pour ${selectedOrder?.number}`
-    });
-    setPaymentDialogOpen(false);
+  const handleAdvancePayment = (order: WorkOrder) => {
+    setPaymentDocuments([toPayableDocument(order)]);
+    setPaymentMode("advance");
+    setPaymentDialogOpen(true);
+  };
+
+  const handlePaymentComplete = (payment: Payment, updatedDocs: PayableDocument[]) => {
+    setOrders((prev) =>
+      prev.map((order) => {
+        const updatedDoc = updatedDocs.find((d) => d.id === order.id);
+        if (!updatedDoc) return order;
+        
+        if (payment.isAdvance) {
+          return { ...order, advance: order.advance + payment.amount };
+        }
+        return { ...order, paid: updatedDoc.paid };
+      })
+    );
   };
 
   const handleCancel = (order: WorkOrder) => {
@@ -434,6 +476,9 @@ export default function OrdresTravail() {
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500 hover:text-emerald-700" title="Enregistrer paiement" onClick={() => handleRecordPayment(order)}>
                             <CreditCard className="h-4 w-4" />
                           </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-cyan-500 hover:text-cyan-700" title="Enregistrer avance" onClick={() => handleAdvancePayment(order)}>
+                            <Banknote className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-700" title="Annuler" onClick={() => handleCancel(order)} disabled={order.status === "cancelled"}>
                             <Ban className="h-4 w-4" />
                           </Button>
@@ -565,44 +610,13 @@ export default function OrdresTravail() {
       </Dialog>
 
       {/* Payment Dialog */}
-      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Enregistrer un paiement</DialogTitle>
-            <DialogDescription>Paiement pour {selectedOrder?.number}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Montant (FCFA)</Label>
-              <Input 
-                type="number" 
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Mode de paiement</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="virement">Virement bancaire</SelectItem>
-                  <SelectItem value="especes">Espèces</SelectItem>
-                  <SelectItem value="cheque">Chèque</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>Annuler</Button>
-            <Button onClick={confirmPayment}>
-              <CreditCard className="h-4 w-4 mr-2" />
-              Confirmer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PaymentDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        documents={paymentDocuments}
+        onPaymentComplete={handlePaymentComplete}
+        mode={paymentMode}
+      />
 
       {/* Cancel Confirmation */}
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
