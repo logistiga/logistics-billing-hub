@@ -43,6 +43,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { ExportDialog } from "@/components/ExportDialog";
+import { generateExportPDF, generateExportExcel } from "@/lib/exportComptabilite";
 
 // Mock data combined
 const caisseData = {
@@ -92,6 +94,7 @@ const categoriesDepenses = [
 
 export default function ComptabiliteGenerale() {
   const [periode, setPeriode] = useState("mois");
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-FR").format(amount) + " FCFA";
@@ -116,6 +119,42 @@ export default function ComptabiliteGenerale() {
       case "carte": return CreditCard;
       case "prelevement": return RefreshCw;
       default: return Receipt;
+    }
+  };
+
+  const handleExport = (format: "pdf" | "excel", dateDebut: string, dateFin: string) => {
+    const filteredByDate = recentTransactions.filter((t) => t.date >= dateDebut && t.date <= dateFin);
+    const totaux = {
+      entrees: filteredByDate.filter((t) => t.type === "entree").reduce((sum, t) => sum + t.montant, 0),
+      sorties: filteredByDate.filter((t) => t.type === "sortie").reduce((sum, t) => sum + t.montant, 0),
+      solde: 0,
+    };
+    totaux.solde = totaux.entrees - totaux.sorties;
+
+    const exportTransactions = filteredByDate.map((t) => ({
+      date: t.date,
+      reference: `${t.source === "caisse" ? "CAI" : "BNK"}-${t.id}`,
+      description: t.description,
+      categorie: t.source === "caisse" ? "Espèces" : "Bancaire",
+      type: t.type as "entree" | "sortie",
+      montant: t.montant,
+      modePaiement: t.mode,
+    }));
+
+    const options = {
+      titre: "Comptabilité Générale",
+      sousTitre: "Trésorerie globale (Caisse + Banque)",
+      periodeDebut: dateDebut,
+      periodeFin: dateFin,
+      transactions: exportTransactions,
+      totaux,
+      type: "global" as const,
+    };
+
+    if (format === "pdf") {
+      generateExportPDF(options);
+    } else {
+      generateExportExcel(options);
     }
   };
 
