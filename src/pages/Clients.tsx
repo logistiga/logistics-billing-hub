@@ -12,6 +12,7 @@ import {
   Edit,
   Trash2,
   Eye,
+  X,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +35,13 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
+interface Contact {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+}
 
 interface Client {
   id: string;
@@ -128,6 +136,28 @@ const itemVariants = {
 export default function Clients() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([
+    { id: "1", name: "", email: "", phone: "" }
+  ]);
+
+  const addContact = () => {
+    setContacts([...contacts, { id: Date.now().toString(), name: "", email: "", phone: "" }]);
+  };
+
+  const removeContact = (id: string) => {
+    if (contacts.length > 1) {
+      setContacts(contacts.filter(c => c.id !== id));
+    }
+  };
+
+  const updateContact = (id: string, field: keyof Contact, value: string) => {
+    setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
+  const resetForm = () => {
+    setContacts([{ id: "1", name: "", email: "", phone: "" }]);
+    setIsDialogOpen(false);
+  };
 
   const filteredClients = mockClients.filter(
     (client) =>
@@ -205,28 +235,67 @@ export default function Clients() {
                   </div>
                 </div>
                 <div className="border-t pt-4">
-                  <h4 className="font-medium mb-3">Contact principal</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="contactName">Nom</Label>
-                      <Input id="contactName" placeholder="Nom du contact" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="contactEmail">Email</Label>
-                      <Input id="contactEmail" type="email" placeholder="email@entreprise.ga" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="contactPhone">Téléphone</Label>
-                      <Input id="contactPhone" placeholder="+241 0XX XX XX XX" />
-                    </div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium">Contacts</h4>
+                    <Button type="button" variant="outline" size="sm" onClick={addContact}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Ajouter un contact
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    {contacts.map((contact, index) => (
+                      <div key={contact.id} className="relative p-4 border rounded-lg bg-muted/30">
+                        {contacts.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeContact(contact.id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <p className="text-xs text-muted-foreground mb-3">
+                          {index === 0 ? "Contact principal" : `Contact ${index + 1}`}
+                        </p>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label>Nom</Label>
+                            <Input
+                              value={contact.name}
+                              onChange={(e) => updateContact(contact.id, "name", e.target.value)}
+                              placeholder="Nom du contact"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Email</Label>
+                            <Input
+                              type="email"
+                              value={contact.email}
+                              onChange={(e) => updateContact(contact.id, "email", e.target.value)}
+                              placeholder="email@entreprise.ga"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Téléphone</Label>
+                            <Input
+                              value={contact.phone}
+                              onChange={(e) => updateContact(contact.id, "phone", e.target.value)}
+                              placeholder="+241 0XX XX XX XX"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button variant="outline" onClick={resetForm}>
                   Annuler
                 </Button>
-                <Button variant="gradient" onClick={() => setIsDialogOpen(false)}>
+                <Button variant="gradient" onClick={resetForm}>
                   Créer le client
                 </Button>
               </DialogFooter>
