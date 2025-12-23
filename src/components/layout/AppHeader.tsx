@@ -7,6 +7,7 @@ import {
   LogOut,
   ChevronDown,
   Command,
+  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,9 +24,15 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface AppHeaderProps {
   sidebarCollapsed: boolean;
+  isMobile?: boolean;
+  onMenuToggle?: () => void;
 }
 
-export function AppHeader({ sidebarCollapsed }: AppHeaderProps) {
+export function AppHeader({
+  sidebarCollapsed,
+  isMobile = false,
+  onMenuToggle,
+}: AppHeaderProps) {
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -33,28 +40,46 @@ export function AppHeader({ sidebarCollapsed }: AppHeaderProps) {
     <>
       <motion.header
         initial={false}
-        animate={{ marginLeft: sidebarCollapsed ? 72 : 280 }}
+        animate={{
+          marginLeft: isMobile ? 0 : sidebarCollapsed ? 72 : 280,
+        }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="fixed top-0 right-0 z-30 h-16 bg-card/80 backdrop-blur-xl border-b border-border flex items-center justify-between px-6"
-        style={{ width: `calc(100% - ${sidebarCollapsed ? 72 : 280}px)` }}
+        className="fixed top-0 right-0 z-30 h-16 bg-card/80 backdrop-blur-xl border-b border-border flex items-center justify-between px-4 md:px-6"
+        style={{
+          width: isMobile ? "100%" : `calc(100% - ${sidebarCollapsed ? 72 : 280}px)`,
+        }}
       >
-        {/* Search Button */}
-        <div className="flex items-center gap-4">
+        {/* Left side */}
+        <div className="flex items-center gap-3">
+          {/* Mobile menu button */}
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onMenuToggle}
+              className="lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
+
+          {/* Search Button */}
           <Button
             variant="outline"
-            className="relative w-64 justify-start text-muted-foreground bg-secondary/50 border-0 hover:bg-secondary"
+            className="relative w-40 sm:w-64 justify-start text-muted-foreground bg-secondary/50 border-0 hover:bg-secondary"
             onClick={() => setSearchOpen(true)}
           >
             <Search className="mr-2 h-4 w-4" />
-            <span className="flex-1 text-left">Rechercher...</span>
-            <kbd className="pointer-events-none ml-auto hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+            <span className="flex-1 text-left hidden sm:inline">Rechercher...</span>
+            <span className="flex-1 text-left sm:hidden">Recherche</span>
+            <kbd className="pointer-events-none ml-auto hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 md:flex">
               <Command className="h-3 w-3" />K
             </kbd>
           </Button>
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* Theme Toggle */}
           <ThemeToggle />
 
@@ -71,11 +96,11 @@ export function AppHeader({ sidebarCollapsed }: AppHeaderProps) {
                 <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center">
                   <User className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <div className="hidden md:block text-left">
+                <div className="hidden lg:block text-left">
                   <p className="text-sm font-medium">Admin</p>
                   <p className="text-xs text-muted-foreground">admin@logistica.ga</p>
                 </div>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
