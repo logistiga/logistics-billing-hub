@@ -127,24 +127,41 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       className="fixed left-0 top-0 z-40 h-screen bg-sidebar border-r border-sidebar-border flex flex-col"
     >
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
+      <div className={cn(
+        "flex flex-col items-center justify-center border-b border-sidebar-border transition-all duration-300",
+        collapsed ? "h-16 px-2" : "h-28 px-4 py-4"
+      )}>
         <AnimatePresence mode="wait">
-          {!collapsed && (
+          {!collapsed ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-col items-center justify-center w-full"
+            >
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-xl blur-xl" />
+                <img 
+                  src={logo} 
+                  alt="Logistiga" 
+                  className="relative h-20 w-auto object-contain drop-shadow-lg" 
+                />
+              </div>
+            </motion.div>
+          ) : (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center gap-3"
+              className="flex items-center justify-center"
             >
-              <img src={logo} alt="Logistica" className="h-10 object-contain" />
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+                <Truck className="h-5 w-5 text-primary-foreground" />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
-        {collapsed && (
-          <div className="flex items-center justify-center w-full">
-            <Truck className="h-6 w-6 text-primary" />
-          </div>
-        )}
       </div>
 
       {/* Navigation */}
