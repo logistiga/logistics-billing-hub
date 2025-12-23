@@ -26,6 +26,7 @@ import {
   Banknote,
   CreditCard,
   ReceiptText,
+  LineChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
@@ -67,6 +68,7 @@ const navItems: NavItem[] = [
     icon: Banknote,
     children: [
       { title: "Crédit Bancaire", href: "/credit-bancaire", icon: CreditCard },
+      { title: "Trésorerie Prév.", href: "/tresorerie-prev", icon: LineChart },
     ],
   },
   {
