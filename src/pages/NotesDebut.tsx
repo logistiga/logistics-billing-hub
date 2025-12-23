@@ -19,12 +19,16 @@ import {
   Container,
   Timer,
   Warehouse,
+  CreditCard,
+  Banknote,
+  Receipt,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,11 +62,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { toast } from "@/hooks/use-toast";
+import { PaymentDialog, type PayableDocument, type Payment } from "@/components/PaymentDialog";
+import { PaymentHistory, mockPaymentHistory, type PaymentRecord } from "@/components/PaymentHistory";
 
 interface NoteDebut {
   id: string;
   number: string;
   client: string;
+  clientId: string;
   type: "ouverture_port" | "detention" | "surestaries" | "magasinage";
   factureOrigine: string;
   blNumber: string;
@@ -72,15 +80,18 @@ interface NoteDebut {
   nombreJours: number;
   tarifJournalier: number;
   montantTotal: number;
-  status: "pending" | "invoiced" | "paid" | "cancelled";
+  paid: number;
+  advance: number;
+  status: "pending" | "invoiced" | "paid" | "cancelled" | "partial";
   description: string;
 }
 
-const mockNotes: NoteDebut[] = [
+const initialNotes: NoteDebut[] = [
   {
     id: "1",
     number: "ND-2024-0015",
     client: "COMILOG SA",
+    clientId: "c1",
     type: "ouverture_port",
     factureOrigine: "FAC-2024-0120",
     blNumber: "BL-2024-5678",
@@ -90,6 +101,8 @@ const mockNotes: NoteDebut[] = [
     nombreJours: 15,
     tarifJournalier: 50000,
     montantTotal: 750000,
+    paid: 0,
+    advance: 0,
     status: "pending",
     description: "Ouverture de port pour container MSKU1234567",
   },
@@ -97,6 +110,7 @@ const mockNotes: NoteDebut[] = [
     id: "2",
     number: "ND-2024-0014",
     client: "OLAM Gabon",
+    clientId: "c2",
     type: "detention",
     factureOrigine: "FAC-2024-0115",
     blNumber: "BL-2024-4321",
@@ -106,13 +120,16 @@ const mockNotes: NoteDebut[] = [
     nombreJours: 7,
     tarifJournalier: 75000,
     montantTotal: 525000,
-    status: "invoiced",
+    paid: 0,
+    advance: 200000,
+    status: "pending",
     description: "Détention container 7 jours",
   },
   {
     id: "3",
     number: "ND-2024-0013",
     client: "Total Energies",
+    clientId: "c3",
     type: "surestaries",
     factureOrigine: "FAC-2024-0110",
     blNumber: "BL-2024-8899",
@@ -122,6 +139,8 @@ const mockNotes: NoteDebut[] = [
     nombreJours: 12,
     tarifJournalier: 100000,
     montantTotal: 1200000,
+    paid: 1200000,
+    advance: 0,
     status: "paid",
     description: "Surestaries 12 jours - Retard enlèvement",
   },
@@ -129,6 +148,7 @@ const mockNotes: NoteDebut[] = [
     id: "4",
     number: "ND-2024-0012",
     client: "Assala Energy",
+    clientId: "c4",
     type: "magasinage",
     factureOrigine: "FAC-2024-0105",
     blNumber: "BL-2024-7766",
@@ -138,8 +158,29 @@ const mockNotes: NoteDebut[] = [
     nombreJours: 14,
     tarifJournalier: 35000,
     montantTotal: 490000,
+    paid: 0,
+    advance: 0,
     status: "pending",
     description: "Magasinage marchandises diverses",
+  },
+  {
+    id: "5",
+    number: "ND-2024-0011",
+    client: "COMILOG SA",
+    clientId: "c1",
+    type: "detention",
+    factureOrigine: "FAC-2024-0100",
+    blNumber: "BL-2024-1234",
+    containerNumber: "MSKU7654321",
+    dateDebut: "01/12/2024",
+    dateFin: "08/12/2024",
+    nombreJours: 7,
+    tarifJournalier: 75000,
+    montantTotal: 525000,
+    paid: 0,
+    advance: 0,
+    status: "pending",
+    description: "Détention container COMILOG",
   },
 ];
 
@@ -183,6 +224,10 @@ const statusConfig = {
     label: "Annulée",
     class: "bg-muted text-muted-foreground",
   },
+  partial: {
+    label: "Partielle",
+    class: "bg-cyan-500/20 text-cyan-600",
+  },
 };
 
 const itemVariants = {
@@ -191,13 +236,24 @@ const itemVariants = {
 };
 
 export default function NotesDebut() {
+  const [notes, setNotes] = useState<NoteDebut[]>(initialNotes);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<string>("");
   const [formStep, setFormStep] = useState<"type" | "form">("type");
 
-  const filteredNotes = mockNotes.filter((note) => {
+  // Payment dialog states
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<"single" | "group" | "advance">("single");
+  const [paymentDocuments, setPaymentDocuments] = useState<PayableDocument[]>([]);
+  
+  // Payment history states
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [selectedNoteForHistory, setSelectedNoteForHistory] = useState<NoteDebut | null>(null);
+
+  const filteredNotes = notes.filter((note) => {
     const matchesSearch =
       note.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       note.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -205,6 +261,24 @@ export default function NotesDebut() {
     const matchesType = typeFilter === "all" || note.type === typeFilter;
     return matchesSearch && matchesType;
   });
+
+  // Selection handlers
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredNotes.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredNotes.map((n) => n.id));
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const isAllSelected = selectedIds.length === filteredNotes.length && filteredNotes.length > 0;
+  const isSomeSelected = selectedIds.length > 0;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("fr-GA", {
@@ -218,10 +292,97 @@ export default function NotesDebut() {
     setFormStep("type");
   };
 
+  // Payment handlers
+  const toPayableDocument = (note: NoteDebut): PayableDocument => ({
+    id: note.id,
+    number: note.number,
+    client: note.client,
+    clientId: note.clientId,
+    date: note.dateDebut,
+    amount: note.montantTotal,
+    paid: note.paid + note.advance,
+    type: "facture",
+    documentType: typeConfig[note.type].label,
+  });
+
+  const handleSinglePayment = (note: NoteDebut) => {
+    setPaymentDocuments([toPayableDocument(note)]);
+    setPaymentMode("single");
+    setPaymentDialogOpen(true);
+  };
+
+  const handleAdvancePayment = (note: NoteDebut) => {
+    setPaymentDocuments([toPayableDocument(note)]);
+    setPaymentMode("advance");
+    setPaymentDialogOpen(true);
+  };
+
+  const handleGroupPayment = () => {
+    const selectedNotes = notes.filter((n) => selectedIds.includes(n.id));
+    if (selectedNotes.length < 2) {
+      toast({
+        title: "Sélection insuffisante",
+        description: "Sélectionnez au moins 2 notes pour un paiement groupé",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Vérifier que toutes les notes sont du même client
+    const clientIds = new Set(selectedNotes.map((n) => n.clientId));
+    if (clientIds.size > 1) {
+      toast({
+        title: "Clients différents",
+        description: "Le paiement groupé n'est possible que pour un seul client. Sélectionnez des notes du même client.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setPaymentDocuments(selectedNotes.map(toPayableDocument));
+    setPaymentMode("group");
+    setPaymentDialogOpen(true);
+  };
+
+  const handlePaymentComplete = (payment: Payment, updatedDocs: PayableDocument[]) => {
+    setNotes((prev) =>
+      prev.map((note) => {
+        const updatedDoc = updatedDocs.find((d) => d.id === note.id);
+        if (!updatedDoc) return note;
+
+        const newPaid = updatedDoc.paid;
+        const remaining = note.montantTotal - newPaid;
+        
+        let newStatus: NoteDebut["status"];
+        if (payment.isAdvance) {
+          return { ...note, advance: note.advance + payment.amount };
+        } else if (remaining <= 0) {
+          newStatus = "paid";
+        } else if (newPaid > 0) {
+          newStatus = "partial";
+        } else {
+          newStatus = note.status;
+        }
+
+        return { ...note, paid: newPaid, status: newStatus };
+      })
+    );
+    setSelectedIds([]);
+  };
+
+  const handleViewHistory = (note: NoteDebut) => {
+    setSelectedNoteForHistory(note);
+    setHistoryDialogOpen(true);
+  };
+
+  const getPaymentHistory = (noteNumber: string): PaymentRecord[] => {
+    return mockPaymentHistory[noteNumber] || [];
+  };
+
   const stats = [
-    { label: "Total notes", value: mockNotes.length, unit: "notes" },
-    { label: "En attente", value: mockNotes.filter(n => n.status === "pending").length, unit: "notes" },
-    { label: "Montant total", value: formatCurrency(mockNotes.reduce((acc, n) => acc + n.montantTotal, 0)), unit: "FCFA" },
+    { label: "Total notes", value: notes.length, unit: "notes" },
+    { label: "En attente", value: notes.filter(n => n.status === "pending").length, unit: "notes" },
+    { label: "Montant total", value: formatCurrency(notes.reduce((acc, n) => acc + n.montantTotal, 0)), unit: "FCFA" },
   ];
 
   return (
@@ -570,12 +731,52 @@ export default function NotesDebut() {
           </Button>
         </div>
 
+        {/* Selection Info */}
+        {isSomeSelected && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">
+                {selectedIds.length} note(s) sélectionnée(s)
+              </span>
+              <span className="text-sm text-muted-foreground">
+                - Total:{" "}
+                {formatCurrency(
+                  notes
+                    .filter((n) => selectedIds.includes(n.id))
+                    .reduce((sum, n) => sum + (n.montantTotal - n.paid - n.advance), 0)
+                )}{" "}
+                FCFA restant
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setSelectedIds([])}>
+                Annuler
+              </Button>
+              <Button size="sm" onClick={handleGroupPayment}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Payer la sélection
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Table */}
         <Card className="border-border/50">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Numéro</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Type</TableHead>
@@ -583,6 +784,7 @@ export default function NotesDebut() {
                   <TableHead>Période</TableHead>
                   <TableHead className="text-center">Jours</TableHead>
                   <TableHead className="text-right">Montant</TableHead>
+                  <TableHead className="text-right">Payé</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -592,6 +794,8 @@ export default function NotesDebut() {
                   const typeInfo = typeConfig[note.type];
                   const TypeIcon = typeInfo.icon;
                   const status = statusConfig[note.status];
+                  const isSelected = selectedIds.includes(note.id);
+                  const remaining = note.montantTotal - note.paid - note.advance;
                   return (
                     <motion.tr
                       key={note.id}
@@ -599,8 +803,14 @@ export default function NotesDebut() {
                       initial="hidden"
                       animate="visible"
                       transition={{ delay: index * 0.05 }}
-                      className="group hover:bg-muted/50 cursor-pointer"
+                      className={`group hover:bg-muted/50 cursor-pointer ${isSelected ? "bg-primary/5" : ""}`}
                     >
+                      <TableCell>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => handleSelectOne(note.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{note.number}</TableCell>
                       <TableCell>{note.client}</TableCell>
                       <TableCell>
@@ -616,6 +826,25 @@ export default function NotesDebut() {
                       <TableCell className="text-center font-semibold">{note.nombreJours}</TableCell>
                       <TableCell className="text-right font-semibold">
                         {formatCurrency(note.montantTotal)} FCFA
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end">
+                          {note.paid > 0 && (
+                            <span className="text-success text-sm">
+                              {formatCurrency(note.paid)}
+                            </span>
+                          )}
+                          {note.advance > 0 && (
+                            <span className="text-cyan-600 text-xs">
+                              +{formatCurrency(note.advance)} avance
+                            </span>
+                          )}
+                          {remaining > 0 && (
+                            <span className="text-muted-foreground text-xs">
+                              Reste: {formatCurrency(remaining)}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge className={status.class}>{status.label}</Badge>
@@ -649,6 +878,19 @@ export default function NotesDebut() {
                               Envoyer par email
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleSinglePayment(note)}>
+                              <CreditCard className="h-4 w-4 mr-2" />
+                              Enregistrer paiement
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleAdvancePayment(note)}>
+                              <Clock className="h-4 w-4 mr-2" />
+                              Enregistrer avance
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewHistory(note)}>
+                              <Receipt className="h-4 w-4 mr-2" />
+                              Historique paiements
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem>
                               <FileCheck className="h-4 w-4 mr-2" />
                               Convertir en facture
@@ -669,6 +911,28 @@ export default function NotesDebut() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Payment Dialog */}
+      <PaymentDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        documents={paymentDocuments}
+        onPaymentComplete={handlePaymentComplete}
+        mode={paymentMode}
+      />
+
+      {/* Payment History Dialog */}
+      {selectedNoteForHistory && (
+        <PaymentHistory
+          open={historyDialogOpen}
+          onOpenChange={setHistoryDialogOpen}
+          documentNumber={selectedNoteForHistory.number}
+          documentType="facture"
+          client={selectedNoteForHistory.client}
+          totalAmount={selectedNoteForHistory.montantTotal}
+          payments={getPaymentHistory(selectedNoteForHistory.number)}
+        />
+      )}
     </PageTransition>
   );
 }
