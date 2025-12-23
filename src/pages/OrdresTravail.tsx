@@ -31,6 +31,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -562,39 +570,69 @@ export default function OrdresTravail() {
                           {status.label}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Voir détails" onClick={() => handleViewDetails(order)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700" title="Modifier" onClick={() => handleEdit(order)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Télécharger PDF" onClick={() => handleDownloadPDF(order)}>
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-700" title="Envoyer par email" onClick={() => handleSendEmail(order)}>
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-500 hover:text-indigo-700" title="Convertir en facture" onClick={() => handleConvertToInvoice(order)}>
-                            <FileCheck className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500 hover:text-emerald-700" title="Enregistrer paiement" onClick={() => handleRecordPayment(order)}>
-                            <CreditCard className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-cyan-500 hover:text-cyan-700" title="Enregistrer avance" onClick={() => handleAdvancePayment(order)}>
-                            <Banknote className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary/80" title="Historique paiements" onClick={() => handleViewHistory(order)}>
-                            <Receipt className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-700" title="Annuler" onClick={() => handleCancel(order)} disabled={order.status === "cancelled"}>
-                            <Ban className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" title="Supprimer" onClick={() => handleDelete(order)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewDetails(order)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Voir détails
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(order)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDownloadPDF(order)}>
+                              <Download className="h-4 w-4 mr-2" />
+                              Télécharger PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleSendEmail(order)}>
+                              <Mail className="h-4 w-4 mr-2" />
+                              Envoyer par email
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleConvertToInvoice(order)}>
+                              <FileCheck className="h-4 w-4 mr-2" />
+                              Convertir en facture
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleRecordPayment(order)}>
+                              <CreditCard className="h-4 w-4 mr-2" />
+                              Enregistrer paiement
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleAdvancePayment(order)}>
+                              <Banknote className="h-4 w-4 mr-2" />
+                              Enregistrer avance
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewHistory(order)}>
+                              <Receipt className="h-4 w-4 mr-2" />
+                              Historique paiements
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleCancel(order)} 
+                              disabled={order.status === "cancelled"}
+                            >
+                              <Ban className="h-4 w-4 mr-2" />
+                              Annuler
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(order)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Supprimer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </motion.tr>
                   );
