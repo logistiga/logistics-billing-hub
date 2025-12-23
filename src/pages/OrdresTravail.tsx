@@ -82,11 +82,12 @@ interface WorkOrder {
   type: string;
   subType: string;
   date: string;
-  status: "pending" | "in_progress" | "completed" | "cancelled";
+  status: "pending" | "in_progress" | "completed" | "cancelled" | "converted";
   amount: number;
   paid: number;
   advance: number;
   description: string;
+  invoiceNumber?: string;
 }
 
 const mockOrders: WorkOrder[] = [
@@ -202,6 +203,11 @@ const statusConfig = {
     icon: XCircle,
     class: "bg-muted text-muted-foreground",
   },
+  converted: {
+    label: "Facturé",
+    icon: FileCheck,
+    class: "bg-cyan-500/20 text-cyan-600",
+  },
 };
 
 const itemVariants = {
@@ -239,6 +245,10 @@ export default function OrdresTravail() {
   const [selectedOrderForAvoir, setSelectedOrderForAvoir] = useState<WorkOrder | null>(null);
   const [avoirAmount, setAvoirAmount] = useState("");
   const [avoirReason, setAvoirReason] = useState("");
+
+  // Convert to invoice dialog state
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [orderToConvert, setOrderToConvert] = useState<WorkOrder | null>(null);
 
   const handleViewHistory = (order: WorkOrder) => {
     setSelectedOrderForHistory(order);
@@ -363,9 +373,33 @@ export default function OrdresTravail() {
   };
 
   const handleConvertToInvoice = (order: WorkOrder) => {
-    toast.success(`Converti en facture`, {
-      description: `${order.number} a été converti en facture`
+    setOrderToConvert(order);
+    setConvertDialogOpen(true);
+  };
+
+  const confirmConvertToInvoice = () => {
+    if (!orderToConvert) return;
+
+    // Generate invoice number
+    const year = new Date().getFullYear();
+    const invoiceNumber = `FAC-${year}-${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")}`;
+
+    // Update order status to converted and store invoice reference
+    setOrders(orders.map(o => 
+      o.id === orderToConvert.id 
+        ? { ...o, status: "converted" as const, invoiceNumber } 
+        : o
+    ));
+
+    toast.success(`Facture ${invoiceNumber} créée`, {
+      description: `L'ordre ${orderToConvert.number} a été converti en facture`,
     });
+
+    setConvertDialogOpen(false);
+    setOrderToConvert(null);
+    
+    // Redirect to invoices page
+    navigate("/factures");
   };
 
   const toPayableDocument = (order: WorkOrder): PayableDocument => ({
@@ -958,6 +992,58 @@ export default function OrdresTravail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Convert to Invoice Confirmation Dialog */}
+      <AlertDialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <FileCheck className="h-5 w-5 text-cyan-500" />
+              Convertir en facture
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {orderToConvert && (
+                <>
+                  Êtes-vous sûr de vouloir convertir l'ordre <strong>{orderToConvert.number}</strong> en facture ?
+                  <br /><br />
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Client:</span>
+                      <span className="font-medium text-foreground">{orderToConvert.client}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Type:</span>
+                      <span className="font-medium text-foreground">{orderToConvert.type} - {orderToConvert.subType}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Montant:</span>
+                      <span className="font-medium text-foreground">{formatCurrency(orderToConvert.amount)} FCFA</span>
+                    </div>
+                    {orderToConvert.advance > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Avance reçue:</span>
+                        <span className="font-medium text-green-600">-{formatCurrency(orderToConvert.advance)} FCFA</span>
+                      </div>
+                    )}
+                  </div>
+                  <br />
+                  Cette action changera le statut de l'ordre en "Facturé" et créera une nouvelle facture.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmConvertToInvoice}
+              className="bg-cyan-500 hover:bg-cyan-600"
+            >
+              <FileCheck className="h-4 w-4 mr-2" />
+              Convertir en facture
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageTransition>
   );
 }
