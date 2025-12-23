@@ -28,6 +28,7 @@ import Rapports from "./pages/Rapports";
 import CreditBancaire from "./pages/CreditBancaire";
 import TresoreriePrev from "./pages/TresoreriePrev";
 import Emails from "./pages/Emails";
+import Profil from "./pages/Profil";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="/credit-bancaire" element={<CreditBancaire />} />
               <Route path="/tresorerie-prev" element={<TresoreriePrev />} />
               <Route path="/emails" element={<Emails />} />
+              <Route path="/profil" element={<Profil />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
