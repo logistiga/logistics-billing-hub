@@ -4,7 +4,6 @@ import {
   Plus,
   Search,
   Filter,
-  MoreHorizontal,
   Download,
   Mail,
   Trash2,
@@ -12,16 +11,11 @@ import {
   Eye,
   Clock,
   CheckCircle2,
-  XCircle,
-  FileCheck,
-  FileText,
   Anchor,
   Container,
   Timer,
   Warehouse,
   CreditCard,
-  Banknote,
-  Receipt,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -851,7 +845,7 @@ export default function NotesDebut() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Voir détails">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Voir détails & historique" onClick={() => handleViewHistory(note)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700" title="Modifier">
@@ -863,21 +857,16 @@ export default function NotesDebut() {
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-700" title="Envoyer par email">
                             <Mail className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500 hover:text-emerald-700" title="Enregistrer paiement" onClick={() => handleSinglePayment(note)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500 hover:text-emerald-700" title="Enregistrer paiement / avance" onClick={() => handleSinglePayment(note)}>
                             <CreditCard className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-cyan-500 hover:text-cyan-700" title="Enregistrer avance" onClick={() => handleAdvancePayment(note)}>
-                            <Banknote className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary/80" title="Historique paiements" onClick={() => handleViewHistory(note)}>
-                            <Receipt className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-500 hover:text-indigo-700" title="Convertir en facture">
-                            <FileCheck className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" title="Supprimer">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {/* Note de début ne se convertit pas en facture */}
+                          {/* Ne pas supprimer si paiement existant */}
+                          {note.paid === 0 && note.advance === 0 && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" title="Supprimer">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </motion.tr>
