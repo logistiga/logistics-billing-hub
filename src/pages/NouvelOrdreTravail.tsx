@@ -17,6 +17,8 @@ import {
   Wrench,
   Car,
   Cog,
+  FileText,
+  X,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { generateOrdrePDF } from "@/lib/generateOrdrePDF";
 
 const typeConfig = {
   Manutention: {
@@ -72,6 +75,13 @@ const typeConfig = {
   },
 };
 
+interface LignePrestation {
+  description: string;
+  quantite: number;
+  prixUnit: number;
+  total: number;
+}
+
 type DialogStep = "type" | "subtype" | "form";
 
 export default function NouvelOrdreTravail() {
@@ -80,10 +90,141 @@ export default function NouvelOrdreTravail() {
   const [selectedType, setSelectedType] = useState("");
   const [selectedSubType, setSelectedSubType] = useState("");
 
+  // Form state
+  const [client, setClient] = useState("");
+  const [description, setDescription] = useState("");
+  const [lignes, setLignes] = useState<LignePrestation[]>([
+    { description: "", quantite: 1, prixUnit: 0, total: 0 }
+  ]);
+
+  // Transport fields
+  const [pointDepart, setPointDepart] = useState("");
+  const [pointArrivee, setPointArrivee] = useState("");
+  const [dateEnlevement, setDateEnlevement] = useState("");
+  const [dateLivraison, setDateLivraison] = useState("");
+
+  // Import fields
+  const [numeroConnaissement, setNumeroConnaissement] = useState("");
+  const [numeroConteneur, setNumeroConteneur] = useState("");
+  const [compagnieMaritime, setCompagnieMaritime] = useState("");
+  const [navire, setNavire] = useState("");
+  const [transitaire, setTransitaire] = useState("");
+  const [representant, setRepresentant] = useState("");
+
+  // Export fields
+  const [destinationFinale, setDestinationFinale] = useState("");
+  const [numeroBooking, setNumeroBooking] = useState("");
+
+  // Exceptionnel fields
+  const [poidsTotal, setPoidsTotal] = useState("");
+  const [dimensions, setDimensions] = useState("");
+  const [typeEscorte, setTypeEscorte] = useState("");
+  const [autorisationSpeciale, setAutorisationSpeciale] = useState("");
+
+  // Manutention fields
+  const [lieuPrestation, setLieuPrestation] = useState("");
+  const [typeMarchandise, setTypeMarchandise] = useState("");
+  const [datePrestation, setDatePrestation] = useState("");
+  const [typeManutention, setTypeManutention] = useState("");
+
+  // Stockage fields
+  const [dateEntree, setDateEntree] = useState("");
+  const [dateSortie, setDateSortie] = useState("");
+  const [typeStockage, setTypeStockage] = useState("");
+  const [entrepot, setEntrepot] = useState("");
+  const [surface, setSurface] = useState("");
+  const [tarifJournalier, setTarifJournalier] = useState("");
+
+  // Location fields
+  const [dateDebut, setDateDebut] = useState("");
+  const [dateFin, setDateFin] = useState("");
+  const [typeEngin, setTypeEngin] = useState("");
+  const [typeVehicule, setTypeVehicule] = useState("");
+  const [avecChauffeur, setAvecChauffeur] = useState("");
+  const [lieuUtilisation, setLieuUtilisation] = useState("");
+
   const currentTypeConfig = selectedType ? typeConfig[selectedType as keyof typeof typeConfig] : null;
   const currentSubTypeConfig = currentTypeConfig?.subTypes.find(st => st.key === selectedSubType);
 
+  const updateLigne = (index: number, field: keyof LignePrestation, value: string | number) => {
+    const newLignes = [...lignes];
+    newLignes[index] = { ...newLignes[index], [field]: value };
+    if (field === "quantite" || field === "prixUnit") {
+      newLignes[index].total = newLignes[index].quantite * newLignes[index].prixUnit;
+    }
+    setLignes(newLignes);
+  };
+
+  const addLigne = () => {
+    setLignes([...lignes, { description: "", quantite: 1, prixUnit: 0, total: 0 }]);
+  };
+
+  const removeLigne = (index: number) => {
+    if (lignes.length > 1) {
+      setLignes(lignes.filter((_, i) => i !== index));
+    }
+  };
+
+  const getClientName = (value: string) => {
+    const clients: Record<string, string> = {
+      comilog: "COMILOG SA",
+      olam: "OLAM Gabon",
+      total: "Total Energies",
+      assala: "Assala Energy",
+      seeg: "SEEG",
+    };
+    return clients[value] || value;
+  };
+
+  const handleGeneratePDF = () => {
+    const pdfData = {
+      type: selectedType,
+      subType: selectedSubType,
+      subTypeLabel: currentSubTypeConfig?.label || "",
+      client: getClientName(client),
+      description,
+      lignes,
+      pointDepart,
+      pointArrivee,
+      dateEnlevement,
+      dateLivraison,
+      numeroConnaissement,
+      numeroConteneur,
+      compagnieMaritime,
+      navire,
+      transitaire,
+      representant,
+      destinationFinale,
+      numeroBooking,
+      poidsTotal,
+      dimensions,
+      typeEscorte,
+      autorisationSpeciale,
+      lieuPrestation,
+      typeMarchandise,
+      datePrestation,
+      typeManutention,
+      dateEntree,
+      dateSortie,
+      typeStockage,
+      entrepot,
+      surface,
+      tarifJournalier,
+      dateDebut,
+      dateFin,
+      typeEngin,
+      typeVehicule,
+      avecChauffeur,
+      lieuUtilisation,
+    };
+
+    const doc = generateOrdrePDF(pdfData);
+    doc.save(`ordre-travail-${selectedType.toLowerCase()}-${Date.now()}.pdf`);
+    toast.success("PDF généré avec succès");
+  };
+
   const handleCreate = () => {
+    handleGeneratePDF();
     toast.success("Ordre de travail créé avec succès");
     navigate("/ordres-travail");
   };
@@ -95,11 +236,19 @@ export default function NouvelOrdreTravail() {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Point de départ (A) *</Label>
-            <Input placeholder="Ex: Port d'Owendo" />
+            <Input 
+              placeholder="Ex: Port d'Owendo" 
+              value={pointDepart}
+              onChange={(e) => setPointDepart(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>Point d'arrivée (B) *</Label>
-            <Input placeholder="Ex: Port-Gentil" />
+            <Input 
+              placeholder="Ex: Port-Gentil"
+              value={pointArrivee}
+              onChange={(e) => setPointArrivee(e.target.value)}
+            />
           </div>
         </div>
       </div>
@@ -110,44 +259,56 @@ export default function NouvelOrdreTravail() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>N° Connaissement (BL) *</Label>
-              <Input placeholder="BL-XXXX" />
+              <Input 
+                placeholder="BL-XXXX"
+                value={numeroConnaissement}
+                onChange={(e) => setNumeroConnaissement(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>Numéro de conteneur *</Label>
-              <Input placeholder="Ex: MSKU1234567" />
+              <Input 
+                placeholder="Ex: MSKU1234567"
+                value={numeroConteneur}
+                onChange={(e) => setNumeroConteneur(e.target.value)}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="space-y-2">
               <Label>Compagnie Maritime *</Label>
-              <Select>
+              <Select value={compagnieMaritime} onValueChange={setCompagnieMaritime}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choisir une compagnie" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="msc">MSC</SelectItem>
-                  <SelectItem value="maersk">Maersk</SelectItem>
-                  <SelectItem value="cmacgm">CMA CGM</SelectItem>
-                  <SelectItem value="hapag">Hapag-Lloyd</SelectItem>
+                  <SelectItem value="MSC">MSC</SelectItem>
+                  <SelectItem value="Maersk">Maersk</SelectItem>
+                  <SelectItem value="CMA CGM">CMA CGM</SelectItem>
+                  <SelectItem value="Hapag-Lloyd">Hapag-Lloyd</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Navire</Label>
-              <Input placeholder="Nom du navire" />
+              <Input 
+                placeholder="Nom du navire"
+                value={navire}
+                onChange={(e) => setNavire(e.target.value)}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="space-y-2">
               <Label>Transitaire *</Label>
-              <Select>
+              <Select value={transitaire} onValueChange={setTransitaire}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choisir un transitaire" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="transgabon">Trans Gabon Logistics</SelectItem>
-                  <SelectItem value="bollore">Bolloré Transport & Logistics</SelectItem>
-                  <SelectItem value="sdv">SDV Gabon</SelectItem>
+                  <SelectItem value="Trans Gabon Logistics">Trans Gabon Logistics</SelectItem>
+                  <SelectItem value="Bolloré Transport & Logistics">Bolloré Transport & Logistics</SelectItem>
+                  <SelectItem value="SDV Gabon">SDV Gabon</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -159,14 +320,14 @@ export default function NouvelOrdreTravail() {
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="space-y-2">
               <Label>Représentant</Label>
-              <Select>
+              <Select value={representant} onValueChange={setRepresentant}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choisir un représentant" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ndong">Jean-Paul Ndong</SelectItem>
-                  <SelectItem value="obame">Marie Obame</SelectItem>
-                  <SelectItem value="nguema">Pierre Nguema</SelectItem>
+                  <SelectItem value="Jean-Paul Ndong">Jean-Paul Ndong</SelectItem>
+                  <SelectItem value="Marie Obame">Marie Obame</SelectItem>
+                  <SelectItem value="Pierre Nguema">Pierre Nguema</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -184,31 +345,43 @@ export default function NouvelOrdreTravail() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Destination finale *</Label>
-              <Input placeholder="Ex: Douala, Cameroun" />
+              <Input 
+                placeholder="Ex: Douala, Cameroun"
+                value={destinationFinale}
+                onChange={(e) => setDestinationFinale(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>N° Booking</Label>
-              <Input placeholder="Booking number" />
+              <Input 
+                placeholder="Booking number"
+                value={numeroBooking}
+                onChange={(e) => setNumeroBooking(e.target.value)}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="space-y-2">
               <Label>Compagnie Maritime *</Label>
-              <Select>
+              <Select value={compagnieMaritime} onValueChange={setCompagnieMaritime}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choisir une compagnie" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="msc">MSC</SelectItem>
-                  <SelectItem value="maersk">Maersk</SelectItem>
-                  <SelectItem value="cmacgm">CMA CGM</SelectItem>
-                  <SelectItem value="hapag">Hapag-Lloyd</SelectItem>
+                  <SelectItem value="MSC">MSC</SelectItem>
+                  <SelectItem value="Maersk">Maersk</SelectItem>
+                  <SelectItem value="CMA CGM">CMA CGM</SelectItem>
+                  <SelectItem value="Hapag-Lloyd">Hapag-Lloyd</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>N° Container</Label>
-              <Input placeholder="MSKU1234567" />
+              <Input 
+                placeholder="MSKU1234567"
+                value={numeroConteneur}
+                onChange={(e) => setNumeroConteneur(e.target.value)}
+              />
             </div>
           </div>
         </div>
@@ -220,29 +393,42 @@ export default function NouvelOrdreTravail() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Poids total (tonnes)</Label>
-              <Input type="number" placeholder="0" />
+              <Input 
+                type="text" 
+                placeholder="0"
+                value={poidsTotal}
+                onChange={(e) => setPoidsTotal(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>Dimensions (L x l x H)</Label>
-              <Input placeholder="Ex: 12m x 3m x 4m" />
+              <Input 
+                placeholder="Ex: 12m x 3m x 4m"
+                value={dimensions}
+                onChange={(e) => setDimensions(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>Type d'escorte</Label>
-              <Select>
+              <Select value={typeEscorte} onValueChange={setTypeEscorte}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="aucune">Aucune</SelectItem>
-                  <SelectItem value="vehicule">Véhicule pilote</SelectItem>
-                  <SelectItem value="police">Escorte police</SelectItem>
-                  <SelectItem value="gendarmerie">Escorte gendarmerie</SelectItem>
+                  <SelectItem value="Aucune">Aucune</SelectItem>
+                  <SelectItem value="Véhicule pilote">Véhicule pilote</SelectItem>
+                  <SelectItem value="Escorte police">Escorte police</SelectItem>
+                  <SelectItem value="Escorte gendarmerie">Escorte gendarmerie</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Autorisation spéciale</Label>
-              <Input placeholder="N° autorisation" />
+              <Input 
+                placeholder="N° autorisation"
+                value={autorisationSpeciale}
+                onChange={(e) => setAutorisationSpeciale(e.target.value)}
+              />
             </div>
           </div>
         </div>
@@ -251,11 +437,19 @@ export default function NouvelOrdreTravail() {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Date d'enlèvement *</Label>
-          <Input type="date" />
+          <Input 
+            type="date"
+            value={dateEnlevement}
+            onChange={(e) => setDateEnlevement(e.target.value)}
+          />
         </div>
         <div className="space-y-2">
           <Label>Date de livraison prévue</Label>
-          <Input type="date" />
+          <Input 
+            type="date"
+            value={dateLivraison}
+            onChange={(e) => setDateLivraison(e.target.value)}
+          />
         </div>
       </div>
     </div>
@@ -266,22 +460,40 @@ export default function NouvelOrdreTravail() {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Lieu de prestation *</Label>
-          <Textarea placeholder="Ex: Port d'Owendo, Quai 3..." rows={2} />
+          <Textarea 
+            placeholder="Ex: Port d'Owendo, Quai 3..." 
+            rows={2}
+            value={lieuPrestation}
+            onChange={(e) => setLieuPrestation(e.target.value)}
+          />
         </div>
         <div className="space-y-2">
           <Label>Type de marchandise</Label>
-          <Input placeholder="Ex: Containers, Vrac..." />
+          <Input 
+            placeholder="Ex: Containers, Vrac..."
+            value={typeMarchandise}
+            onChange={(e) => setTypeMarchandise(e.target.value)}
+          />
         </div>
       </div>
       {selectedSubType === "autre" && (
         <div className="space-y-2">
           <Label>Précisez le type de manutention *</Label>
-          <Input placeholder="Décrivez le type de manutention" />
+          <Input 
+            placeholder="Décrivez le type de manutention"
+            value={typeManutention}
+            onChange={(e) => setTypeManutention(e.target.value)}
+          />
         </div>
       )}
       <div className="space-y-2">
         <Label>Date prestation *</Label>
-        <Input type="date" className="w-1/2" />
+        <Input 
+          type="date" 
+          className="w-1/2"
+          value={datePrestation}
+          onChange={(e) => setDatePrestation(e.target.value)}
+        />
       </div>
     </div>
   );
@@ -293,11 +505,19 @@ export default function NouvelOrdreTravail() {
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Date d'entrée *</Label>
-            <Input type="date" />
+            <Input 
+              type="date"
+              value={dateEntree}
+              onChange={(e) => setDateEntree(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>Date de sortie prévue</Label>
-            <Input type="date" />
+            <Input 
+              type="date"
+              value={dateSortie}
+              onChange={(e) => setDateSortie(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>Durée (jours)</Label>
@@ -309,29 +529,29 @@ export default function NouvelOrdreTravail() {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Type de stockage *</Label>
-          <Select>
+          <Select value={typeStockage} onValueChange={setTypeStockage}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="entrepot">Entrepôt sécurisé</SelectItem>
-              <SelectItem value="plein-air">Stockage plein air</SelectItem>
-              <SelectItem value="refrigere">Stockage réfrigéré</SelectItem>
-              <SelectItem value="dangereux">Matières dangereuses</SelectItem>
+              <SelectItem value="Entrepôt sécurisé">Entrepôt sécurisé</SelectItem>
+              <SelectItem value="Stockage plein air">Stockage plein air</SelectItem>
+              <SelectItem value="Stockage réfrigéré">Stockage réfrigéré</SelectItem>
+              <SelectItem value="Matières dangereuses">Matières dangereuses</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
           <Label>Entrepôt *</Label>
-          <Select>
+          <Select value={entrepot} onValueChange={setEntrepot}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="owendo-a">Owendo - Entrepôt A</SelectItem>
-              <SelectItem value="owendo-b">Owendo - Entrepôt B</SelectItem>
-              <SelectItem value="libreville">Libreville Central</SelectItem>
-              <SelectItem value="portgentil">Port-Gentil</SelectItem>
+              <SelectItem value="Owendo - Entrepôt A">Owendo - Entrepôt A</SelectItem>
+              <SelectItem value="Owendo - Entrepôt B">Owendo - Entrepôt B</SelectItem>
+              <SelectItem value="Libreville Central">Libreville Central</SelectItem>
+              <SelectItem value="Port-Gentil">Port-Gentil</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -340,28 +560,38 @@ export default function NouvelOrdreTravail() {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Type de marchandise</Label>
-          <Select>
+          <Select value={typeMarchandise} onValueChange={setTypeMarchandise}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="general">Marchandises générales</SelectItem>
-              <SelectItem value="dangereux">Marchandises dangereuses</SelectItem>
-              <SelectItem value="refrigere">Produits réfrigérés</SelectItem>
-              <SelectItem value="vrac">Vrac</SelectItem>
+              <SelectItem value="Marchandises générales">Marchandises générales</SelectItem>
+              <SelectItem value="Marchandises dangereuses">Marchandises dangereuses</SelectItem>
+              <SelectItem value="Produits réfrigérés">Produits réfrigérés</SelectItem>
+              <SelectItem value="Vrac">Vrac</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
           <Label>Surface (m²)</Label>
-          <Input type="number" placeholder="0" />
+          <Input 
+            type="number" 
+            placeholder="0"
+            value={surface}
+            onChange={(e) => setSurface(e.target.value)}
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Tarif journalier/m² (FCFA)</Label>
-          <Input type="number" placeholder="0" />
+          <Input 
+            type="number" 
+            placeholder="0"
+            value={tarifJournalier}
+            onChange={(e) => setTarifJournalier(e.target.value)}
+          />
         </div>
         <div className="space-y-2">
           <Label>Total estimé (FCFA)</Label>
@@ -378,11 +608,19 @@ export default function NouvelOrdreTravail() {
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Date de début *</Label>
-            <Input type="date" />
+            <Input 
+              type="date"
+              value={dateDebut}
+              onChange={(e) => setDateDebut(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>Date de fin *</Label>
-            <Input type="date" />
+            <Input 
+              type="date"
+              value={dateFin}
+              onChange={(e) => setDateFin(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>Durée (jours)</Label>
@@ -395,16 +633,16 @@ export default function NouvelOrdreTravail() {
         {selectedSubType === "engin" && (
           <div className="space-y-2">
             <Label>Type d'engin *</Label>
-            <Select>
+            <Select value={typeEngin} onValueChange={setTypeEngin}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="grue">Grue</SelectItem>
-                <SelectItem value="chariot">Chariot élévateur</SelectItem>
-                <SelectItem value="reach">Reach stacker</SelectItem>
-                <SelectItem value="tracteur">Tracteur portuaire</SelectItem>
-                <SelectItem value="autre">Autre</SelectItem>
+                <SelectItem value="Grue">Grue</SelectItem>
+                <SelectItem value="Chariot élévateur">Chariot élévateur</SelectItem>
+                <SelectItem value="Reach stacker">Reach stacker</SelectItem>
+                <SelectItem value="Tracteur portuaire">Tracteur portuaire</SelectItem>
+                <SelectItem value="Autre">Autre</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -412,28 +650,28 @@ export default function NouvelOrdreTravail() {
         {selectedSubType === "vehicule" && (
           <div className="space-y-2">
             <Label>Type de véhicule *</Label>
-            <Select>
+            <Select value={typeVehicule} onValueChange={setTypeVehicule}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="camion">Camion</SelectItem>
-                <SelectItem value="semi">Semi-remorque</SelectItem>
-                <SelectItem value="plateau">Plateau</SelectItem>
-                <SelectItem value="citerne">Citerne</SelectItem>
+                <SelectItem value="Camion">Camion</SelectItem>
+                <SelectItem value="Semi-remorque">Semi-remorque</SelectItem>
+                <SelectItem value="Plateau">Plateau</SelectItem>
+                <SelectItem value="Citerne">Citerne</SelectItem>
               </SelectContent>
             </Select>
           </div>
         )}
         <div className="space-y-2">
           <Label>Avec chauffeur/opérateur</Label>
-          <Select>
+          <Select value={avecChauffeur} onValueChange={setAvecChauffeur}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="oui">Oui</SelectItem>
-              <SelectItem value="non">Non</SelectItem>
+              <SelectItem value="Oui">Oui</SelectItem>
+              <SelectItem value="Non">Non</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -441,7 +679,11 @@ export default function NouvelOrdreTravail() {
 
       <div className="space-y-2">
         <Label>Lieu d'utilisation *</Label>
-        <Input placeholder="Ex: Chantier Owendo" />
+        <Input 
+          placeholder="Ex: Chantier Owendo"
+          value={lieuUtilisation}
+          onChange={(e) => setLieuUtilisation(e.target.value)}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -595,7 +837,7 @@ export default function NouvelOrdreTravail() {
                 {/* Client */}
                 <div className="space-y-2">
                   <Label>Client *</Label>
-                  <Select>
+                  <Select value={client} onValueChange={setClient}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un client" />
                     </SelectTrigger>
@@ -615,25 +857,62 @@ export default function NouvelOrdreTravail() {
                 {/* Description */}
                 <div className="space-y-2">
                   <Label>Description</Label>
-                  <Textarea placeholder="Description de la prestation..." />
+                  <Textarea 
+                    placeholder="Description de la prestation..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
                 </div>
 
                 {/* Lignes de prestation */}
                 <div className="border rounded-lg p-4">
                   <h4 className="font-medium mb-3">Lignes de prestation</h4>
                   <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-2">
-                    <div className="col-span-6">Description</div>
+                    <div className="col-span-5">Description</div>
                     <div className="col-span-2">Quantité</div>
                     <div className="col-span-2">Prix unit.</div>
                     <div className="col-span-2">Total</div>
+                    <div className="col-span-1"></div>
                   </div>
-                  <div className="grid grid-cols-12 gap-2">
-                    <Input className="col-span-6" placeholder="Description" />
-                    <Input className="col-span-2" type="number" placeholder="1" />
-                    <Input className="col-span-2" type="number" placeholder="0" />
-                    <Input className="col-span-2" disabled placeholder="0 FCFA" />
-                  </div>
-                  <Button variant="ghost" size="sm" className="mt-2">
+                  {lignes.map((ligne, index) => (
+                    <div key={index} className="grid grid-cols-12 gap-2 mb-2">
+                      <Input 
+                        className="col-span-5" 
+                        placeholder="Description"
+                        value={ligne.description}
+                        onChange={(e) => updateLigne(index, "description", e.target.value)}
+                      />
+                      <Input 
+                        className="col-span-2" 
+                        type="number" 
+                        placeholder="1"
+                        value={ligne.quantite || ""}
+                        onChange={(e) => updateLigne(index, "quantite", parseInt(e.target.value) || 0)}
+                      />
+                      <Input 
+                        className="col-span-2" 
+                        type="number" 
+                        placeholder="0"
+                        value={ligne.prixUnit || ""}
+                        onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
+                      />
+                      <Input 
+                        className="col-span-2" 
+                        disabled 
+                        value={`${ligne.total.toLocaleString("fr-FR")} FCFA`}
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="col-span-1"
+                        onClick={() => removeLigne(index)}
+                        disabled={lignes.length === 1}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button variant="ghost" size="sm" className="mt-2" onClick={addLigne}>
                     <Plus className="h-4 w-4 mr-1" />
                     Ajouter une ligne
                   </Button>
@@ -643,6 +922,10 @@ export default function NouvelOrdreTravail() {
                 <div className="flex justify-end gap-4 pt-4 border-t">
                   <Button variant="outline" onClick={() => navigate("/ordres-travail")}>
                     Annuler
+                  </Button>
+                  <Button variant="outline" onClick={handleGeneratePDF}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Aperçu PDF
                   </Button>
                   <Button variant="gradient" onClick={handleCreate}>
                     Créer l'ordre
