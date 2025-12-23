@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -14,6 +15,7 @@ import {
   CheckSquare,
   Layers,
   FileDown,
+  ReceiptText,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +23,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -180,6 +192,7 @@ const statusConfig = {
 };
 
 export default function Factures() {
+  const navigate = useNavigate();
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -194,6 +207,12 @@ export default function Factures() {
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedInvoiceForHistory, setSelectedInvoiceForHistory] = useState<Invoice | null>(null);
 
+  // Avoir dialog states
+  const [avoirDialogOpen, setAvoirDialogOpen] = useState(false);
+  const [selectedInvoiceForAvoir, setSelectedInvoiceForAvoir] = useState<Invoice | null>(null);
+  const [avoirAmount, setAvoirAmount] = useState("");
+  const [avoirReason, setAvoirReason] = useState("");
+
   const handleViewHistory = (invoice: Invoice) => {
     setSelectedInvoiceForHistory(invoice);
     setHistoryDialogOpen(true);
@@ -201,6 +220,59 @@ export default function Factures() {
 
   const getPaymentHistory = (invoiceNumber: string): PaymentRecord[] => {
     return mockPaymentHistory[invoiceNumber] || [];
+  };
+
+  // Avoir handlers
+  const handleCreateAvoir = (invoice: Invoice) => {
+    setSelectedInvoiceForAvoir(invoice);
+    setAvoirAmount("");
+    setAvoirReason("");
+    setAvoirDialogOpen(true);
+  };
+
+  const confirmCreateAvoir = () => {
+    if (!selectedInvoiceForAvoir) return;
+    
+    const amount = parseFloat(avoirAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer un montant valide",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (amount > selectedInvoiceForAvoir.amount) {
+      toast({
+        title: "Erreur",
+        description: "Le montant de l'avoir ne peut pas dépasser le montant de la facture",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!avoirReason.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez indiquer le motif de l'avoir",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Générer le numéro d'avoir
+    const year = new Date().getFullYear();
+    const avoirNumber = `AV-${year}-${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")}`;
+
+    toast({
+      title: "Avoir créé",
+      description: `L'avoir ${avoirNumber} de ${formatCurrency(amount)} FCFA a été créé pour la facture ${selectedInvoiceForAvoir.number}`,
+    });
+
+    setAvoirDialogOpen(false);
+    // Rediriger vers la page des avoirs
+    navigate("/avoirs");
   };
 
   const filteredInvoices = invoices.filter((invoice) => {
@@ -595,8 +667,8 @@ export default function Factures() {
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500 hover:text-emerald-700" title="Enregistrer paiement / avance" onClick={() => handleSinglePayment(invoice)}>
                             <CreditCard className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-500 hover:text-indigo-700" title="Convertir en avoir">
-                            <ArrowRightLeft className="h-4 w-4" />
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-500 hover:text-orange-700" title="Créer un avoir" onClick={() => handleCreateAvoir(invoice)}>
+                            <ReceiptText className="h-4 w-4" />
                           </Button>
                           {/* Ne pas supprimer si paiement existant */}
                           {invoice.paid === 0 && invoice.advance === 0 && (
@@ -636,6 +708,63 @@ export default function Factures() {
           payments={getPaymentHistory(selectedInvoiceForHistory.number)}
         />
       )}
+
+      {/* Avoir Dialog */}
+      <Dialog open={avoirDialogOpen} onOpenChange={setAvoirDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ReceiptText className="h-5 w-5 text-orange-500" />
+              Créer un avoir
+            </DialogTitle>
+            <DialogDescription>
+              {selectedInvoiceForAvoir && (
+                <>
+                  Créer un avoir pour la facture <strong>{selectedInvoiceForAvoir.number}</strong>
+                  <br />
+                  Client: {selectedInvoiceForAvoir.client} • Montant: {formatCurrency(selectedInvoiceForAvoir.amount)} FCFA
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="avoirAmount">Montant de l'avoir (FCFA) *</Label>
+              <Input
+                id="avoirAmount"
+                type="number"
+                placeholder="Ex: 150000"
+                value={avoirAmount}
+                onChange={(e) => setAvoirAmount(e.target.value)}
+              />
+              {selectedInvoiceForAvoir && (
+                <p className="text-xs text-muted-foreground">
+                  Maximum: {formatCurrency(selectedInvoiceForAvoir.amount)} FCFA
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="avoirReason">Motif de l'avoir *</Label>
+              <Textarea
+                id="avoirReason"
+                placeholder="Ex: Erreur de facturation, retour de marchandise, remise commerciale..."
+                value={avoirReason}
+                onChange={(e) => setAvoirReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAvoirDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={confirmCreateAvoir} className="bg-orange-500 hover:bg-orange-600">
+              <ReceiptText className="h-4 w-4 mr-2" />
+              Créer l'avoir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 }
