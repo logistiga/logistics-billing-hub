@@ -46,6 +46,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import { clientSchema, validateForm, type ClientFormData } from "@/lib/validations";
+import { FormError } from "@/components/FormError";
 
 interface Contact {
   id: string;
@@ -153,6 +155,18 @@ export default function Clients() {
     { id: "1", name: "", email: "", phone: "" }
   ]);
 
+  // New client form state
+  const [newForm, setNewForm] = useState({
+    name: "",
+    nif: "",
+    rccm: "",
+    address: "",
+    city: "",
+    phone: "",
+    email: "",
+  });
+  const [newFormErrors, setNewFormErrors] = useState<Record<string, string>>({});
+
   // Edit dialog state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -166,6 +180,7 @@ export default function Clients() {
     email: "",
   });
   const [editContacts, setEditContacts] = useState<Contact[]>([]);
+  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
 
   // Delete dialog state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -187,12 +202,60 @@ export default function Clients() {
 
   const resetForm = () => {
     setContacts([{ id: "1", name: "", email: "", phone: "" }]);
+    setNewForm({ name: "", nif: "", rccm: "", address: "", city: "", phone: "", email: "" });
+    setNewFormErrors({});
     setIsDialogOpen(false);
+  };
+
+  const handleCreateClient = () => {
+    const formData = {
+      ...newForm,
+      contacts: contacts.map(({ name, email, phone }) => ({ name, email, phone })),
+    };
+
+    const result = validateForm(clientSchema, formData);
+    
+    if (result.success === false) {
+      setNewFormErrors(result.errors);
+      toast({
+        title: "Erreur de validation",
+        description: "Veuillez corriger les champs en erreur",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validData = result.data;
+    const newClient: Client = {
+      id: Date.now().toString(),
+      name: validData.name,
+      nif: validData.nif,
+      rccm: validData.rccm,
+      address: validData.address,
+      city: validData.city,
+      phone: validData.phone,
+      email: validData.email,
+      contacts: validData.contacts.map(c => ({
+        name: c.name,
+        email: c.email,
+        phone: c.phone,
+      })),
+      totalInvoices: 0,
+      balance: 0,
+    };
+
+    setClients([...clients, newClient]);
+    toast({
+      title: "Client créé",
+      description: `${newClient.name} a été ajouté à la liste`,
+    });
+    resetForm();
   };
 
   // Edit handlers
   const handleEditClient = (client: Client) => {
     setEditingClient(client);
+    setEditFormErrors({});
     setEditForm({
       name: client.name,
       nif: client.nif,
@@ -222,13 +285,41 @@ export default function Clients() {
 
   const handleSaveEdit = () => {
     if (!editingClient) return;
+
+    const formData = {
+      ...editForm,
+      contacts: editContacts.map(({ name, email, phone }) => ({ name, email, phone })),
+    };
+
+    const result = validateForm(clientSchema, formData);
     
+    if (result.success === false) {
+      setEditFormErrors(result.errors);
+      toast({
+        title: "Erreur de validation",
+        description: "Veuillez corriger les champs en erreur",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const validData = result.data;
     setClients(clients.map(c => 
       c.id === editingClient.id 
         ? { 
             ...c, 
-            ...editForm,
-            contacts: editContacts.map(({ name, email, phone }) => ({ name, email, phone }))
+            name: validData.name,
+            nif: validData.nif,
+            rccm: validData.rccm,
+            address: validData.address,
+            city: validData.city,
+            phone: validData.phone,
+            email: validData.email,
+            contacts: validData.contacts.map(contact => ({
+              name: contact.name,
+              email: contact.email,
+              phone: contact.phone,
+            })),
           } 
         : c
     ));
@@ -240,6 +331,7 @@ export default function Clients() {
     
     setIsEditDialogOpen(false);
     setEditingClient(null);
+    setEditFormErrors({});
   };
 
   // Delete handlers
@@ -306,35 +398,79 @@ export default function Clients() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Raison sociale *</Label>
-                    <Input id="name" placeholder="Nom de l'entreprise" />
+                    <Input 
+                      id="name" 
+                      placeholder="Nom de l'entreprise" 
+                      value={newForm.name}
+                      onChange={(e) => setNewForm({ ...newForm, name: e.target.value })}
+                      className={newFormErrors.name ? "border-destructive" : ""}
+                    />
+                    <FormError message={newFormErrors.name} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="nif">Numéro NIF *</Label>
-                    <Input id="nif" placeholder="123456789GA" />
+                    <Input 
+                      id="nif" 
+                      placeholder="123456789GA"
+                      value={newForm.nif}
+                      onChange={(e) => setNewForm({ ...newForm, nif: e.target.value.toUpperCase() })}
+                      className={newFormErrors.nif ? "border-destructive" : ""}
+                    />
+                    <FormError message={newFormErrors.nif} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="rccm">Numéro RCCM *</Label>
-                    <Input id="rccm" placeholder="LBV/2024/B/12345" />
+                    <Input 
+                      id="rccm" 
+                      placeholder="LBV/2024/B/12345"
+                      value={newForm.rccm}
+                      onChange={(e) => setNewForm({ ...newForm, rccm: e.target.value.toUpperCase() })}
+                      className={newFormErrors.rccm ? "border-destructive" : ""}
+                    />
+                    <FormError message={newFormErrors.rccm} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="city">Ville</Label>
-                    <Input id="city" placeholder="Libreville" />
+                    <Input 
+                      id="city" 
+                      placeholder="Libreville"
+                      value={newForm.city}
+                      onChange={(e) => setNewForm({ ...newForm, city: e.target.value })}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="address">Adresse</Label>
-                  <Textarea id="address" placeholder="Adresse complète" />
+                  <Textarea 
+                    id="address" 
+                    placeholder="Adresse complète"
+                    value={newForm.address}
+                    onChange={(e) => setNewForm({ ...newForm, address: e.target.value })}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">Téléphone</Label>
-                    <Input id="phone" placeholder="+241 01 XX XX XX" />
+                    <Input 
+                      id="phone" 
+                      placeholder="+241 01 XX XX XX"
+                      value={newForm.phone}
+                      onChange={(e) => setNewForm({ ...newForm, phone: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="contact@entreprise.ga" />
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      placeholder="contact@entreprise.ga"
+                      value={newForm.email}
+                      onChange={(e) => setNewForm({ ...newForm, email: e.target.value })}
+                      className={newFormErrors.email ? "border-destructive" : ""}
+                    />
+                    <FormError message={newFormErrors.email} />
                   </div>
                 </div>
                 <div className="border-t pt-4">
@@ -398,7 +534,7 @@ export default function Clients() {
                 <Button variant="outline" onClick={resetForm}>
                   Annuler
                 </Button>
-                <Button variant="gradient" onClick={resetForm}>
+                <Button variant="gradient" onClick={handleCreateClient}>
                   Créer le client
                 </Button>
               </DialogFooter>
@@ -524,15 +660,19 @@ export default function Clients() {
                     id="edit-name" 
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className={editFormErrors.name ? "border-destructive" : ""}
                   />
+                  <FormError message={editFormErrors.name} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-nif">Numéro NIF *</Label>
                   <Input 
                     id="edit-nif" 
                     value={editForm.nif}
-                    onChange={(e) => setEditForm({ ...editForm, nif: e.target.value })}
+                    onChange={(e) => setEditForm({ ...editForm, nif: e.target.value.toUpperCase() })}
+                    className={editFormErrors.nif ? "border-destructive" : ""}
                   />
+                  <FormError message={editFormErrors.nif} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -541,8 +681,10 @@ export default function Clients() {
                   <Input 
                     id="edit-rccm" 
                     value={editForm.rccm}
-                    onChange={(e) => setEditForm({ ...editForm, rccm: e.target.value })}
+                    onChange={(e) => setEditForm({ ...editForm, rccm: e.target.value.toUpperCase() })}
+                    className={editFormErrors.rccm ? "border-destructive" : ""}
                   />
+                  <FormError message={editFormErrors.rccm} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-city">Ville</Label>
@@ -577,7 +719,9 @@ export default function Clients() {
                     type="email" 
                     value={editForm.email}
                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className={editFormErrors.email ? "border-destructive" : ""}
                   />
+                  <FormError message={editFormErrors.email} />
                 </div>
               </div>
               <div className="border-t pt-4">
