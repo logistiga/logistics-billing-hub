@@ -11,6 +11,7 @@ import Factures from "./pages/Factures";
 import Devis from "./pages/Devis";
 import OrdresTravail from "./pages/OrdresTravail";
 import NouvelOrdreTravail from "./pages/NouvelOrdreTravail";
+import OrdresEnAttente from "./pages/OrdresEnAttente";
 import NotesDebut from "./pages/NotesDebut";
 import Entreprise from "./pages/Entreprise";
 import Banques from "./pages/Banques";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/devis" element={<Devis />} />
             <Route path="/ordres-travail" element={<OrdresTravail />} />
             <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
+            <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
             <Route path="/notes-debut" element={<NotesDebut />} />
             <Route path="/entreprise" element={<Entreprise />} />
             <Route path="/banques" element={<Banques />} />
