@@ -275,6 +275,18 @@ export default function Factures() {
       });
       return;
     }
+    
+    // Vérifier que toutes les factures sont du même client
+    const clientIds = new Set(selectedInvoices.map((inv) => inv.clientId));
+    if (clientIds.size > 1) {
+      toast({
+        title: "Clients différents",
+        description: "Le paiement groupé n'est possible que pour un seul client. Sélectionnez des factures du même client.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setPaymentDocuments(selectedInvoices.map(toPayableDocument));
     setPaymentMode("group");
     setPaymentDialogOpen(true);
