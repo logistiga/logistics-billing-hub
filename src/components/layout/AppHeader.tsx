@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface AppHeaderProps {
   sidebarCollapsed: boolean;
@@ -52,7 +53,10 @@ export function AppHeader({ sidebarCollapsed }: AppHeaderProps) {
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
           {/* Notifications */}
           <NotificationCenter />
 
