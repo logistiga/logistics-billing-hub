@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   TrendingUp,
@@ -6,16 +6,38 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Calendar,
-  Filter,
   Download,
   AlertTriangle,
   CheckCircle,
   Wallet,
+  Plus,
+  Trash2,
+  Edit,
+  CalendarIcon,
 } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -32,8 +54,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
   BarChart,
@@ -45,6 +65,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 interface CashFlowItem {
   id: string;
@@ -55,35 +77,47 @@ interface CashFlowItem {
   date: string;
   status: "confirmed" | "expected" | "uncertain";
   reference?: string;
+  isManual?: boolean;
 }
 
-// Données de trésorerie prévisionnelle
-const generateForecastData = () => {
+// Catégories de décaissements
+const decaissementCategories = [
+  { value: "salaires", label: "Salaires" },
+  { value: "fournisseurs", label: "Fournisseurs" },
+  { value: "charges", label: "Charges fixes" },
+  { value: "impots", label: "Impôts & Taxes" },
+  { value: "investissements", label: "Investissements" },
+  { value: "remboursements", label: "Remboursements" },
+  { value: "autres", label: "Autres" },
+];
+
+// Catégories d'encaissements
+const encaissementCategories = [
+  { value: "clients", label: "Clients" },
+  { value: "subventions", label: "Subventions" },
+  { value: "emprunts", label: "Emprunts" },
+  { value: "autres", label: "Autres" },
+];
+
+// Données de trésorerie prévisionnelle initiales
+const generateInitialData = (): CashFlowItem[] => {
   const today = new Date();
   const data: CashFlowItem[] = [];
 
-  // Encaissements prévus (factures à encaisser)
   const encaissements = [
     { client: "COMILOG SA", amount: 3250000, daysFromNow: 5, status: "confirmed" as const },
     { client: "OLAM Gabon", amount: 1875000, daysFromNow: 12, status: "expected" as const },
     { client: "Total Energies", amount: 5420000, daysFromNow: 18, status: "expected" as const },
     { client: "Assala Energy", amount: 2100000, daysFromNow: 25, status: "uncertain" as const },
     { client: "SEEG", amount: 890000, daysFromNow: 30, status: "expected" as const },
-    { client: "COMILOG SA", amount: 1500000, daysFromNow: 35, status: "uncertain" as const },
-    { client: "Total Energies", amount: 3200000, daysFromNow: 42, status: "uncertain" as const },
-    { client: "OLAM Gabon", amount: 2800000, daysFromNow: 50, status: "uncertain" as const },
   ];
 
-  // Décaissements prévus
   const decaissements = [
     { category: "Salaires", description: "Paie décembre 2024", amount: 4500000, daysFromNow: 3, status: "confirmed" as const },
     { category: "Fournisseurs", description: "Carburant PIZOLUB", amount: 1200000, daysFromNow: 7, status: "confirmed" as const },
     { category: "Charges", description: "Loyer entrepôt", amount: 850000, daysFromNow: 10, status: "confirmed" as const },
     { category: "Fournisseurs", description: "Pièces détachées", amount: 650000, daysFromNow: 15, status: "expected" as const },
     { category: "Impôts", description: "TVA T4 2024", amount: 2100000, daysFromNow: 20, status: "confirmed" as const },
-    { category: "Salaires", description: "Paie janvier 2025", amount: 4500000, daysFromNow: 33, status: "expected" as const },
-    { category: "Fournisseurs", description: "Maintenance véhicules", amount: 980000, daysFromNow: 38, status: "expected" as const },
-    { category: "Charges", description: "Assurances", amount: 1500000, daysFromNow: 45, status: "uncertain" as const },
   ];
 
   encaissements.forEach((e, i) => {
@@ -118,50 +152,6 @@ const generateForecastData = () => {
   return data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 };
 
-const cashFlowItems = generateForecastData();
-
-// Générer données pour le graphique
-const generateChartData = () => {
-  const today = new Date();
-  const data = [];
-  let solde = 8500000; // Solde initial
-
-  for (let i = 0; i <= 60; i += 7) {
-    const weekEnd = new Date(today);
-    weekEnd.setDate(weekEnd.getDate() + i + 7);
-    const weekStart = new Date(today);
-    weekStart.setDate(weekStart.getDate() + i);
-
-    const weekItems = cashFlowItems.filter((item) => {
-      const itemDate = new Date(item.date);
-      return itemDate >= weekStart && itemDate < weekEnd;
-    });
-
-    const encaissements = weekItems
-      .filter((item) => item.type === "encaissement")
-      .reduce((sum, item) => sum + item.amount, 0);
-
-    const decaissements = weekItems
-      .filter((item) => item.type === "decaissement")
-      .reduce((sum, item) => sum + item.amount, 0);
-
-    solde = solde + encaissements - decaissements;
-
-    const weekLabel = i === 0 ? "S. actuelle" : `S+${Math.ceil(i / 7)}`;
-
-    data.push({
-      semaine: weekLabel,
-      encaissements: encaissements / 1000000,
-      decaissements: decaissements / 1000000,
-      solde: solde / 1000000,
-    });
-  }
-
-  return data;
-};
-
-const chartData = generateChartData();
-
 const statusConfig = {
   confirmed: {
     label: "Confirmé",
@@ -181,8 +171,134 @@ const statusConfig = {
 };
 
 export default function TresoreriePrev() {
+  const [cashFlowItems, setCashFlowItems] = useState<CashFlowItem[]>(generateInitialData);
   const [period, setPeriod] = useState("60");
   const [viewType, setViewType] = useState<"all" | "encaissement" | "decaissement">("all");
+  
+  // Dialog states
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<CashFlowItem | null>(null);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    type: "decaissement" as "encaissement" | "decaissement",
+    category: "",
+    description: "",
+    amount: "",
+    date: undefined as Date | undefined,
+    status: "expected" as CashFlowItem["status"],
+    reference: "",
+  });
+
+  const resetForm = () => {
+    setFormData({
+      type: "decaissement",
+      category: "",
+      description: "",
+      amount: "",
+      date: undefined,
+      status: "expected",
+      reference: "",
+    });
+    setEditingItem(null);
+  };
+
+  // Handlers pour CRUD
+  const handleOpenCreate = (type: "encaissement" | "decaissement" = "decaissement") => {
+    resetForm();
+    setFormData((prev) => ({ ...prev, type }));
+    setCreateDialogOpen(true);
+  };
+
+  const handleEdit = (item: CashFlowItem) => {
+    setEditingItem(item);
+    setFormData({
+      type: item.type,
+      category: item.category,
+      description: item.description,
+      amount: item.amount.toString(),
+      date: new Date(item.date),
+      status: item.status,
+      reference: item.reference || "",
+    });
+    setCreateDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setCashFlowItems((prev) => prev.filter((item) => item.id !== id));
+    toast({
+      title: "Prévision supprimée",
+      description: "La prévision a été supprimée avec succès",
+    });
+  };
+
+  const handleSubmit = () => {
+    if (!formData.category || !formData.description || !formData.amount || !formData.date) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs obligatoires",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer un montant valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (editingItem) {
+      // Update existing
+      setCashFlowItems((prev) =>
+        prev.map((item) =>
+          item.id === editingItem.id
+            ? {
+                ...item,
+                type: formData.type,
+                category: formData.category,
+                description: formData.description,
+                amount,
+                date: formData.date!.toISOString().split("T")[0],
+                status: formData.status,
+                reference: formData.reference || undefined,
+              }
+            : item
+        )
+      );
+      toast({
+        title: "Prévision modifiée",
+        description: "La prévision a été mise à jour",
+      });
+    } else {
+      // Create new
+      const newItem: CashFlowItem = {
+        id: `manual-${Date.now()}`,
+        type: formData.type,
+        category: formData.category,
+        description: formData.description,
+        amount,
+        date: formData.date!.toISOString().split("T")[0],
+        status: formData.status,
+        reference: formData.reference || undefined,
+        isManual: true,
+      };
+      setCashFlowItems((prev) =>
+        [...prev, newItem].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      );
+      toast({
+        title: "Prévision créée",
+        description: `${formData.type === "encaissement" ? "Encaissement" : "Décaissement"} ajouté avec succès`,
+      });
+    }
+
+    setCreateDialogOpen(false);
+    resetForm();
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("fr-GA", {
@@ -191,7 +307,7 @@ export default function TresoreriePrev() {
     }).format(value);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDateDisplay = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("fr-FR", {
       day: "2-digit",
       month: "short",
@@ -200,6 +316,7 @@ export default function TresoreriePrev() {
 
   // Filtrer les items par période
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const endDate = new Date(today);
   endDate.setDate(endDate.getDate() + parseInt(period));
 
@@ -209,6 +326,45 @@ export default function TresoreriePrev() {
     const matchesType = viewType === "all" || item.type === viewType;
     return matchesPeriod && matchesType;
   });
+
+  // Générer données pour le graphique (dynamique)
+  const chartData = useMemo(() => {
+    const data = [];
+    let solde = 8500000;
+
+    for (let i = 0; i <= 60; i += 7) {
+      const weekEnd = new Date(today);
+      weekEnd.setDate(weekEnd.getDate() + i + 7);
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() + i);
+
+      const weekItems = cashFlowItems.filter((item) => {
+        const itemDate = new Date(item.date);
+        return itemDate >= weekStart && itemDate < weekEnd;
+      });
+
+      const encaissements = weekItems
+        .filter((item) => item.type === "encaissement")
+        .reduce((sum, item) => sum + item.amount, 0);
+
+      const decaissements = weekItems
+        .filter((item) => item.type === "decaissement")
+        .reduce((sum, item) => sum + item.amount, 0);
+
+      solde = solde + encaissements - decaissements;
+
+      const weekLabel = i === 0 ? "S. actuelle" : `S+${Math.ceil(i / 7)}`;
+
+      data.push({
+        semaine: weekLabel,
+        encaissements: encaissements / 1000000,
+        decaissements: decaissements / 1000000,
+        solde: solde / 1000000,
+      });
+    }
+
+    return data;
+  }, [cashFlowItems]);
 
   // Calculs des totaux
   const totalEncaissements = filteredItems
@@ -412,31 +568,43 @@ export default function TresoreriePrev() {
           </motion.div>
         )}
 
-        {/* Filters */}
-        <div className="flex gap-2">
-          <Button
-            variant={viewType === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewType("all")}
-          >
-            Tous
-          </Button>
-          <Button
-            variant={viewType === "encaissement" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewType("encaissement")}
-          >
-            <ArrowUpRight className="h-4 w-4 mr-1" />
-            Encaissements
-          </Button>
-          <Button
-            variant={viewType === "decaissement" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewType("decaissement")}
-          >
-            <ArrowDownRight className="h-4 w-4 mr-1" />
-            Décaissements
-          </Button>
+        {/* Filters + Add buttons */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex gap-2">
+            <Button
+              variant={viewType === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewType("all")}
+            >
+              Tous
+            </Button>
+            <Button
+              variant={viewType === "encaissement" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewType("encaissement")}
+            >
+              <ArrowUpRight className="h-4 w-4 mr-1" />
+              Encaissements
+            </Button>
+            <Button
+              variant={viewType === "decaissement" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewType("decaissement")}
+            >
+              <ArrowDownRight className="h-4 w-4 mr-1" />
+              Décaissements
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => handleOpenCreate("encaissement")}>
+              <Plus className="h-4 w-4 mr-1" />
+              Encaissement
+            </Button>
+            <Button size="sm" variant="gradient" onClick={() => handleOpenCreate("decaissement")}>
+              <Plus className="h-4 w-4 mr-1" />
+              Décaissement
+            </Button>
+          </div>
         </div>
 
         {/* Detailed table */}
@@ -454,12 +622,13 @@ export default function TresoreriePrev() {
                   <TableHead>Description</TableHead>
                   <TableHead className="text-right">Montant</TableHead>
                   <TableHead>Statut</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       Aucun mouvement prévu pour cette période
                     </TableCell>
                   </TableRow>
@@ -468,7 +637,7 @@ export default function TresoreriePrev() {
                     const StatusIcon = statusConfig[item.status].icon;
                     return (
                       <TableRow key={item.id} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">{formatDate(item.date)}</TableCell>
+                        <TableCell className="font-medium">{formatDateDisplay(item.date)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             {item.type === "encaissement" ? (
@@ -502,6 +671,26 @@ export default function TresoreriePrev() {
                             {statusConfig[item.status].label}
                           </Badge>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleEdit(item)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleDelete(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     );
                   })
@@ -510,6 +699,182 @@ export default function TresoreriePrev() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Create/Edit Dialog */}
+        <Dialog open={createDialogOpen} onOpenChange={(open) => {
+          setCreateDialogOpen(open);
+          if (!open) resetForm();
+        }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>
+                {editingItem ? "Modifier la prévision" : "Nouvelle prévision"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingItem
+                  ? "Modifiez les détails de la prévision"
+                  : `Ajouter un ${formData.type === "encaissement" ? "encaissement" : "décaissement"} prévisionnel`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {/* Type selector */}
+              <div className="space-y-2">
+                <Label>Type de mouvement</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value: "encaissement" | "decaissement") =>
+                    setFormData((prev) => ({ ...prev, type: value, category: "" }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="encaissement">
+                      <div className="flex items-center gap-2">
+                        <ArrowUpRight className="h-4 w-4 text-success" />
+                        Encaissement
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="decaissement">
+                      <div className="flex items-center gap-2">
+                        <ArrowDownRight className="h-4 w-4 text-destructive" />
+                        Décaissement
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Category */}
+              <div className="space-y-2">
+                <Label>Catégorie *</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(formData.type === "encaissement" ? encaissementCategories : decaissementCategories).map(
+                      (cat) => (
+                        <SelectItem key={cat.value} value={cat.label}>
+                          {cat.label}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description *</Label>
+                <Input
+                  id="description"
+                  placeholder="Ex: Paiement facture client X, Loyer mensuel..."
+                  value={formData.description}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+
+              {/* Amount */}
+              <div className="space-y-2">
+                <Label htmlFor="amount">Montant (FCFA) *</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="Ex: 1500000"
+                  value={formData.amount}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, amount: e.target.value }))}
+                />
+              </div>
+
+              {/* Date */}
+              <div className="space-y-2">
+                <Label>Date prévue *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.date ? format(formData.date, "PPP", { locale: fr }) : "Sélectionner une date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={formData.date}
+                      onSelect={(date) => setFormData((prev) => ({ ...prev, date }))}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <Label>Statut</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: CashFlowItem["status"]) =>
+                    setFormData((prev) => ({ ...prev, status: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="confirmed">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-success" />
+                        Confirmé
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="expected">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        Prévu
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="uncertain">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-warning" />
+                        Incertain
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Reference (optional) */}
+              <div className="space-y-2">
+                <Label htmlFor="reference">Référence (optionnel)</Label>
+                <Input
+                  id="reference"
+                  placeholder="Ex: FAC-2024-0150, BON-001..."
+                  value={formData.reference}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, reference: e.target.value }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleSubmit}>
+                {editingItem ? "Enregistrer" : "Ajouter"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </PageTransition>
   );
