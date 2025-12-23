@@ -293,57 +293,35 @@ export default function Devis() {
                         <Badge className={status.class}>{status.label}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Voir">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700" title="Modifier">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Télécharger PDF">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-700" title="Envoyer par email">
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                          {(quote.status === "draft" || quote.status === "sent") && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-cyan-500 hover:text-cyan-700" title="Marquer comme envoyé">
+                              <Send className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Voir
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Modifier
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Download className="h-4 w-4 mr-2" />
-                              Télécharger PDF
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Mail className="h-4 w-4 mr-2" />
-                              Envoyer par email
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {(quote.status === "draft" || quote.status === "sent") && (
-                              <DropdownMenuItem>
-                                <Send className="h-4 w-4 mr-2" />
-                                Marquer comme envoyé
-                              </DropdownMenuItem>
-                            )}
-                            {quote.status === "accepted" && (
-                              <DropdownMenuItem>
-                                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                Convertir en facture
-                              </DropdownMenuItem>
-                            )}
-                            {quote.status !== "converted" && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive">
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Supprimer
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          )}
+                          {quote.status === "accepted" && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-500 hover:text-indigo-700" title="Convertir en facture">
+                              <ArrowRightLeft className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {quote.status !== "converted" && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" title="Supprimer">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </motion.tr>
                   );
