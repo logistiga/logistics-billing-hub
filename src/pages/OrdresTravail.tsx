@@ -29,6 +29,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -211,6 +212,7 @@ export default function OrdresTravail() {
   // Action states
   const [orders, setOrders] = useState<WorkOrder[]>(mockOrders);
   const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -243,6 +245,24 @@ export default function OrdresTravail() {
     const matchesType = typeFilter === "all" || order.type === typeFilter;
     return matchesSearch && matchesType;
   });
+
+  // Selection handlers
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredOrders.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredOrders.map((o) => o.id));
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const isAllSelected = selectedIds.length === filteredOrders.length && filteredOrders.length > 0;
+  const isSomeSelected = selectedIds.length > 0;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("fr-GA", {
@@ -321,6 +341,29 @@ export default function OrdresTravail() {
     setPaymentDialogOpen(true);
   };
 
+  const handleGroupPayment = () => {
+    const selectedOrders = orders.filter((o) => selectedIds.includes(o.id));
+    if (selectedOrders.length < 2) {
+      toast.error("Sélection insuffisante", {
+        description: "Sélectionnez au moins 2 ordres pour un paiement groupé",
+      });
+      return;
+    }
+    
+    // Vérifier que tous les ordres sont du même client
+    const clientIds = new Set(selectedOrders.map((o) => o.clientId));
+    if (clientIds.size > 1) {
+      toast.error("Clients différents", {
+        description: "Le paiement groupé n'est possible que pour un seul client. Sélectionnez des ordres du même client.",
+      });
+      return;
+    }
+    
+    setPaymentDocuments(selectedOrders.map(toPayableDocument));
+    setPaymentMode("group");
+    setPaymentDialogOpen(true);
+  };
+
   const handlePaymentComplete = (payment: Payment, updatedDocs: PayableDocument[]) => {
     setOrders((prev) =>
       prev.map((order) => {
@@ -333,6 +376,7 @@ export default function OrdresTravail() {
         return { ...order, paid: updatedDoc.paid };
       })
     );
+    setSelectedIds([]);
   };
 
   const handleCancel = (order: WorkOrder) => {
@@ -415,12 +459,52 @@ export default function OrdresTravail() {
           </Button>
         </div>
 
+        {/* Selection Info */}
+        {isSomeSelected && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">
+                {selectedIds.length} ordre(s) sélectionné(s)
+              </span>
+              <span className="text-sm text-muted-foreground">
+                - Total:{" "}
+                {formatCurrency(
+                  orders
+                    .filter((o) => selectedIds.includes(o.id))
+                    .reduce((sum, o) => sum + (o.amount - o.paid - o.advance), 0)
+                )}{" "}
+                FCFA restant
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setSelectedIds([])}>
+                Annuler
+              </Button>
+              <Button size="sm" onClick={handleGroupPayment}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Payer la sélection
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Orders Table */}
         <Card className="border-border/50">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Numéro</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Type</TableHead>
@@ -437,6 +521,7 @@ export default function OrdresTravail() {
                   const TypeIcon = config?.icon || Truck;
                   const status = statusConfig[order.status];
                   const StatusIcon = status.icon;
+                  const isSelected = selectedIds.includes(order.id);
                   return (
                     <motion.tr
                       key={order.id}
@@ -444,8 +529,14 @@ export default function OrdresTravail() {
                       initial="hidden"
                       animate="visible"
                       transition={{ delay: index * 0.05 }}
-                      className="group hover:bg-muted/50 cursor-pointer"
+                      className={`group hover:bg-muted/50 cursor-pointer ${isSelected ? "bg-primary/5" : ""}`}
                     >
+                      <TableCell>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => handleSelectOne(order.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         {order.number}
                       </TableCell>
