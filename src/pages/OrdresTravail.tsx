@@ -21,6 +21,7 @@ import {
   Ban,
   CreditCard,
   AlertTriangle,
+  CircleDollarSign,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -525,6 +526,7 @@ export default function OrdresTravail() {
                   const status = statusConfig[order.status];
                   const StatusIcon = status.icon;
                   const isSelected = selectedIds.includes(order.id);
+                  const hasPaidNotTransferred = (order.paid > 0 || order.advance > 0);
                   return (
                     <motion.tr
                       key={order.id}
@@ -532,7 +534,7 @@ export default function OrdresTravail() {
                       initial="hidden"
                       animate="visible"
                       transition={{ delay: index * 0.05 }}
-                      className={`group hover:bg-muted/50 cursor-pointer ${isSelected ? "bg-primary/5" : ""}`}
+                      className={`group hover:bg-muted/50 cursor-pointer ${isSelected ? "bg-primary/5" : ""} ${hasPaidNotTransferred ? "bg-emerald-50/50" : ""}`}
                     >
                       <TableCell>
                         <Checkbox
@@ -541,7 +543,14 @@ export default function OrdresTravail() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">
-                        {order.number}
+                        <div className="flex items-center gap-2">
+                          {order.number}
+                          {hasPaidNotTransferred && (
+                            <span className="flex items-center gap-1 text-emerald-600" title="Paiement reçu - Non transféré en facture">
+                              <CircleDollarSign className="h-4 w-4" />
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{order.client}</TableCell>
                       <TableCell>
