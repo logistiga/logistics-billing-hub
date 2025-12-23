@@ -43,6 +43,10 @@ export default {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+        },
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
@@ -132,8 +136,15 @@ export default {
         pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
       boxShadow: {
-        glow: "0 0 20px hsl(358 82% 50% / 0.3)",
-        "glow-lg": "0 0 40px hsl(358 82% 50% / 0.4)",
+        'xs': 'var(--shadow-xs)',
+        'soft': 'var(--shadow-sm)',
+        'elevated': 'var(--shadow-md)',
+        'floating': 'var(--shadow-lg)',
+        'dramatic': 'var(--shadow-xl)',
+        'glow': 'var(--shadow-glow)',
+        'glow-lg': 'var(--shadow-glow-lg)',
+        'colored': 'var(--shadow-colored)',
+        'inner-soft': 'var(--shadow-inner)',
       },
     },
   },
