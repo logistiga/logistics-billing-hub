@@ -4,8 +4,8 @@ import {
   Wallet,
   Plus,
   Minus,
-  ArrowUpRight,
   ArrowDownLeft,
+  ArrowUpRight,
   Calendar,
   Search,
   Filter,
@@ -13,8 +13,10 @@ import {
   TrendingUp,
   TrendingDown,
   Banknote,
-  CreditCard,
-  Receipt,
+  Eye,
+  Edit,
+  Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,7 +37,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -44,6 +45,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -55,9 +62,9 @@ interface Transaction {
   description: string;
   reference: string;
   montant: number;
-  modePaiement: "especes" | "cheque" | "virement" | "carte";
   client?: string;
   facture?: string;
+  createdBy: string;
 }
 
 const mockTransactions: Transaction[] = [
@@ -66,12 +73,12 @@ const mockTransactions: Transaction[] = [
     date: "2024-01-15",
     type: "entree",
     categorie: "Paiement facture",
-    description: "Règlement facture FAC-2024-001",
-    reference: "REC-001",
+    description: "Règlement facture FAC-2024-001 - Paiement espèces",
+    reference: "CAI-001",
     montant: 2500000,
-    modePaiement: "virement",
     client: "Total Gabon",
     facture: "FAC-2024-001",
+    createdBy: "Admin",
   },
   {
     id: "2",
@@ -79,9 +86,9 @@ const mockTransactions: Transaction[] = [
     type: "sortie",
     categorie: "Carburant",
     description: "Carburant véhicules - Janvier",
-    reference: "DEP-001",
+    reference: "CAI-002",
     montant: 450000,
-    modePaiement: "especes",
+    createdBy: "Comptable",
   },
   {
     id: "3",
@@ -89,20 +96,20 @@ const mockTransactions: Transaction[] = [
     type: "entree",
     categorie: "Paiement facture",
     description: "Acompte commande CMD-2024-015",
-    reference: "REC-002",
+    reference: "CAI-003",
     montant: 1200000,
-    modePaiement: "cheque",
     client: "Comilog",
+    createdBy: "Admin",
   },
   {
     id: "4",
     date: "2024-01-12",
     type: "sortie",
-    categorie: "Salaires",
-    description: "Salaires employés - Décembre 2023",
-    reference: "DEP-002",
-    montant: 3500000,
-    modePaiement: "virement",
+    categorie: "Fournitures",
+    description: "Fournitures de bureau",
+    reference: "CAI-004",
+    montant: 125000,
+    createdBy: "Comptable",
   },
   {
     id: "5",
@@ -110,41 +117,41 @@ const mockTransactions: Transaction[] = [
     type: "entree",
     categorie: "Paiement facture",
     description: "Règlement facture FAC-2024-003",
-    reference: "REC-003",
+    reference: "CAI-005",
     montant: 890000,
-    modePaiement: "especes",
     client: "Assala Energy",
     facture: "FAC-2024-003",
+    createdBy: "Admin",
   },
   {
     id: "6",
     date: "2024-01-10",
     type: "sortie",
-    categorie: "Fournitures",
-    description: "Fournitures de bureau",
-    reference: "DEP-003",
-    montant: 125000,
-    modePaiement: "carte",
+    categorie: "Frais divers",
+    description: "Petit équipement bureau",
+    reference: "CAI-006",
+    montant: 85000,
+    createdBy: "Comptable",
   },
   {
     id: "7",
     date: "2024-01-09",
-    type: "sortie",
-    categorie: "Maintenance",
-    description: "Réparation camion - Immatriculation AB-123-CD",
-    reference: "DEP-004",
-    montant: 780000,
-    modePaiement: "virement",
+    type: "entree",
+    categorie: "Autre",
+    description: "Vente matériel occasion",
+    reference: "CAI-007",
+    montant: 350000,
+    createdBy: "Admin",
   },
   {
     id: "8",
     date: "2024-01-08",
-    type: "entree",
-    categorie: "Autre",
-    description: "Remboursement assurance",
-    reference: "REC-004",
-    montant: 350000,
-    modePaiement: "virement",
+    type: "sortie",
+    categorie: "Transport",
+    description: "Frais de transport personnel",
+    reference: "CAI-008",
+    montant: 75000,
+    createdBy: "Comptable",
   },
 ];
 
@@ -152,46 +159,33 @@ const categoriesEntree = [
   "Paiement facture",
   "Acompte",
   "Remboursement",
-  "Subvention",
+  "Vente",
   "Autre",
 ];
 
 const categoriesSortie = [
   "Carburant",
-  "Salaires",
   "Fournitures",
-  "Maintenance",
-  "Loyer",
-  "Électricité",
-  "Eau",
-  "Téléphone",
-  "Internet",
-  "Assurance",
-  "Impôts",
+  "Transport",
+  "Frais divers",
+  "Alimentation",
+  "Entretien",
   "Autre",
-];
-
-const modesPaiement = [
-  { value: "especes", label: "Espèces", icon: Banknote },
-  { value: "cheque", label: "Chèque", icon: Receipt },
-  { value: "virement", label: "Virement", icon: ArrowUpRight },
-  { value: "carte", label: "Carte bancaire", icon: CreditCard },
 ];
 
 export default function Caisse() {
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "entree" | "sortie">("all");
+  const [filterPeriod, setFilterPeriod] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<"entree" | "sortie">("entree");
   
-  // Form state
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     categorie: "",
     description: "",
     montant: "",
-    modePaiement: "especes" as Transaction["modePaiement"],
     client: "",
     facture: "",
   });
@@ -208,7 +202,6 @@ export default function Caisse() {
     });
   };
 
-  // Calculs
   const totalEntrees = transactions
     .filter((t) => t.type === "entree")
     .reduce((sum, t) => sum + t.montant, 0);
@@ -217,7 +210,7 @@ export default function Caisse() {
     .filter((t) => t.type === "sortie")
     .reduce((sum, t) => sum + t.montant, 0);
 
-  const soldeActuel = totalEntrees - totalSorties;
+  const soldeCaisse = totalEntrees - totalSorties;
 
   const filteredTransactions = transactions.filter((t) => {
     const matchesSearch =
@@ -235,11 +228,11 @@ export default function Caisse() {
       type: transactionType,
       categorie: formData.categorie,
       description: formData.description,
-      reference: `${transactionType === "entree" ? "REC" : "DEP"}-${String(transactions.length + 1).padStart(3, "0")}`,
+      reference: `CAI-${String(transactions.length + 1).padStart(3, "0")}`,
       montant: parseFloat(formData.montant) || 0,
-      modePaiement: formData.modePaiement,
       client: formData.client || undefined,
       facture: formData.facture || undefined,
+      createdBy: "Admin",
     };
 
     setTransactions([newTransaction, ...transactions]);
@@ -249,7 +242,6 @@ export default function Caisse() {
       categorie: "",
       description: "",
       montant: "",
-      modePaiement: "especes",
       client: "",
       facture: "",
     });
@@ -257,23 +249,20 @@ export default function Caisse() {
 
   const openDialog = (type: "entree" | "sortie") => {
     setTransactionType(type);
-    setFormData({
-      ...formData,
-      categorie: "",
-    });
+    setFormData({ ...formData, categorie: "" });
     setDialogOpen(true);
   };
 
   const stats = [
     {
-      title: "Solde actuel",
-      value: formatCurrency(soldeActuel),
+      title: "Solde Caisse",
+      value: formatCurrency(soldeCaisse),
       icon: Wallet,
-      color: soldeActuel >= 0 ? "text-emerald-500" : "text-destructive",
-      bgColor: soldeActuel >= 0 ? "bg-emerald-500/10" : "bg-destructive/10",
+      color: soldeCaisse >= 0 ? "text-emerald-500" : "text-destructive",
+      bgColor: soldeCaisse >= 0 ? "bg-emerald-500/10" : "bg-destructive/10",
     },
     {
-      title: "Total Entrées",
+      title: "Entrées Espèces",
       value: formatCurrency(totalEntrees),
       icon: TrendingUp,
       color: "text-emerald-500",
@@ -281,7 +270,7 @@ export default function Caisse() {
       subtitle: `${transactions.filter((t) => t.type === "entree").length} opérations`,
     },
     {
-      title: "Total Sorties",
+      title: "Sorties Espèces",
       value: formatCurrency(totalSorties),
       icon: TrendingDown,
       color: "text-destructive",
@@ -289,7 +278,7 @@ export default function Caisse() {
       subtitle: `${transactions.filter((t) => t.type === "sortie").length} opérations`,
     },
     {
-      title: "Opérations du jour",
+      title: "Transactions du jour",
       value: transactions.filter(
         (t) => t.date === new Date().toISOString().split("T")[0]
       ).length.toString(),
@@ -304,10 +293,17 @@ export default function Caisse() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Caisse</h1>
-          <p className="text-muted-foreground mt-1">
-            Gestion de la trésorerie et des mouvements de fonds
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/10">
+              <Banknote className="h-6 w-6 text-amber-500" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Caisse</h1>
+              <p className="text-muted-foreground">
+                Gestion des transactions en espèces uniquement
+              </p>
+            </div>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button
@@ -316,7 +312,7 @@ export default function Caisse() {
             onClick={() => openDialog("entree")}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Entrée
+            Encaissement
           </Button>
           <Button
             variant="outline"
@@ -324,7 +320,7 @@ export default function Caisse() {
             onClick={() => openDialog("sortie")}
           >
             <Minus className="h-4 w-4 mr-2" />
-            Sortie
+            Décaissement
           </Button>
         </div>
       </div>
@@ -362,13 +358,13 @@ export default function Caisse() {
         ))}
       </div>
 
-      {/* Filters and Search */}
+      {/* Filters and Table */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5 text-primary" />
-              Journal de caisse
+              <Banknote className="h-5 w-5 text-amber-500" />
+              Journal de Caisse (Espèces)
             </CardTitle>
             <div className="flex flex-wrap gap-2">
               <div className="relative flex-1 min-w-[200px]">
@@ -380,13 +376,8 @@ export default function Caisse() {
                   className="pl-9"
                 />
               </div>
-              <Select
-                value={filterType}
-                onValueChange={(value: "all" | "entree" | "sortie") =>
-                  setFilterType(value)
-                }
-              >
-                <SelectTrigger className="w-[150px]">
+              <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
+                <SelectTrigger className="w-[140px]">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
@@ -412,9 +403,9 @@ export default function Caisse() {
                   <TableHead>Référence</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Catégorie</TableHead>
-                  <TableHead>Mode</TableHead>
-                  <TableHead>Client/Fournisseur</TableHead>
+                  <TableHead>Client</TableHead>
                   <TableHead className="text-right">Montant</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -424,7 +415,7 @@ export default function Caisse() {
                       {formatDate(transaction.date)}
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono text-sm">
+                      <span className="font-mono text-sm bg-muted px-2 py-1 rounded">
                         {transaction.reference}
                       </span>
                     </TableCell>
@@ -441,16 +432,6 @@ export default function Caisse() {
                     <TableCell>
                       <Badge variant="outline">{transaction.categorie}</Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className="capitalize"
-                      >
-                        {modesPaiement.find(
-                          (m) => m.value === transaction.modePaiement
-                        )?.label || transaction.modePaiement}
-                      </Badge>
-                    </TableCell>
                     <TableCell>{transaction.client || "-"}</TableCell>
                     <TableCell className="text-right">
                       <span
@@ -464,14 +445,34 @@ export default function Caisse() {
                         {formatCurrency(transaction.montant)}
                       </span>
                     </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Voir détails
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filteredTransactions.length === 0 && (
                   <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="text-center py-8 text-muted-foreground"
-                    >
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       Aucune transaction trouvée
                     </TableCell>
                   </TableRow>
@@ -482,7 +483,7 @@ export default function Caisse() {
         </CardContent>
       </Card>
 
-      {/* Dialog for adding transaction */}
+      {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -490,128 +491,85 @@ export default function Caisse() {
               {transactionType === "entree" ? (
                 <>
                   <ArrowDownLeft className="h-5 w-5 text-emerald-500" />
-                  <span>Nouvelle entrée de caisse</span>
+                  <span>Nouvel encaissement espèces</span>
                 </>
               ) : (
                 <>
                   <ArrowUpRight className="h-5 w-5 text-destructive" />
-                  <span>Nouvelle sortie de caisse</span>
+                  <span>Nouveau décaissement espèces</span>
                 </>
               )}
             </DialogTitle>
             <DialogDescription>
-              Enregistrer une {transactionType === "entree" ? "entrée" : "sortie"} de fonds
+              Enregistrer une {transactionType === "entree" ? "entrée" : "sortie"} en espèces
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
+                <Label>Date</Label>
                 <Input
-                  id="date"
                   type="date"
                   value={formData.date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="modePaiement">Mode de paiement</Label>
-                <Select
-                  value={formData.modePaiement}
-                  onValueChange={(value: Transaction["modePaiement"]) =>
-                    setFormData({ ...formData, modePaiement: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {modesPaiement.map((mode) => (
-                      <SelectItem key={mode.value} value={mode.value}>
-                        {mode.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Montant (FCFA)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={formData.montant}
+                  onChange={(e) => setFormData({ ...formData, montant: e.target.value })}
+                />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="categorie">Catégorie</Label>
+              <Label>Catégorie</Label>
               <Select
                 value={formData.categorie}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, categorie: value })
-                }
+                onValueChange={(value) => setFormData({ ...formData, categorie: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une catégorie" />
+                  <SelectValue placeholder="Sélectionner..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {(transactionType === "entree"
-                    ? categoriesEntree
-                    : categoriesSortie
-                  ).map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
+                  {(transactionType === "entree" ? categoriesEntree : categoriesSortie).map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="montant">Montant (FCFA)</Label>
-              <Input
-                id="montant"
-                type="number"
-                placeholder="0"
-                value={formData.montant}
-                onChange={(e) =>
-                  setFormData({ ...formData, montant: e.target.value })
-                }
-              />
-            </div>
-
             {transactionType === "entree" && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="client">Client (optionnel)</Label>
+                  <Label>Client (optionnel)</Label>
                   <Input
-                    id="client"
                     placeholder="Nom du client"
                     value={formData.client}
-                    onChange={(e) =>
-                      setFormData({ ...formData, client: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, client: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="facture">N° Facture (optionnel)</Label>
+                  <Label>N° Facture</Label>
                   <Input
-                    id="facture"
                     placeholder="FAC-2024-XXX"
                     value={formData.facture}
-                    onChange={(e) =>
-                      setFormData({ ...formData, facture: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, facture: e.target.value })}
                   />
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label>Description</Label>
               <Textarea
-                id="description"
-                placeholder="Description de l'opération..."
+                placeholder="Description..."
                 value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
               />
             </div>
@@ -623,11 +581,8 @@ export default function Caisse() {
             </Button>
             <Button
               onClick={handleSubmit}
-              className={
-                transactionType === "entree"
-                  ? "bg-emerald-500 hover:bg-emerald-600"
-                  : "bg-destructive hover:bg-destructive/90"
-              }
+              className={transactionType === "entree" ? "bg-emerald-500 hover:bg-emerald-600" : ""}
+              variant={transactionType === "sortie" ? "destructive" : "default"}
             >
               Enregistrer
             </Button>
