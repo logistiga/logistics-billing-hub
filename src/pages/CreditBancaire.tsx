@@ -16,7 +16,9 @@ import {
   Clock,
   CheckCircle2,
   Filter,
+  CalendarClock,
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -281,6 +283,23 @@ export default function CreditBancaire() {
   const totalMensualites = credits.reduce((sum, c) => sum + c.mensualite, 0);
   const overdueCount = credits.filter((c) => c.status === "overdue").length;
 
+  // Fonction pour parser les dates au format DD/MM/YYYY
+  const parseDate = (dateStr: string) => {
+    const [day, month, year] = dateStr.split('/').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  // Calcul des alertes
+  const today = new Date();
+  const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const upcomingPayments = credits.filter((credit) => {
+    const paymentDate = parseDate(credit.prochainPaiement);
+    return paymentDate >= today && paymentDate <= in7Days && credit.status !== "completed";
+  });
+
+  const overduePayments = mockPayments.filter((payment) => payment.status === "overdue");
+
   const handleViewDetails = (credit: Credit) => {
     setSelectedCredit(credit);
     setViewDialogOpen(true);
@@ -404,6 +423,64 @@ export default function CreditBancaire() {
             </Card>
           </motion.div>
         </div>
+
+        {/* Section Alertes */}
+        {(overduePayments.length > 0 || upcomingPayments.length > 0) && (
+          <div className="space-y-3">
+            {overduePayments.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle className="font-semibold">Paiements en retard</AlertTitle>
+                  <AlertDescription>
+                    <ul className="mt-2 space-y-1">
+                      {overduePayments.map((payment) => (
+                        <li key={payment.id} className="flex items-center justify-between text-sm">
+                          <span>
+                            <span className="font-mono font-medium">{payment.creditRef}</span>
+                            <span className="text-muted-foreground"> - {payment.bank}</span>
+                            <span className="text-muted-foreground"> (Échéance #{payment.echeance})</span>
+                          </span>
+                          <span className="font-semibold">{formatCurrency(payment.montant)} FCFA</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+
+            {upcomingPayments.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Alert className="border-warning/50 bg-warning/10">
+                  <CalendarClock className="h-4 w-4 text-warning" />
+                  <AlertTitle className="font-semibold text-warning">Paiements à venir (7 jours)</AlertTitle>
+                  <AlertDescription>
+                    <ul className="mt-2 space-y-1">
+                      {upcomingPayments.map((credit) => (
+                        <li key={credit.id} className="flex items-center justify-between text-sm">
+                          <span>
+                            <span className="font-mono font-medium">{credit.reference}</span>
+                            <span className="text-muted-foreground"> - {credit.bank}</span>
+                            <span className="text-muted-foreground"> (le {credit.prochainPaiement})</span>
+                          </span>
+                          <span className="font-semibold">{formatCurrency(credit.mensualite)} FCFA</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+          </div>
+        )}
 
         {/* Barre de recherche */}
         <div className="flex flex-col sm:flex-row gap-4">
