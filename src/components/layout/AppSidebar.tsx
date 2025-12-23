@@ -60,6 +60,7 @@ const navItems: NavItem[] = [
     href: "/comptabilite",
     icon: TrendingUp,
     children: [
+      { title: "Vue globale", href: "/comptabilite", icon: TrendingUp },
       { title: "Caisse", href: "/caisse", icon: Wallet },
       { title: "Suivi Banque", href: "/suivi-banque", icon: Landmark },
       { title: "Rapports", href: "/rapports", icon: FileText },
