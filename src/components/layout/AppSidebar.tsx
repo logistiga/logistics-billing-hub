@@ -22,6 +22,7 @@ import {
   Truck,
   Package,
   Warehouse,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
@@ -50,6 +51,7 @@ const navItems: NavItem[] = [
     icon: FileText,
     children: [
       { title: "Ordres de travail", href: "/ordres-travail", icon: ClipboardList },
+      { title: "Ordres en attente", href: "/ordres-en-attente", icon: Clock },
       { title: "Notes de début", href: "/notes-debut", icon: FileText },
       { title: "Factures", href: "/factures", icon: FileCheck },
       { title: "Devis", href: "/devis", icon: Receipt },
