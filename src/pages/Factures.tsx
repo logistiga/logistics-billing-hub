@@ -13,6 +13,7 @@ import {
   ArrowRightLeft,
   CheckSquare,
   Layers,
+  FileDown,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,6 +46,7 @@ import {
 import { PaymentDialog, type PayableDocument, type Payment } from "@/components/PaymentDialog";
 import { PaymentHistory, mockPaymentHistory, type PaymentRecord } from "@/components/PaymentHistory";
 import { toast } from "@/hooks/use-toast";
+import { DocumentPDFGenerator, type DocumentData } from "@/lib/generateDocumentPDF";
 
 interface Invoice {
   id: string;
@@ -246,6 +248,42 @@ export default function Factures() {
     type: "facture",
     documentType: inv.type,
   });
+
+  // PDF generation handler
+  const handleDownloadPDF = (invoice: Invoice) => {
+    const parseDate = (dateStr: string) => {
+      const [day, month, year] = dateStr.split('/');
+      return `${year}-${month}-${day}`;
+    };
+
+    const documentData: DocumentData = {
+      type: "facture",
+      numero: invoice.number,
+      date: parseDate(invoice.date),
+      dateEcheance: parseDate(invoice.dueDate),
+      client: {
+        nom: invoice.client,
+      },
+      typePrestation: invoice.type,
+      lignes: [
+        {
+          description: `Prestation ${invoice.type}`,
+          quantite: 1,
+          prixUnitaire: invoice.amount,
+        },
+      ],
+      tauxTVA: 18,
+      acompte: invoice.advance,
+      conditionsPaiement: "Paiement à 30 jours",
+    };
+
+    const generator = new DocumentPDFGenerator();
+    generator.generateAndDownload(documentData);
+    toast({
+      title: "PDF généré",
+      description: `La facture ${invoice.number} a été téléchargée`,
+    });
+  };
 
   // Payment handlers
   const handleSinglePayment = (invoice: Invoice) => {
@@ -548,7 +586,7 @@ export default function Factures() {
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700" title="Modifier">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Télécharger PDF">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Télécharger PDF" onClick={() => handleDownloadPDF(invoice)}>
                             <Download className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-700" title="Envoyer par email">
