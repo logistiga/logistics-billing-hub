@@ -1,18 +1,15 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  CreditCard,
   Banknote,
   Building2,
-  Wallet,
   Calculator,
   CheckCircle2,
   AlertCircle,
   Clock,
   FileText,
-  X,
-  Plus,
-  Minus,
+  Landmark,
+  Wallet,
 } from "lucide-react";
 import {
   Dialog,
@@ -73,22 +70,33 @@ interface PaymentDialogProps {
   mode?: "single" | "group" | "advance";
 }
 
+// Moyens de paiement Gabon uniquement
 const paymentMethods = [
   { id: "especes", label: "Espèces", icon: Banknote, color: "text-green-500" },
   { id: "virement", label: "Virement", icon: Building2, color: "text-blue-500" },
   { id: "cheque", label: "Chèque", icon: FileText, color: "text-purple-500" },
-  { id: "carte", label: "Carte bancaire", icon: CreditCard, color: "text-amber-500" },
-  { id: "mobile", label: "Mobile Money", icon: Wallet, color: "text-cyan-500" },
 ];
 
-const banques = [
-  "BGFI Bank",
-  "UGB",
-  "Orabank",
-  "BICIG",
-  "Ecobank",
-  "Autre",
+// Banques du Gabon avec soldes
+export interface BankAccount {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  solde: number;
+}
+
+const mockBanques: BankAccount[] = [
+  { id: "1", bankName: "BGFI Bank Gabon", accountNumber: "0001 0000 1234 5678", solde: 15000000 },
+  { id: "2", bankName: "UGB - Union Gabonaise de Banque", accountNumber: "0002 0000 9876 5432", solde: 8500000 },
+  { id: "3", bankName: "Ecobank Gabon", accountNumber: "0003 0000 5555 6666", solde: 12000000 },
+  { id: "4", bankName: "Orabank Gabon", accountNumber: "0004 0000 7777 8888", solde: 5000000 },
+  { id: "5", bankName: "BICIG", accountNumber: "0005 0000 1111 2222", solde: 9500000 },
 ];
+
+// Caisse globale mock
+let caisseGlobale = {
+  solde: 4500000,
+};
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("fr-FR").format(amount) + " FCFA";
@@ -193,26 +201,39 @@ export function PaymentDialog({
       return;
     }
 
-    if (paymentMethod !== "especes" && !reference) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez entrer une référence de paiement",
-        variant: "destructive",
-      });
-      return;
+    // Validation pour Chèque et Virement: référence et banque obligatoires
+    if (paymentMethod === "cheque" || paymentMethod === "virement") {
+      if (!reference) {
+        toast({
+          title: "Erreur",
+          description: "Veuillez entrer une référence de paiement",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!banque) {
+        toast({
+          title: "Erreur",
+          description: "Veuillez sélectionner une banque",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsLoading(true);
 
     // Simulate payment processing
     setTimeout(() => {
+      const selectedBank = mockBanques.find(b => b.id === banque);
+      
       const payment: Payment = {
         id: Date.now().toString(),
         date: new Date().toISOString(),
         amount: enteredAmount,
         method: paymentMethod as Payment["method"],
         reference: reference || `ESP-${Date.now()}`,
-        banque: banque || undefined,
+        banque: selectedBank?.bankName || undefined,
         notes: notes || undefined,
         isAdvance: paymentType === "advance",
         documentIds: selectedDocIds,
@@ -235,9 +256,21 @@ export function PaymentDialog({
 
       onPaymentComplete(payment, updatedDocuments);
 
+      // Message de confirmation selon le mode de paiement
+      let confirmMessage = "";
+      if (paymentMethod === "especes") {
+        caisseGlobale.solde += enteredAmount;
+        confirmMessage = `${formatCurrency(enteredAmount)} encaissé en espèces. Caisse mise à jour.`;
+      } else if (paymentMethod === "virement" || paymentMethod === "cheque") {
+        if (selectedBank) {
+          selectedBank.solde += enteredAmount;
+          confirmMessage = `${formatCurrency(enteredAmount)} par ${paymentMethod === "virement" ? "virement" : "chèque"} sur ${selectedBank.bankName}. Banque mise à jour.`;
+        }
+      }
+
       toast({
         title: "Paiement enregistré",
-        description: `${formatCurrency(enteredAmount)} enregistré avec succès`,
+        description: confirmMessage,
       });
 
       // Reset form
@@ -270,7 +303,7 @@ export function PaymentDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-primary" />
+            <Banknote className="h-5 w-5 text-primary" />
             {getTitle()}
           </DialogTitle>
           <DialogDescription>{getDescription()}</DialogDescription>
@@ -424,7 +457,7 @@ export function PaymentDialog({
           {/* Payment Method */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">Mode de paiement *</Label>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {paymentMethods.map((method) => (
                 <Button
                   key={method.id}
@@ -434,13 +467,36 @@ export function PaymentDialog({
                     "h-auto py-3 flex-col gap-1",
                     paymentMethod === method.id && "ring-2 ring-primary"
                   )}
-                  onClick={() => setPaymentMethod(method.id)}
+                  onClick={() => {
+                    setPaymentMethod(method.id);
+                    // Reset banque si on change de méthode
+                    if (method.id === "especes") {
+                      setBanque("");
+                    }
+                  }}
                 >
                   <method.icon className={cn("h-5 w-5", method.color)} />
                   <span className="text-xs">{method.label}</span>
                 </Button>
               ))}
             </div>
+            
+            {/* Info sur la destination du paiement */}
+            {paymentMethod && (
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 text-xs text-muted-foreground">
+                {paymentMethod === "especes" ? (
+                  <>
+                    <Wallet className="h-4 w-4 text-amber-500" />
+                    <span>Ce paiement sera ajouté à la <strong>Caisse</strong> (Solde actuel: {formatCurrency(caisseGlobale.solde)})</span>
+                  </>
+                ) : (
+                  <>
+                    <Landmark className="h-4 w-4 text-blue-500" />
+                    <span>Ce paiement sera ajouté au compte <strong>Banque</strong> sélectionné</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Amount */}
@@ -492,19 +548,29 @@ export function PaymentDialog({
               </div>
               {(paymentMethod === "virement" || paymentMethod === "cheque") && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Banque</Label>
+                  <Label className="text-sm font-medium">Banque *</Label>
                   <Select value={banque} onValueChange={setBanque}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner" />
+                      <SelectValue placeholder="Sélectionner la banque" />
                     </SelectTrigger>
                     <SelectContent>
-                      {banques.map((b) => (
-                        <SelectItem key={b} value={b}>
-                          {b}
+                      {mockBanques.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          <div className="flex items-center justify-between gap-4 w-full">
+                            <span>{b.bankName}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Solde: {formatCurrency(b.solde)}
+                            </span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {banque && (
+                    <p className="text-xs text-muted-foreground">
+                      N° Compte: {mockBanques.find(b => b.id === banque)?.accountNumber}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
