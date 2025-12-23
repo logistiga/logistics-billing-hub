@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
@@ -29,39 +30,46 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/clients/:id" element={<ClientDashboard />} />
-            <Route path="/factures" element={<Factures />} />
-            <Route path="/devis" element={<Devis />} />
-            <Route path="/ordres-travail" element={<OrdresTravail />} />
-            <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
-            <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
-            <Route path="/notes-debut" element={<NotesDebut />} />
-            <Route path="/entreprise" element={<Entreprise />} />
-            <Route path="/banques" element={<Banques />} />
-            <Route path="/taxes" element={<Taxes />} />
-            <Route path="/roles" element={<Roles />} />
-            <Route path="/utilisateurs" element={<Utilisateurs />} />
-            <Route path="/partenaires" element={<Partenaires />} />
-            <Route path="/caisse" element={<Caisse />} />
-            <Route path="/suivi-banque" element={<SuiviBanque />} />
-            <Route path="/comptabilite" element={<ComptabiliteGenerale />} />
-            <Route path="/rapports" element={<Rapports />} />
-            <Route path="/credit-bancaire" element={<CreditBancaire />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider
+    attribute="class"
+    defaultTheme="system"
+    enableSystem
+    disableTransitionOnChange
+  >
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/clients/:id" element={<ClientDashboard />} />
+              <Route path="/factures" element={<Factures />} />
+              <Route path="/devis" element={<Devis />} />
+              <Route path="/ordres-travail" element={<OrdresTravail />} />
+              <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
+              <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
+              <Route path="/notes-debut" element={<NotesDebut />} />
+              <Route path="/entreprise" element={<Entreprise />} />
+              <Route path="/banques" element={<Banques />} />
+              <Route path="/taxes" element={<Taxes />} />
+              <Route path="/roles" element={<Roles />} />
+              <Route path="/utilisateurs" element={<Utilisateurs />} />
+              <Route path="/partenaires" element={<Partenaires />} />
+              <Route path="/caisse" element={<Caisse />} />
+              <Route path="/suivi-banque" element={<SuiviBanque />} />
+              <Route path="/comptabilite" element={<ComptabiliteGenerale />} />
+              <Route path="/rapports" element={<Rapports />} />
+              <Route path="/credit-bancaire" element={<CreditBancaire />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
