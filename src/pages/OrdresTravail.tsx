@@ -21,8 +21,6 @@ import {
   Ban,
   CreditCard,
   AlertTriangle,
-  Banknote,
-  Receipt,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -575,7 +573,7 @@ export default function OrdresTravail() {
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Voir détails</TooltipContent>
+                            <TooltipContent>Voir détails & historique</TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -607,23 +605,7 @@ export default function OrdresTravail() {
                                 <CreditCard className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Enregistrer paiement</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAdvancePayment(order)}>
-                                <Banknote className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Enregistrer avance</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewHistory(order)}>
-                                <Receipt className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Historique paiements</TooltipContent>
+                            <TooltipContent>Enregistrer paiement / avance</TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -647,19 +629,22 @@ export default function OrdresTravail() {
                             </TooltipTrigger>
                             <TooltipContent>Annuler</TooltipContent>
                           </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-destructive hover:text-destructive" 
-                                onClick={() => handleDelete(order)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Supprimer</TooltipContent>
-                          </Tooltip>
+                          {/* Ne pas supprimer si paiement existant ou converti en facture */}
+                          {order.paid === 0 && order.advance === 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-destructive hover:text-destructive" 
+                                  onClick={() => handleDelete(order)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Supprimer</TooltipContent>
+                            </Tooltip>
+                          )}
                         </div>
                       </TableCell>
                     </motion.tr>

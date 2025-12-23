@@ -316,7 +316,8 @@ export default function Devis() {
                               <ArrowRightLeft className="h-4 w-4" />
                             </Button>
                           )}
-                          {quote.status !== "converted" && (
+                          {/* Ne pas supprimer si accepté ou converti */}
+                          {quote.status !== "converted" && quote.status !== "accepted" && (
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" title="Supprimer">
                               <Trash2 className="h-4 w-4" />
                             </Button>
