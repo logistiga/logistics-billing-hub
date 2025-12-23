@@ -1,9 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Search,
   User,
-  Settings,
   LogOut,
   ChevronDown,
   Command,
@@ -26,6 +26,7 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ sidebarCollapsed }: AppHeaderProps) {
+  const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
@@ -80,13 +81,9 @@ export function AppHeader({ sidebarCollapsed }: AppHeaderProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Mon Compte</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/profil")}>
                 <User className="mr-2 h-4 w-4" />
                 Profil
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                Paramètres
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive focus:text-destructive">
