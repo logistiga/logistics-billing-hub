@@ -472,7 +472,7 @@ export default function Factures() {
                 Paiement groupé ({selectedIds.length})
               </Button>
             )}
-            <Button variant="gradient">
+            <Button variant="gradient" onClick={() => navigate("/ordres-travail/nouveau")}>
               <Plus className="h-4 w-4 mr-2" />
               Nouvelle facture
             </Button>

@@ -1,21 +1,18 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Plus,
   Search,
   Filter,
-  MoreHorizontal,
-  FileText,
   Download,
   Mail,
   Trash2,
   Edit,
   Eye,
-  CheckCircle2,
-  Clock,
-  XCircle,
   Send,
   ArrowRightLeft,
+  FileText,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -156,6 +153,7 @@ const stats = [
 ];
 
 export default function Devis() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -223,7 +221,7 @@ export default function Devis() {
               Créez et gérez vos devis clients
             </p>
           </div>
-          <Button variant="gradient">
+          <Button variant="gradient" onClick={() => navigate("/ordres-travail/nouveau?mode=devis")}>
             <Plus className="h-4 w-4 mr-2" />
             Nouveau devis
           </Button>
@@ -350,8 +348,20 @@ export default function Devis() {
                             </Button>
                           )}
                           {quote.status === "accepted" && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-500 hover:text-indigo-700" title="Convertir en facture">
-                              <ArrowRightLeft className="h-4 w-4" />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-indigo-500 hover:text-indigo-700" 
+                              title="Convertir en ordre de travail"
+                              onClick={() => {
+                                toast({
+                                  title: "Conversion en cours",
+                                  description: `Le devis ${quote.number} sera converti en ordre de travail`,
+                                });
+                                navigate("/ordres-travail/nouveau?fromDevis=" + quote.id);
+                              }}
+                            >
+                              <FileText className="h-4 w-4" />
                             </Button>
                           )}
                           {/* Ne pas supprimer si accepté ou converti */}
