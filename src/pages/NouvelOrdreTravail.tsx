@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -84,11 +84,34 @@ interface LignePrestation {
 
 type DialogStep = "type" | "subtype" | "form";
 
+// Mock devis data pour la récupération
+const mockDevisData: Record<string, {
+  id: string;
+  number: string;
+  client: string;
+  clientKey: string;
+  type: string;
+  amount: number;
+  description: string;
+}> = {
+  "1": { id: "1", number: "DEV-2024-0089", client: "COMILOG SA", clientKey: "comilog", type: "Transport", amount: 4500000, description: "Transport de marchandises vers Port-Gentil" },
+  "2": { id: "2", number: "DEV-2024-0088", client: "OLAM Gabon", clientKey: "olam", type: "Manutention", amount: 2350000, description: "Chargement/déchargement au port d'Owendo" },
+  "3": { id: "3", number: "DEV-2024-0087", client: "Total Energies", clientKey: "total", type: "Transport", amount: 6800000, description: "Transport exceptionnel de matériel pétrolier" },
+  "4": { id: "4", number: "DEV-2024-0086", client: "Assala Energy", clientKey: "assala", type: "Stockage", amount: 1890000, description: "Stockage longue durée de matériaux" },
+  "5": { id: "5", number: "DEV-2024-0085", client: "SEEG", clientKey: "seeg", type: "Location", amount: 750000, description: "Location d'engins de chantier" },
+  "6": { id: "6", number: "DEV-2024-0084", client: "Perenco Oil", clientKey: "perenco", type: "Manutention", amount: 3200000, description: "Empotage de conteneurs" },
+};
+
 export default function NouvelOrdreTravail() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromDevisId = searchParams.get("fromDevis");
+  const isDevisMode = searchParams.get("mode") === "devis";
+  
   const [dialogStep, setDialogStep] = useState<DialogStep>("type");
   const [selectedType, setSelectedType] = useState("");
   const [selectedSubType, setSelectedSubType] = useState("");
+  const [fromDevisNumber, setFromDevisNumber] = useState<string | null>(null);
 
   // Form state
   const [client, setClient] = useState("");
@@ -96,6 +119,26 @@ export default function NouvelOrdreTravail() {
   const [lignes, setLignes] = useState<LignePrestation[]>([
     { description: "", quantite: 1, prixUnit: 0, total: 0 }
   ]);
+
+  // Effet pour pré-remplir depuis un devis
+  useEffect(() => {
+    if (fromDevisId && mockDevisData[fromDevisId]) {
+      const devis = mockDevisData[fromDevisId];
+      setFromDevisNumber(devis.number);
+      setClient(devis.clientKey);
+      setDescription(devis.description);
+      setSelectedType(devis.type);
+      setDialogStep("subtype");
+      setLignes([{
+        description: `Prestation ${devis.type} - Réf. Devis ${devis.number}`,
+        quantite: 1,
+        prixUnit: devis.amount,
+        total: devis.amount
+      }]);
+      
+      toast.success(`Données récupérées du devis ${devis.number}`);
+    }
+  }, [fromDevisId]);
 
   // Transport fields
   const [pointDepart, setPointDepart] = useState("");
@@ -722,10 +765,18 @@ export default function NouvelOrdreTravail() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/ordres-travail")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-foreground">
-              Nouvel ordre de travail
-            </h1>
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-heading font-bold text-foreground">
+                {isDevisMode ? "Nouveau devis" : "Nouvel ordre de travail"}
+              </h1>
+              {fromDevisNumber && (
+                <Badge className="bg-cyan-500/20 text-cyan-600 border-cyan-500/30">
+                  <FileText className="h-3 w-3 mr-1" />
+                  Depuis {fromDevisNumber}
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground mt-1">
               {dialogStep === "type" && "Sélectionnez le type de prestation"}
               {dialogStep === "subtype" && `Sélectionnez le type de ${selectedType.toLowerCase()}`}
