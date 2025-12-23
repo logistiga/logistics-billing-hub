@@ -113,8 +113,8 @@ export default function NouvelOrdreTravail() {
               <Input placeholder="BL-XXXX" />
             </div>
             <div className="space-y-2">
-              <Label>N° Container</Label>
-              <Input placeholder="MSKU1234567" />
+              <Label>Numéro de conteneur *</Label>
+              <Input placeholder="Ex: MSKU1234567" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
