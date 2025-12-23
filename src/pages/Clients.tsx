@@ -9,7 +9,6 @@ import {
   Phone,
   Mail,
   MapPin,
-  Building2,
   Edit,
   Trash2,
   Eye,
@@ -34,8 +33,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
 
 interface Contact {
   id: string;
@@ -58,7 +68,7 @@ interface Client {
   balance: number;
 }
 
-const mockClients: Client[] = [
+const initialClients: Client[] = [
   {
     id: "1",
     name: "COMILOG SA",
@@ -136,11 +146,30 @@ const itemVariants = {
 
 export default function Clients() {
   const navigate = useNavigate();
+  const [clients, setClients] = useState<Client[]>(initialClients);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([
     { id: "1", name: "", email: "", phone: "" }
   ]);
+
+  // Edit dialog state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    nif: "",
+    rccm: "",
+    address: "",
+    city: "",
+    phone: "",
+    email: "",
+  });
+  const [editContacts, setEditContacts] = useState<Contact[]>([]);
+
+  // Delete dialog state
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
   const addContact = () => {
     setContacts([...contacts, { id: Date.now().toString(), name: "", email: "", phone: "" }]);
@@ -161,7 +190,79 @@ export default function Clients() {
     setIsDialogOpen(false);
   };
 
-  const filteredClients = mockClients.filter(
+  // Edit handlers
+  const handleEditClient = (client: Client) => {
+    setEditingClient(client);
+    setEditForm({
+      name: client.name,
+      nif: client.nif,
+      rccm: client.rccm,
+      address: client.address,
+      city: client.city,
+      phone: client.phone,
+      email: client.email,
+    });
+    setEditContacts(client.contacts.map((c, i) => ({ ...c, id: String(i) })));
+    setIsEditDialogOpen(true);
+  };
+
+  const addEditContact = () => {
+    setEditContacts([...editContacts, { id: Date.now().toString(), name: "", email: "", phone: "" }]);
+  };
+
+  const removeEditContact = (id: string) => {
+    if (editContacts.length > 1) {
+      setEditContacts(editContacts.filter(c => c.id !== id));
+    }
+  };
+
+  const updateEditContact = (id: string, field: keyof Contact, value: string) => {
+    setEditContacts(editContacts.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingClient) return;
+    
+    setClients(clients.map(c => 
+      c.id === editingClient.id 
+        ? { 
+            ...c, 
+            ...editForm,
+            contacts: editContacts.map(({ name, email, phone }) => ({ name, email, phone }))
+          } 
+        : c
+    ));
+    
+    toast({
+      title: "Client modifié",
+      description: `Les informations de ${editForm.name} ont été mises à jour`,
+    });
+    
+    setIsEditDialogOpen(false);
+    setEditingClient(null);
+  };
+
+  // Delete handlers
+  const handleDeleteClick = (client: Client) => {
+    setClientToDelete(client);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!clientToDelete) return;
+    
+    setClients(clients.filter(c => c.id !== clientToDelete.id));
+    
+    toast({
+      title: "Client supprimé",
+      description: `${clientToDelete.name} a été supprimé de la liste`,
+    });
+    
+    setIsDeleteDialogOpen(false);
+    setClientToDelete(null);
+  };
+
+  const filteredClients = clients.filter(
     (client) =>
       client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.nif.toLowerCase().includes(searchTerm.toLowerCase())
@@ -358,11 +459,14 @@ export default function Clients() {
                           <Eye className="h-4 w-4 mr-2" />
                           Voir détails
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditClient(client)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Modifier
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => handleDeleteClick(client)}
+                        >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Supprimer
                         </DropdownMenuItem>
@@ -402,6 +506,167 @@ export default function Clients() {
             </motion.div>
           ))}
         </motion.div>
+
+        {/* Edit Client Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-heading">Modifier le client</DialogTitle>
+              <DialogDescription>
+                Modifiez les informations de {editingClient?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Raison sociale *</Label>
+                  <Input 
+                    id="edit-name" 
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-nif">Numéro NIF *</Label>
+                  <Input 
+                    id="edit-nif" 
+                    value={editForm.nif}
+                    onChange={(e) => setEditForm({ ...editForm, nif: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-rccm">Numéro RCCM *</Label>
+                  <Input 
+                    id="edit-rccm" 
+                    value={editForm.rccm}
+                    onChange={(e) => setEditForm({ ...editForm, rccm: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-city">Ville</Label>
+                  <Input 
+                    id="edit-city" 
+                    value={editForm.city}
+                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-address">Adresse</Label>
+                <Textarea 
+                  id="edit-address" 
+                  value={editForm.address}
+                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone">Téléphone</Label>
+                  <Input 
+                    id="edit-phone" 
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input 
+                    id="edit-email" 
+                    type="email" 
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium">Contacts</h4>
+                  <Button type="button" variant="outline" size="sm" onClick={addEditContact}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Ajouter un contact
+                  </Button>
+                </div>
+                <div className="space-y-4">
+                  {editContacts.map((contact, index) => (
+                    <div key={contact.id} className="relative p-4 border rounded-lg bg-muted/30">
+                      {editContacts.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeEditContact(contact.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {index === 0 ? "Contact principal" : `Contact ${index + 1}`}
+                      </p>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>Nom</Label>
+                          <Input
+                            value={contact.name}
+                            onChange={(e) => updateEditContact(contact.id, "name", e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Email</Label>
+                          <Input
+                            type="email"
+                            value={contact.email}
+                            onChange={(e) => updateEditContact(contact.id, "email", e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Téléphone</Label>
+                          <Input
+                            value={contact.phone}
+                            onChange={(e) => updateEditContact(contact.id, "phone", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button variant="gradient" onClick={handleSaveEdit}>
+                Enregistrer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+              <AlertDialogDescription>
+                Êtes-vous sûr de vouloir supprimer le client <strong>{clientToDelete?.name}</strong> ?
+                <br /><br />
+                Cette action est irréversible. Toutes les données associées à ce client seront perdues.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </PageTransition>
   );
