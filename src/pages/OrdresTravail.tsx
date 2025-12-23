@@ -22,6 +22,7 @@ import {
   CreditCard,
   AlertTriangle,
   CircleDollarSign,
+  ReceiptText,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -233,6 +234,12 @@ export default function OrdresTravail() {
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedOrderForHistory, setSelectedOrderForHistory] = useState<WorkOrder | null>(null);
 
+  // Avoir dialog states
+  const [avoirDialogOpen, setAvoirDialogOpen] = useState(false);
+  const [selectedOrderForAvoir, setSelectedOrderForAvoir] = useState<WorkOrder | null>(null);
+  const [avoirAmount, setAvoirAmount] = useState("");
+  const [avoirReason, setAvoirReason] = useState("");
+
   const handleViewHistory = (order: WorkOrder) => {
     setSelectedOrderForHistory(order);
     setHistoryDialogOpen(true);
@@ -240,6 +247,52 @@ export default function OrdresTravail() {
 
   const getPaymentHistory = (orderNumber: string): PaymentRecord[] => {
     return mockPaymentHistory[orderNumber] || [];
+  };
+
+  // Avoir handlers
+  const handleCreateAvoir = (order: WorkOrder) => {
+    setSelectedOrderForAvoir(order);
+    setAvoirAmount("");
+    setAvoirReason("");
+    setAvoirDialogOpen(true);
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("fr-GA", {
+      style: "decimal",
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const confirmCreateAvoir = () => {
+    if (!selectedOrderForAvoir) return;
+    
+    const amount = parseFloat(avoirAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Veuillez entrer un montant valide");
+      return;
+    }
+    
+    if (amount > selectedOrderForAvoir.amount) {
+      toast.error("Le montant de l'avoir ne peut pas dépasser le montant de l'ordre");
+      return;
+    }
+    
+    if (!avoirReason.trim()) {
+      toast.error("Veuillez indiquer le motif de l'avoir");
+      return;
+    }
+
+    // Générer le numéro d'avoir
+    const year = new Date().getFullYear();
+    const avoirNumber = `AV-${year}-${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")}`;
+
+    toast.success(`Avoir ${avoirNumber} créé`, {
+      description: `${formatCurrency(amount)} FCFA pour l'ordre ${selectedOrderForAvoir.number}`,
+    });
+
+    setAvoirDialogOpen(false);
+    navigate("/avoirs");
   };
 
   const filteredOrders = orders.filter((order) => {
@@ -268,12 +321,6 @@ export default function OrdresTravail() {
   const isAllSelected = selectedIds.length === filteredOrders.length && filteredOrders.length > 0;
   const isSomeSelected = selectedIds.length > 0;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("fr-GA", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
 
   // Action handlers
   const handleViewDetails = (order: WorkOrder) => {
@@ -629,6 +676,19 @@ export default function OrdresTravail() {
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
+                                className="h-8 w-8 text-orange-500 hover:text-orange-600" 
+                                onClick={() => handleCreateAvoir(order)}
+                              >
+                                <ReceiptText className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Créer un avoir</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
                                 className="h-8 w-8" 
                                 onClick={() => handleCancel(order)}
                                 disabled={order.status === "cancelled"}
@@ -841,6 +901,63 @@ export default function OrdresTravail() {
           payments={getPaymentHistory(selectedOrderForHistory.number)}
         />
       )}
+
+      {/* Avoir Dialog */}
+      <Dialog open={avoirDialogOpen} onOpenChange={setAvoirDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ReceiptText className="h-5 w-5 text-orange-500" />
+              Créer un avoir
+            </DialogTitle>
+            <DialogDescription>
+              {selectedOrderForAvoir && (
+                <>
+                  Créer un avoir pour l'ordre <strong>{selectedOrderForAvoir.number}</strong>
+                  <br />
+                  Client: {selectedOrderForAvoir.client} • Montant: {formatCurrency(selectedOrderForAvoir.amount)} FCFA
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="avoirAmountOT">Montant de l'avoir (FCFA) *</Label>
+              <Input
+                id="avoirAmountOT"
+                type="number"
+                placeholder="Ex: 150000"
+                value={avoirAmount}
+                onChange={(e) => setAvoirAmount(e.target.value)}
+              />
+              {selectedOrderForAvoir && (
+                <p className="text-xs text-muted-foreground">
+                  Maximum: {formatCurrency(selectedOrderForAvoir.amount)} FCFA
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="avoirReasonOT">Motif de l'avoir *</Label>
+              <Textarea
+                id="avoirReasonOT"
+                placeholder="Ex: Erreur de facturation, retour de marchandise, remise commerciale..."
+                value={avoirReason}
+                onChange={(e) => setAvoirReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAvoirDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={confirmCreateAvoir} className="bg-orange-500 hover:bg-orange-600">
+              <ReceiptText className="h-4 w-4 mr-2" />
+              Créer l'avoir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 }
