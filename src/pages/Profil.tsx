@@ -19,6 +19,8 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { profileSchema, passwordSchema, validateForm } from "@/lib/validations";
+import { FormError } from "@/components/FormError";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -52,6 +54,10 @@ export default function Profil() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
+  // Form errors
+  const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -69,11 +75,15 @@ export default function Profil() {
   };
 
   const handleSaveProfile = async () => {
-    if (!firstName.trim()) {
-      toast.error("Le prénom est obligatoire");
+    const result = validateForm(profileSchema, { firstName, lastName });
+    
+    if (result.success === false) {
+      setProfileErrors(result.errors);
+      toast.error("Veuillez corriger les erreurs du formulaire");
       return;
     }
     
+    setProfileErrors({});
     setSavingProfile(true);
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -82,23 +92,15 @@ export default function Profil() {
   };
 
   const handleChangePassword = async () => {
-    if (!currentPassword) {
-      toast.error("Veuillez saisir votre mot de passe actuel");
-      return;
-    }
-    if (!newPassword) {
-      toast.error("Veuillez saisir un nouveau mot de passe");
-      return;
-    }
-    if (newPassword.length < 8) {
-      toast.error("Le mot de passe doit contenir au moins 8 caractères");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("Les mots de passe ne correspondent pas");
+    const result = validateForm(passwordSchema, { currentPassword, newPassword, confirmPassword });
+    
+    if (result.success === false) {
+      setPasswordErrors(result.errors);
+      toast.error("Veuillez corriger les erreurs du formulaire");
       return;
     }
     
+    setPasswordErrors({});
     setSavingPassword(true);
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -239,7 +241,9 @@ export default function Profil() {
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder="Votre prénom"
+                      className={profileErrors.firstName ? "border-destructive" : ""}
                     />
+                    <FormError message={profileErrors.firstName} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">Nom</Label>
