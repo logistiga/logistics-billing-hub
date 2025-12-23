@@ -18,6 +18,7 @@ import Taxes from "./pages/Taxes";
 import Roles from "./pages/Roles";
 import Utilisateurs from "./pages/Utilisateurs";
 import Partenaires from "./pages/Partenaires";
+import Caisse from "./pages/Caisse";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/roles" element={<Roles />} />
             <Route path="/utilisateurs" element={<Utilisateurs />} />
             <Route path="/partenaires" element={<Partenaires />} />
+            <Route path="/caisse" element={<Caisse />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
