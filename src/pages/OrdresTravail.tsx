@@ -22,6 +22,7 @@ import {
   CreditCard,
   AlertTriangle,
   Banknote,
+  Receipt,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -65,6 +66,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { PaymentDialog, type PayableDocument, type Payment } from "@/components/PaymentDialog";
+import { PaymentHistory, mockPaymentHistory, type PaymentRecord } from "@/components/PaymentHistory";
 
 interface WorkOrder {
   id: string;
@@ -220,6 +222,19 @@ export default function OrdresTravail() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentMode, setPaymentMode] = useState<"single" | "group" | "advance">("single");
   const [paymentDocuments, setPaymentDocuments] = useState<PayableDocument[]>([]);
+  
+  // Payment history states
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [selectedOrderForHistory, setSelectedOrderForHistory] = useState<WorkOrder | null>(null);
+
+  const handleViewHistory = (order: WorkOrder) => {
+    setSelectedOrderForHistory(order);
+    setHistoryDialogOpen(true);
+  };
+
+  const getPaymentHistory = (orderNumber: string): PaymentRecord[] => {
+    return mockPaymentHistory[orderNumber] || [];
+  };
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -479,6 +494,9 @@ export default function OrdresTravail() {
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-cyan-500 hover:text-cyan-700" title="Enregistrer avance" onClick={() => handleAdvancePayment(order)}>
                             <Banknote className="h-4 w-4" />
                           </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary/80" title="Historique paiements" onClick={() => handleViewHistory(order)}>
+                            <Receipt className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-700" title="Annuler" onClick={() => handleCancel(order)} disabled={order.status === "cancelled"}>
                             <Ban className="h-4 w-4" />
                           </Button>
@@ -659,6 +677,19 @@ export default function OrdresTravail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Payment History Dialog */}
+      {selectedOrderForHistory && (
+        <PaymentHistory
+          open={historyDialogOpen}
+          onOpenChange={setHistoryDialogOpen}
+          documentNumber={selectedOrderForHistory.number}
+          documentType="ordre"
+          client={selectedOrderForHistory.client}
+          totalAmount={selectedOrderForHistory.amount}
+          payments={getPaymentHistory(selectedOrderForHistory.number)}
+        />
+      )}
     </PageTransition>
   );
 }

@@ -17,6 +17,7 @@ import {
   Banknote,
   Clock,
   Layers,
+  Receipt,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,6 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PaymentDialog, type PayableDocument, type Payment } from "@/components/PaymentDialog";
+import { PaymentHistory, mockPaymentHistory, type PaymentRecord } from "@/components/PaymentHistory";
 import { toast } from "@/hooks/use-toast";
 
 interface Invoice {
@@ -190,6 +192,19 @@ export default function Factures() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentMode, setPaymentMode] = useState<"single" | "group" | "advance">("single");
   const [paymentDocuments, setPaymentDocuments] = useState<PayableDocument[]>([]);
+  
+  // Payment history states
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [selectedInvoiceForHistory, setSelectedInvoiceForHistory] = useState<Invoice | null>(null);
+
+  const handleViewHistory = (invoice: Invoice) => {
+    setSelectedInvoiceForHistory(invoice);
+    setHistoryDialogOpen(true);
+  };
+
+  const getPaymentHistory = (invoiceNumber: string): PaymentRecord[] => {
+    return mockPaymentHistory[invoiceNumber] || [];
+  };
 
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
@@ -555,6 +570,10 @@ export default function Factures() {
                               <Clock className="h-4 w-4 mr-2" />
                               Enregistrer avance
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewHistory(invoice)}>
+                              <Receipt className="h-4 w-4 mr-2" />
+                              Historique paiements
+                            </DropdownMenuItem>
                             <DropdownMenuItem>
                               <ArrowRightLeft className="h-4 w-4 mr-2" />
                               Convertir en avoir
@@ -584,6 +603,19 @@ export default function Factures() {
         onPaymentComplete={handlePaymentComplete}
         mode={paymentMode}
       />
+
+      {/* Payment History Dialog */}
+      {selectedInvoiceForHistory && (
+        <PaymentHistory
+          open={historyDialogOpen}
+          onOpenChange={setHistoryDialogOpen}
+          documentNumber={selectedInvoiceForHistory.number}
+          documentType="facture"
+          client={selectedInvoiceForHistory.client}
+          totalAmount={selectedInvoiceForHistory.amount}
+          payments={getPaymentHistory(selectedInvoiceForHistory.number)}
+        />
+      )}
     </PageTransition>
   );
 }
