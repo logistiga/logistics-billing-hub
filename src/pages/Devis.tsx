@@ -44,6 +44,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
+import { DocumentPDFGenerator, type DocumentData } from "@/lib/generateDocumentPDF";
 
 interface Quote {
   id: string;
@@ -170,6 +172,42 @@ export default function Devis() {
       style: "decimal",
       minimumFractionDigits: 0,
     }).format(value);
+  };
+
+  // PDF generation handler
+  const handleDownloadPDF = (quote: Quote) => {
+    const parseDate = (dateStr: string) => {
+      const [day, month, year] = dateStr.split('/');
+      return `${year}-${month}-${day}`;
+    };
+
+    const documentData: DocumentData = {
+      type: "devis",
+      numero: quote.number,
+      date: parseDate(quote.date),
+      dateValidite: parseDate(quote.validUntil),
+      client: {
+        nom: quote.client,
+      },
+      typePrestation: quote.type,
+      lignes: [
+        {
+          description: `Prestation ${quote.type}`,
+          quantite: 1,
+          prixUnitaire: quote.amount,
+        },
+      ],
+      tauxTVA: 18,
+      conditionsPaiement: "Paiement à 30 jours après acceptation",
+      notes: "Ce devis est valable 30 jours à compter de sa date d'émission.",
+    };
+
+    const generator = new DocumentPDFGenerator();
+    generator.generateAndDownload(documentData);
+    toast({
+      title: "PDF généré",
+      description: `Le devis ${quote.number} a été téléchargé`,
+    });
   };
 
   return (
@@ -300,7 +338,7 @@ export default function Devis() {
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700" title="Modifier">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Télécharger PDF">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Télécharger PDF" onClick={() => handleDownloadPDF(quote)}>
                             <Download className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-700" title="Envoyer par email">
