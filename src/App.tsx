@@ -10,6 +10,7 @@ import Clients from "./pages/Clients";
 import ClientDashboard from "./pages/ClientDashboard";
 import Factures from "./pages/Factures";
 import Devis from "./pages/Devis";
+import Avoirs from "./pages/Avoirs";
 import OrdresTravail from "./pages/OrdresTravail";
 import NouvelOrdreTravail from "./pages/NouvelOrdreTravail";
 import OrdresEnAttente from "./pages/OrdresEnAttente";
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/clients/:id" element={<ClientDashboard />} />
               <Route path="/factures" element={<Factures />} />
               <Route path="/devis" element={<Devis />} />
+              <Route path="/avoirs" element={<Avoirs />} />
               <Route path="/ordres-travail" element={<OrdresTravail />} />
               <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
               <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />

@@ -40,7 +40,7 @@ export interface LigneDocument {
 }
 
 export interface DocumentData {
-  type: "facture" | "devis" | "ordre";
+  type: "facture" | "devis" | "ordre" | "avoir";
   numero: string;
   date: string;
   dateEcheance?: string;
@@ -67,9 +67,9 @@ export interface DocumentData {
 }
 
 // ===== NUMÉROTATION AUTOMATIQUE =====
-const getNextNumber = (type: "facture" | "devis" | "ordre"): string => {
+const getNextNumber = (type: "facture" | "devis" | "ordre" | "avoir"): string => {
   const year = new Date().getFullYear();
-  const prefix = type === "facture" ? "FAC" : type === "devis" ? "DEV" : "OT";
+  const prefix = type === "facture" ? "FAC" : type === "devis" ? "DEV" : type === "avoir" ? "AV" : "OT";
   
   // Récupérer le dernier numéro depuis localStorage (en production, utiliser la DB)
   const storageKey = `lastNumber_${type}_${year}`;
@@ -142,7 +142,7 @@ export class DocumentPDFGenerator {
     this.doc.text(`${COMPANY_CONFIG.siege} | Tél: ${COMPANY_CONFIG.tel}`, companyX, this.yPos + 17);
 
     // Document type badge (right side)
-    const typeLabels = { facture: "FACTURE", devis: "DEVIS", ordre: "ORDRE DE TRAVAIL" };
+    const typeLabels = { facture: "FACTURE", devis: "DEVIS", ordre: "ORDRE DE TRAVAIL", avoir: "AVOIR" };
     const typeLabel = typeLabels[data.type];
     const badgeWidth = this.doc.getTextWidth(typeLabel) * 0.5 + 16;
     const badgeX = this.pageWidth - this.margin - badgeWidth;
@@ -484,6 +484,11 @@ export const generateDevisPDF = (data: Omit<DocumentData, "type">): void => {
 export const generateOrdrePDFNew = (data: Omit<DocumentData, "type">): void => {
   const generator = new DocumentPDFGenerator();
   generator.generateAndDownload({ ...data, type: "ordre" });
+};
+
+export const generateAvoirPDF = (data: Omit<DocumentData, "type">): void => {
+  const generator = new DocumentPDFGenerator();
+  generator.generateAndDownload({ ...data, type: "avoir" });
 };
 
 export const previewDocument = (data: DocumentData): void => {
