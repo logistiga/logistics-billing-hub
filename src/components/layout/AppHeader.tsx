@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Bell,
   Search,
   User,
   Settings,
@@ -19,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 interface AppHeaderProps {
   sidebarCollapsed: boolean;
@@ -54,10 +54,7 @@ export function AppHeader({ sidebarCollapsed }: AppHeaderProps) {
         {/* Right Actions */}
         <div className="flex items-center gap-3">
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-primary rounded-full animate-pulse" />
-          </Button>
+          <NotificationCenter />
 
           {/* Profile Dropdown */}
           <DropdownMenu>
