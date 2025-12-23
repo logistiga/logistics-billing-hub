@@ -21,6 +21,7 @@ import Partenaires from "./pages/Partenaires";
 import Caisse from "./pages/Caisse";
 import SuiviBanque from "./pages/SuiviBanque";
 import ComptabiliteGenerale from "./pages/ComptabiliteGenerale";
+import Rapports from "./pages/Rapports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/caisse" element={<Caisse />} />
             <Route path="/suivi-banque" element={<SuiviBanque />} />
             <Route path="/comptabilite" element={<ComptabiliteGenerale />} />
+            <Route path="/rapports" element={<Rapports />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
