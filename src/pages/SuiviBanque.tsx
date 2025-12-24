@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Landmark,
@@ -20,6 +20,9 @@ import {
   Clock,
   AlertCircle,
   FileUp,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -234,6 +237,7 @@ export default function SuiviBanque() {
   const [filterType, setFilterType] = useState<"all" | "entree" | "sortie">("all");
   const [filterBanque, setFilterBanque] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<"entree" | "sortie">("entree");
@@ -287,16 +291,25 @@ export default function SuiviBanque() {
 
   const enAttente = transactions.filter((t) => t.statut === "en_attente").length;
 
-  const filteredTransactions = transactions.filter((t) => {
-    const matchesSearch =
-      t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.client?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === "all" || t.type === filterType;
-    const matchesBanque = filterBanque === "all" || t.banque === banques.find((b) => b.id === filterBanque)?.nom;
-    const matchesStatut = filterStatut === "all" || t.statut === filterStatut;
-    return matchesSearch && matchesType && matchesBanque && matchesStatut;
-  });
+  const filteredTransactions = useMemo(() => {
+    const filtered = transactions.filter((t) => {
+      const matchesSearch =
+        t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.client?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = filterType === "all" || t.type === filterType;
+      const matchesBanque = filterBanque === "all" || t.banque === banques.find((b) => b.id === filterBanque)?.nom;
+      const matchesStatut = filterStatut === "all" || t.statut === filterStatut;
+      return matchesSearch && matchesType && matchesBanque && matchesStatut;
+    });
+    
+    // Tri par date
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    });
+  }, [transactions, searchTerm, filterType, filterBanque, filterStatut, sortOrder]);
 
   const handleSubmit = () => {
     const selectedBanque = banques.find((b) => b.id === formData.banque);
@@ -582,7 +595,21 @@ export default function SuiviBanque() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead>Date</TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 -ml-2 font-medium hover:bg-transparent"
+                      onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+                    >
+                      Date
+                      {sortOrder === "desc" ? (
+                        <ArrowDown className="ml-1 h-3 w-3" />
+                      ) : (
+                        <ArrowUp className="ml-1 h-3 w-3" />
+                      )}
+                    </Button>
+                  </TableHead>
                   <TableHead>Référence</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Banque</TableHead>
