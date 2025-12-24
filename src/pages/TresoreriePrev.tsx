@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   TrendingUp,
@@ -23,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
@@ -67,90 +66,12 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-
-interface CashFlowItem {
-  id: string;
-  type: "encaissement" | "decaissement";
-  category: string;
-  description: string;
-  amount: number;
-  date: string;
-  status: "confirmed" | "expected" | "uncertain";
-  reference?: string;
-  isManual?: boolean;
-}
-
-// Catégories de décaissements
-const decaissementCategories = [
-  { value: "salaires", label: "Salaires" },
-  { value: "fournisseurs", label: "Fournisseurs" },
-  { value: "charges", label: "Charges fixes" },
-  { value: "impots", label: "Impôts & Taxes" },
-  { value: "investissements", label: "Investissements" },
-  { value: "remboursements", label: "Remboursements" },
-  { value: "autres", label: "Autres" },
-];
-
-// Catégories d'encaissements
-const encaissementCategories = [
-  { value: "clients", label: "Clients" },
-  { value: "subventions", label: "Subventions" },
-  { value: "emprunts", label: "Emprunts" },
-  { value: "autres", label: "Autres" },
-];
-
-// Données de trésorerie prévisionnelle initiales
-const generateInitialData = (): CashFlowItem[] => {
-  const today = new Date();
-  const data: CashFlowItem[] = [];
-
-  const encaissements = [
-    { client: "COMILOG SA", amount: 3250000, daysFromNow: 5, status: "confirmed" as const },
-    { client: "OLAM Gabon", amount: 1875000, daysFromNow: 12, status: "expected" as const },
-    { client: "Total Energies", amount: 5420000, daysFromNow: 18, status: "expected" as const },
-    { client: "Assala Energy", amount: 2100000, daysFromNow: 25, status: "uncertain" as const },
-    { client: "SEEG", amount: 890000, daysFromNow: 30, status: "expected" as const },
-  ];
-
-  const decaissements = [
-    { category: "Salaires", description: "Paie décembre 2024", amount: 4500000, daysFromNow: 3, status: "confirmed" as const },
-    { category: "Fournisseurs", description: "Carburant PIZOLUB", amount: 1200000, daysFromNow: 7, status: "confirmed" as const },
-    { category: "Charges", description: "Loyer entrepôt", amount: 850000, daysFromNow: 10, status: "confirmed" as const },
-    { category: "Fournisseurs", description: "Pièces détachées", amount: 650000, daysFromNow: 15, status: "expected" as const },
-    { category: "Impôts", description: "TVA T4 2024", amount: 2100000, daysFromNow: 20, status: "confirmed" as const },
-  ];
-
-  encaissements.forEach((e, i) => {
-    const date = new Date(today);
-    date.setDate(date.getDate() + e.daysFromNow);
-    data.push({
-      id: `enc-${i}`,
-      type: "encaissement",
-      category: "Clients",
-      description: `Paiement ${e.client}`,
-      amount: e.amount,
-      date: date.toISOString().split("T")[0],
-      status: e.status,
-      reference: `FAC-2024-${String(140 + i).padStart(4, "0")}`,
-    });
-  });
-
-  decaissements.forEach((d, i) => {
-    const date = new Date(today);
-    date.setDate(date.getDate() + d.daysFromNow);
-    data.push({
-      id: `dec-${i}`,
-      type: "decaissement",
-      category: d.category,
-      description: d.description,
-      amount: d.amount,
-      date: date.toISOString().split("T")[0],
-      status: d.status,
-    });
-  });
-
-  return data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-};
+import {
+  cashFlowStore,
+  CashTransaction,
+  encaissementCategories,
+  decaissementCategories,
+} from "@/lib/cashFlowStore";
 
 const statusConfig = {
   confirmed: {
@@ -171,13 +92,13 @@ const statusConfig = {
 };
 
 export default function TresoreriePrev() {
-  const [cashFlowItems, setCashFlowItems] = useState<CashFlowItem[]>(generateInitialData);
+  const [cashFlowItems, setCashFlowItems] = useState<CashTransaction[]>([]);
   const [period, setPeriod] = useState("60");
   const [viewType, setViewType] = useState<"all" | "encaissement" | "decaissement">("all");
   
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<CashFlowItem | null>(null);
+  const [editingItem, setEditingItem] = useState<CashTransaction | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -186,9 +107,20 @@ export default function TresoreriePrev() {
     description: "",
     amount: "",
     date: undefined as Date | undefined,
-    status: "expected" as CashFlowItem["status"],
+    status: "expected" as CashTransaction["status"],
     reference: "",
   });
+
+  // Charger et écouter les changements du store
+  useEffect(() => {
+    const loadData = () => {
+      setCashFlowItems(cashFlowStore.getAllForTresorerie());
+    };
+    
+    loadData();
+    const unsubscribe = cashFlowStore.subscribe(loadData);
+    return () => unsubscribe();
+  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -210,13 +142,13 @@ export default function TresoreriePrev() {
     setCreateDialogOpen(true);
   };
 
-  const handleEdit = (item: CashFlowItem) => {
+  const handleEdit = (item: CashTransaction) => {
     setEditingItem(item);
     setFormData({
       type: item.type,
-      category: item.category,
+      category: item.categorie,
       description: item.description,
-      amount: item.amount.toString(),
+      amount: item.montant.toString(),
       date: new Date(item.date),
       status: item.status,
       reference: item.reference || "",
@@ -225,7 +157,7 @@ export default function TresoreriePrev() {
   };
 
   const handleDelete = (id: string) => {
-    setCashFlowItems((prev) => prev.filter((item) => item.id !== id));
+    cashFlowStore.delete(id);
     toast({
       title: "Prévision supprimée",
       description: "La prévision a été supprimée avec succès",
@@ -254,42 +186,32 @@ export default function TresoreriePrev() {
 
     if (editingItem) {
       // Update existing
-      setCashFlowItems((prev) =>
-        prev.map((item) =>
-          item.id === editingItem.id
-            ? {
-                ...item,
-                type: formData.type,
-                category: formData.category,
-                description: formData.description,
-                amount,
-                date: formData.date!.toISOString().split("T")[0],
-                status: formData.status,
-                reference: formData.reference || undefined,
-              }
-            : item
-        )
-      );
+      cashFlowStore.update(editingItem.id, {
+        type: formData.type,
+        categorie: formData.category,
+        description: formData.description,
+        montant: amount,
+        date: formData.date!.toISOString().split("T")[0],
+        status: formData.status,
+        reference: formData.reference || undefined,
+      });
       toast({
         title: "Prévision modifiée",
         description: "La prévision a été mise à jour",
       });
     } else {
       // Create new
-      const newItem: CashFlowItem = {
-        id: `manual-${Date.now()}`,
+      cashFlowStore.add({
         type: formData.type,
-        category: formData.category,
+        categorie: formData.category,
         description: formData.description,
-        amount,
+        montant: amount,
         date: formData.date!.toISOString().split("T")[0],
         status: formData.status,
-        reference: formData.reference || undefined,
+        reference: formData.reference || `PREV-${Date.now().toString().slice(-6)}`,
+        source: "previsionnel",
         isManual: true,
-      };
-      setCashFlowItems((prev) =>
-        [...prev, newItem].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      );
+      });
       toast({
         title: "Prévision créée",
         description: `${formData.type === "encaissement" ? "Encaissement" : "Décaissement"} ajouté avec succès`,
@@ -314,6 +236,11 @@ export default function TresoreriePrev() {
     });
   };
 
+  const getCategoryLabel = (value: string, type: "encaissement" | "decaissement") => {
+    const categories = type === "encaissement" ? encaissementCategories : decaissementCategories;
+    return categories.find(c => c.value === value)?.label || value;
+  };
+
   // Filtrer les items par période
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -330,7 +257,7 @@ export default function TresoreriePrev() {
   // Générer données pour le graphique (dynamique)
   const chartData = useMemo(() => {
     const data = [];
-    let solde = 8500000;
+    let solde = cashFlowStore.getCurrentBalance();
 
     for (let i = 0; i <= 60; i += 7) {
       const weekEnd = new Date(today);
@@ -345,11 +272,11 @@ export default function TresoreriePrev() {
 
       const encaissements = weekItems
         .filter((item) => item.type === "encaissement")
-        .reduce((sum, item) => sum + item.amount, 0);
+        .reduce((sum, item) => sum + item.montant, 0);
 
       const decaissements = weekItems
         .filter((item) => item.type === "decaissement")
-        .reduce((sum, item) => sum + item.amount, 0);
+        .reduce((sum, item) => sum + item.montant, 0);
 
       solde = solde + encaissements - decaissements;
 
@@ -367,30 +294,31 @@ export default function TresoreriePrev() {
   }, [cashFlowItems]);
 
   // Calculs des totaux
+  const soldeActuel = cashFlowStore.getCurrentBalance();
+  
   const totalEncaissements = filteredItems
     .filter((item) => item.type === "encaissement")
-    .reduce((sum, item) => sum + item.amount, 0);
+    .reduce((sum, item) => sum + item.montant, 0);
 
   const totalDecaissements = filteredItems
     .filter((item) => item.type === "decaissement")
-    .reduce((sum, item) => sum + item.amount, 0);
+    .reduce((sum, item) => sum + item.montant, 0);
 
   const encaissementsConfirmes = filteredItems
     .filter((item) => item.type === "encaissement" && item.status === "confirmed")
-    .reduce((sum, item) => sum + item.amount, 0);
+    .reduce((sum, item) => sum + item.montant, 0);
 
   const decaissementsConfirmes = filteredItems
     .filter((item) => item.type === "decaissement" && item.status === "confirmed")
-    .reduce((sum, item) => sum + item.amount, 0);
+    .reduce((sum, item) => sum + item.montant, 0);
 
-  const soldeInitial = 8500000;
-  const soldeProjeté = soldeInitial + totalEncaissements - totalDecaissements;
-  const soldeMinimal = soldeInitial + encaissementsConfirmes - totalDecaissements;
+  const soldeProjeté = soldeActuel + totalEncaissements - totalDecaissements;
+  const soldeMinimal = soldeActuel + encaissementsConfirmes - totalDecaissements;
 
   const stats = [
     {
       label: "Solde actuel",
-      value: formatCurrency(soldeInitial),
+      value: formatCurrency(soldeActuel),
       unit: "FCFA",
       icon: Wallet,
       color: "text-primary",
@@ -415,8 +343,8 @@ export default function TresoreriePrev() {
       label: "Solde projeté",
       value: formatCurrency(soldeProjeté),
       unit: "FCFA",
-      icon: soldeProjeté >= soldeInitial ? TrendingUp : TrendingDown,
-      color: soldeProjeté >= soldeInitial ? "text-success" : "text-destructive",
+      icon: soldeProjeté >= soldeActuel ? TrendingUp : TrendingDown,
+      color: soldeProjeté >= soldeActuel ? "text-success" : "text-destructive",
       subValue: `Min: ${formatCurrency(soldeMinimal)}`,
     },
   ];
@@ -648,7 +576,7 @@ export default function TresoreriePrev() {
                             <span className="capitalize">{item.type}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{item.category}</TableCell>
+                        <TableCell>{getCategoryLabel(item.categorie, item.type)}</TableCell>
                         <TableCell>
                           <div>
                             <p>{item.description}</p>
@@ -663,7 +591,7 @@ export default function TresoreriePrev() {
                           }`}
                         >
                           {item.type === "encaissement" ? "+" : "-"}
-                          {formatCurrency(item.amount)} FCFA
+                          {formatCurrency(item.montant)} FCFA
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={statusConfig[item.status].class}>
@@ -759,7 +687,7 @@ export default function TresoreriePrev() {
                   <SelectContent>
                     {(formData.type === "encaissement" ? encaissementCategories : decaissementCategories).map(
                       (cat) => (
-                        <SelectItem key={cat.value} value={cat.label}>
+                        <SelectItem key={cat.value} value={cat.value}>
                           {cat.label}
                         </SelectItem>
                       )
@@ -824,7 +752,7 @@ export default function TresoreriePrev() {
                 <Label>Statut</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value: CashFlowItem["status"]) =>
+                  onValueChange={(value: CashTransaction["status"]) =>
                     setFormData((prev) => ({ ...prev, status: value }))
                   }
                 >
