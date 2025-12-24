@@ -63,10 +63,21 @@ const notifyListeners = () => {
   listeners.forEach((listener) => listener());
 };
 
+// Snapshots pour useSyncExternalStore (doivent être stables entre les appels)
+let compagniesSnapshot = compagnies;
+let transitairesSnapshot = transitaires;
+let representantsSnapshot = representants;
+
+const updateSnapshots = () => {
+  compagniesSnapshot = [...compagnies];
+  transitairesSnapshot = [...transitaires];
+  representantsSnapshot = [...representants];
+};
+
 export const partenaireStore = {
   // Compagnies Maritimes
   getCompagnies(): CompagnieMaritime[] {
-    return [...compagnies];
+    return compagniesSnapshot;
   },
 
   addCompagnie(compagnie: Omit<CompagnieMaritime, "id">): CompagnieMaritime {
@@ -75,6 +86,7 @@ export const partenaireStore = {
       id: `comp-${Date.now()}`,
     };
     compagnies.push(newCompagnie);
+    updateSnapshots();
     notifyListeners();
     return newCompagnie;
   },
@@ -83,18 +95,20 @@ export const partenaireStore = {
     const index = compagnies.findIndex((c) => c.id === id);
     if (index !== -1) {
       compagnies[index] = { ...compagnies[index], ...updates };
+      updateSnapshots();
       notifyListeners();
     }
   },
 
   deleteCompagnie(id: string): void {
     compagnies = compagnies.filter((c) => c.id !== id);
+    updateSnapshots();
     notifyListeners();
   },
 
   // Transitaires
   getTransitaires(): Transitaire[] {
-    return [...transitaires];
+    return transitairesSnapshot;
   },
 
   addTransitaire(transitaire: Omit<Transitaire, "id">): Transitaire {
@@ -103,6 +117,7 @@ export const partenaireStore = {
       id: `trans-${Date.now()}`,
     };
     transitaires.push(newTransitaire);
+    updateSnapshots();
     notifyListeners();
     return newTransitaire;
   },
@@ -111,18 +126,20 @@ export const partenaireStore = {
     const index = transitaires.findIndex((t) => t.id === id);
     if (index !== -1) {
       transitaires[index] = { ...transitaires[index], ...updates };
+      updateSnapshots();
       notifyListeners();
     }
   },
 
   deleteTransitaire(id: string): void {
     transitaires = transitaires.filter((t) => t.id !== id);
+    updateSnapshots();
     notifyListeners();
   },
 
   // Représentants
   getRepresentants(): Representant[] {
-    return [...representants];
+    return representantsSnapshot;
   },
 
   addRepresentant(representant: Omit<Representant, "id">): Representant {
@@ -131,6 +148,7 @@ export const partenaireStore = {
       id: `rep-${Date.now()}`,
     };
     representants.push(newRepresentant);
+    updateSnapshots();
     notifyListeners();
     return newRepresentant;
   },
@@ -139,12 +157,14 @@ export const partenaireStore = {
     const index = representants.findIndex((r) => r.id === id);
     if (index !== -1) {
       representants[index] = { ...representants[index], ...updates };
+      updateSnapshots();
       notifyListeners();
     }
   },
 
   deleteRepresentant(id: string): void {
     representants = representants.filter((r) => r.id !== id);
+    updateSnapshots();
     notifyListeners();
   },
 
@@ -161,6 +181,7 @@ export const partenaireStore = {
     compagnies = [...initialCompagnies];
     transitaires = [...initialTransitaires];
     representants = [...initialRepresentants];
+    updateSnapshots();
     notifyListeners();
   },
 };
