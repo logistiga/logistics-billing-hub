@@ -24,6 +24,7 @@ import {
   Clock,
   XCircle,
   ArrowLeftRight,
+  History,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +46,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AvoirCompensationHistory } from "@/components/AvoirCompensationHistory";
 
 // Mock client data
 const mockClientDetails = {
@@ -136,6 +138,7 @@ export default function ClientDashboard() {
   const { id } = useParams();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [compensationHistoryOpen, setCompensationHistoryOpen] = useState(false);
 
   const client = mockClientDetails;
 
@@ -470,14 +473,24 @@ export default function ClientDashboard() {
             <TabsContent value="avoirs" className="p-6 pt-4">
               <div className="mb-4 p-4 rounded-lg bg-muted/50 border border-border/50">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total avoirs</p>
-                    <p className="text-xl font-bold text-destructive">-{formatCurrency(totalCreditNotes)}</p>
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total avoirs</p>
+                      <p className="text-xl font-bold text-destructive">-{formatCurrency(totalCreditNotes)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Compensés (déduits du solde)</p>
+                      <p className="text-xl font-bold text-primary">{formatCurrency(appliedCreditNotes)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Compensés (déduits du solde)</p>
-                    <p className="text-xl font-bold text-primary">{formatCurrency(appliedCreditNotes)}</p>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setCompensationHistoryOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <History className="h-4 w-4" />
+                    Historique compensations
+                  </Button>
                 </div>
               </div>
               <div className="rounded-lg border border-border/50 overflow-hidden">
@@ -607,6 +620,13 @@ export default function ClientDashboard() {
             </TabsContent>
           </Tabs>
         </Card>
+
+        {/* Historique des compensations */}
+        <AvoirCompensationHistory
+          open={compensationHistoryOpen}
+          onOpenChange={setCompensationHistoryOpen}
+          clientId={client.id}
+        />
       </div>
     </PageTransition>
   );
