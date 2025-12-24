@@ -25,12 +25,15 @@ import {
   XCircle,
   ArrowLeftRight,
   History,
+  Banknote,
+  Layers,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -47,6 +50,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AvoirCompensationHistory } from "@/components/AvoirCompensationHistory";
+import { PaymentDialog, type PayableDocument, type Payment } from "@/components/PaymentDialog";
+import { toast } from "@/hooks/use-toast";
 
 // Mock client data
 const mockClientDetails = {
@@ -68,11 +73,11 @@ const mockClientDetails = {
 };
 
 // Mock invoices
-const mockInvoices = [
-  { id: "FAC-2024-001", date: "2024-01-15", dueDate: "2024-02-15", amount: 2500000, status: "payée", description: "Prestation maintenance Q1" },
-  { id: "FAC-2024-008", date: "2024-02-20", dueDate: "2024-03-20", amount: 1800000, status: "en attente", description: "Consultation technique" },
-  { id: "FAC-2024-015", date: "2024-03-10", dueDate: "2024-04-10", amount: 3200000, status: "en retard", description: "Formation personnel" },
-  { id: "FAC-2024-022", date: "2024-04-05", dueDate: "2024-05-05", amount: 1500000, status: "brouillon", description: "Support technique" },
+const mockInvoicesData = [
+  { id: "FAC-2024-001", date: "2024-01-15", dueDate: "2024-02-15", amount: 2500000, paid: 2500000, status: "payée", description: "Prestation maintenance Q1" },
+  { id: "FAC-2024-008", date: "2024-02-20", dueDate: "2024-03-20", amount: 1800000, paid: 0, status: "en attente", description: "Consultation technique" },
+  { id: "FAC-2024-015", date: "2024-03-10", dueDate: "2024-04-10", amount: 3200000, paid: 0, status: "en retard", description: "Formation personnel" },
+  { id: "FAC-2024-022", date: "2024-04-05", dueDate: "2024-05-05", amount: 1500000, paid: 500000, status: "en attente", description: "Support technique" },
 ];
 
 // Mock quotes
@@ -139,6 +144,15 @@ export default function ClientDashboard() {
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [compensationHistoryOpen, setCompensationHistoryOpen] = useState(false);
+  
+  // État pour les factures (pour permettre les mises à jour après paiement)
+  const [invoices, setInvoices] = useState(mockInvoicesData);
+  
+  // État pour le paiement
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<"single" | "group">("single");
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
+  const [documentsForPayment, setDocumentsForPayment] = useState<PayableDocument[]>([]);
 
   const client = mockClientDetails;
 
@@ -170,7 +184,7 @@ export default function ClientDashboard() {
   };
 
   // Calculate totals with avoirs
-  const totalInvoiced = mockInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+  const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.amount, 0);
   const totalPaid = mockPayments.reduce((sum, pay) => sum + pay.amount, 0);
   const totalCreditNotes = mockCreditNotes.filter(cn => cn.status !== "cancelled").reduce((sum, cn) => sum + cn.amount, 0);
   const appliedCreditNotes = mockCreditNotes.filter(cn => cn.status === "applied").reduce((sum, cn) => sum + cn.amount, 0);
@@ -356,7 +370,7 @@ export default function ClientDashboard() {
                 <TabsTrigger value="invoices" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   <span className="hidden sm:inline">Factures</span>
-                  <Badge variant="secondary" className="ml-1">{mockInvoices.length}</Badge>
+                  <Badge variant="secondary" className="ml-1">{invoices.length}</Badge>
                 </TabsTrigger>
                 <TabsTrigger value="quotes" className="flex items-center gap-2">
                   <Receipt className="h-4 w-4" />
@@ -383,43 +397,178 @@ export default function ClientDashboard() {
 
             {/* Invoices Tab */}
             <TabsContent value="invoices" className="p-6 pt-4">
+              {/* Barre d'actions pour paiement groupé */}
+              {(() => {
+                const pendingInvoices = invoices.filter(
+                  (inv) => inv.status === "en attente" || inv.status === "en retard"
+                );
+                const selectedPendingCount = selectedInvoiceIds.filter((id) =>
+                  pendingInvoices.some((inv) => inv.id === id)
+                ).length;
+                const totalPendingAmount = pendingInvoices.reduce(
+                  (sum, inv) => sum + (inv.amount - inv.paid),
+                  0
+                );
+
+                return pendingInvoices.length > 0 ? (
+                  <div className="mb-4 p-4 rounded-lg bg-muted/50 border border-border/50">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Factures en attente</p>
+                          <p className="text-lg font-bold text-foreground">
+                            {pendingInvoices.length} facture{pendingInvoices.length > 1 ? "s" : ""} - {formatCurrency(totalPendingAmount)}
+                          </p>
+                        </div>
+                        {selectedPendingCount > 0 && (
+                          <Badge variant="secondary" className="text-sm">
+                            {selectedPendingCount} sélectionnée{selectedPendingCount > 1 ? "s" : ""}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Sélectionner toutes les factures en attente
+                            const allPendingIds = pendingInvoices.map((inv) => inv.id);
+                            setSelectedInvoiceIds((prev) => {
+                              const isAllSelected = allPendingIds.every((id) => prev.includes(id));
+                              return isAllSelected ? [] : allPendingIds;
+                            });
+                          }}
+                        >
+                          {pendingInvoices.every((inv) => selectedInvoiceIds.includes(inv.id))
+                            ? "Désélectionner tout"
+                            : "Tout sélectionner"}
+                        </Button>
+                        <Button
+                          variant="gradient"
+                          size="sm"
+                          disabled={selectedPendingCount === 0}
+                          onClick={() => {
+                            const selectedInvoices = invoices.filter((inv) =>
+                              selectedInvoiceIds.includes(inv.id)
+                            );
+                            const docs: PayableDocument[] = selectedInvoices.map((inv) => ({
+                              id: inv.id,
+                              number: inv.id,
+                              client: client.name,
+                              clientId: client.id,
+                              date: inv.date,
+                              amount: inv.amount,
+                              paid: inv.paid,
+                              type: "facture" as const,
+                            }));
+                            setDocumentsForPayment(docs);
+                            setPaymentMode(selectedPendingCount > 1 ? "group" : "single");
+                            setPaymentDialogOpen(true);
+                          }}
+                        >
+                          <Layers className="h-4 w-4 mr-2" />
+                          Payer {selectedPendingCount > 1 ? "les sélectionnées" : "la sélection"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
               <div className="rounded-lg border border-border/50 overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
+                      <TableHead className="w-10"></TableHead>
                       <TableHead>N° Facture</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>Échéance</TableHead>
                       <TableHead className="text-right">Montant</TableHead>
+                      <TableHead className="text-right">Reste à payer</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockInvoices.map((invoice) => (
-                      <TableRow key={invoice.id}>
-                        <TableCell className="font-medium">{invoice.id}</TableCell>
-                        <TableCell>{formatDate(invoice.date)}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{invoice.description}</TableCell>
-                        <TableCell>{formatDate(invoice.dueDate)}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(invoice.amount)}</TableCell>
-                        <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Send className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {invoices.map((invoice) => {
+                      const remaining = invoice.amount - invoice.paid;
+                      const isPending = invoice.status === "en attente" || invoice.status === "en retard";
+                      const isSelected = selectedInvoiceIds.includes(invoice.id);
+
+                      return (
+                        <TableRow 
+                          key={invoice.id} 
+                          className={isSelected ? "bg-primary/5" : ""}
+                        >
+                          <TableCell>
+                            {isPending && (
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => {
+                                  setSelectedInvoiceIds((prev) =>
+                                    prev.includes(invoice.id)
+                                      ? prev.filter((id) => id !== invoice.id)
+                                      : [...prev, invoice.id]
+                                  );
+                                }}
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">{invoice.id}</TableCell>
+                          <TableCell>{formatDate(invoice.date)}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{invoice.description}</TableCell>
+                          <TableCell>{formatDate(invoice.dueDate)}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(invoice.amount)}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {remaining > 0 ? (
+                              <span className="text-destructive">{formatCurrency(remaining)}</span>
+                            ) : (
+                              <span className="text-success">Soldée</span>
+                            )}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {isPending && remaining > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-primary hover:text-primary"
+                                  title="Enregistrer un paiement"
+                                  onClick={() => {
+                                    const doc: PayableDocument = {
+                                      id: invoice.id,
+                                      number: invoice.id,
+                                      client: client.name,
+                                      clientId: client.id,
+                                      date: invoice.date,
+                                      amount: invoice.amount,
+                                      paid: invoice.paid,
+                                      type: "facture",
+                                    };
+                                    setDocumentsForPayment([doc]);
+                                    setPaymentMode("single");
+                                    setPaymentDialogOpen(true);
+                                  }}
+                                >
+                                  <Banknote className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Send className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -626,6 +775,39 @@ export default function ClientDashboard() {
           open={compensationHistoryOpen}
           onOpenChange={setCompensationHistoryOpen}
           clientId={client.id}
+        />
+
+        {/* Dialog de paiement */}
+        <PaymentDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          documents={documentsForPayment}
+          mode={paymentMode}
+          onPaymentComplete={(payment, updatedDocuments) => {
+            // Mettre à jour les factures avec les paiements
+            setInvoices((prev) =>
+              prev.map((inv) => {
+                const updated = updatedDocuments.find((d) => d.id === inv.id);
+                if (updated) {
+                  const newPaid = updated.paid;
+                  const newStatus =
+                    newPaid >= inv.amount
+                      ? "payée"
+                      : newPaid > 0
+                      ? "en attente"
+                      : inv.status;
+                  return { ...inv, paid: newPaid, status: newStatus };
+                }
+                return inv;
+              })
+            );
+            setSelectedInvoiceIds([]);
+            setDocumentsForPayment([]);
+            toast({
+              title: "Paiement enregistré",
+              description: `Le paiement de ${formatCurrency(payment.amount)} a été enregistré avec succès.`,
+            });
+          }}
         />
       </div>
     </PageTransition>
