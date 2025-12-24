@@ -11,15 +11,13 @@ import {
   Edit,
   Eye,
   CreditCard,
-  ArrowRightLeft,
-  CheckSquare,
   Layers,
-  FileDown,
   ReceiptText,
   FileText,
   Clock,
   AlertCircle,
   CheckCircle2,
+  CheckSquare,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -29,16 +27,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,6 +51,7 @@ import {
 } from "@/components/ui/select";
 import { PaymentDialog, type PayableDocument, type Payment } from "@/components/PaymentDialog";
 import { PaymentHistory, mockPaymentHistory, type PaymentRecord } from "@/components/PaymentHistory";
+import { CreateAvoirDialog, type InvoiceForAvoir } from "@/components/CreateAvoirDialog";
 import { toast } from "@/hooks/use-toast";
 import { DocumentPDFGenerator, type DocumentData } from "@/lib/generateDocumentPDF";
 
@@ -215,9 +204,7 @@ export default function Factures() {
 
   // Avoir dialog states
   const [avoirDialogOpen, setAvoirDialogOpen] = useState(false);
-  const [selectedInvoiceForAvoir, setSelectedInvoiceForAvoir] = useState<Invoice | null>(null);
-  const [avoirAmount, setAvoirAmount] = useState("");
-  const [avoirReason, setAvoirReason] = useState("");
+  const [selectedInvoiceForAvoir, setSelectedInvoiceForAvoir] = useState<InvoiceForAvoir | null>(null);
 
   const handleViewHistory = (invoice: Invoice) => {
     setSelectedInvoiceForHistory(invoice);
@@ -230,54 +217,19 @@ export default function Factures() {
 
   // Avoir handlers
   const handleCreateAvoir = (invoice: Invoice) => {
-    setSelectedInvoiceForAvoir(invoice);
-    setAvoirAmount("");
-    setAvoirReason("");
+    setSelectedInvoiceForAvoir({
+      id: invoice.id,
+      number: invoice.number,
+      client: invoice.client,
+      clientId: invoice.clientId,
+      amount: invoice.amount,
+      paid: invoice.paid,
+    });
     setAvoirDialogOpen(true);
   };
 
-  const confirmCreateAvoir = () => {
-    if (!selectedInvoiceForAvoir) return;
-    
-    const amount = parseFloat(avoirAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez entrer un montant valide",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (amount > selectedInvoiceForAvoir.amount) {
-      toast({
-        title: "Erreur",
-        description: "Le montant de l'avoir ne peut pas dépasser le montant de la facture",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!avoirReason.trim()) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez indiquer le motif de l'avoir",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Générer le numéro d'avoir
-    const year = new Date().getFullYear();
-    const avoirNumber = `AV-${year}-${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")}`;
-
-    toast({
-      title: "Avoir créé",
-      description: `L'avoir ${avoirNumber} de ${formatCurrency(amount)} FCFA a été créé pour la facture ${selectedInvoiceForAvoir.number}`,
-    });
-
+  const handleAvoirCreated = () => {
     setAvoirDialogOpen(false);
-    // Rediriger vers la page des avoirs
     navigate("/avoirs");
   };
 
@@ -739,61 +691,12 @@ export default function Factures() {
       )}
 
       {/* Avoir Dialog */}
-      <Dialog open={avoirDialogOpen} onOpenChange={setAvoirDialogOpen}>
-        <DialogContent className="sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ReceiptText className="h-5 w-5 text-orange-500" />
-              Créer un avoir
-            </DialogTitle>
-            <DialogDescription>
-              {selectedInvoiceForAvoir && (
-                <>
-                  Créer un avoir pour la facture <strong>{selectedInvoiceForAvoir.number}</strong>
-                  <br />
-                  Client: {selectedInvoiceForAvoir.client} • Montant: {formatCurrency(selectedInvoiceForAvoir.amount)} FCFA
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="avoirAmount">Montant de l'avoir (FCFA) *</Label>
-              <Input
-                id="avoirAmount"
-                type="number"
-                placeholder="Ex: 150000"
-                value={avoirAmount}
-                onChange={(e) => setAvoirAmount(e.target.value)}
-              />
-              {selectedInvoiceForAvoir && (
-                <p className="text-xs text-muted-foreground">
-                  Maximum: {formatCurrency(selectedInvoiceForAvoir.amount)} FCFA
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="avoirReason">Motif de l'avoir *</Label>
-              <Textarea
-                id="avoirReason"
-                placeholder="Ex: Erreur de facturation, retour de marchandise, remise commerciale..."
-                value={avoirReason}
-                onChange={(e) => setAvoirReason(e.target.value)}
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAvoirDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button onClick={confirmCreateAvoir} className="bg-orange-500 hover:bg-orange-600">
-              <ReceiptText className="h-4 w-4 mr-2" />
-              Créer l'avoir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateAvoirDialog
+        open={avoirDialogOpen}
+        onOpenChange={setAvoirDialogOpen}
+        invoice={selectedInvoiceForAvoir || undefined}
+        onAvoirCreated={handleAvoirCreated}
+      />
     </PageTransition>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -49,9 +49,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { DocumentPDFGenerator, type DocumentData } from "@/lib/generateDocumentPDF";
+import { CreateAvoirDialog, type InvoiceForAvoir } from "@/components/CreateAvoirDialog";
+import { avoirStore } from "@/lib/avoirStore";
 
 interface CreditNote {
   id: string;
@@ -172,13 +173,6 @@ export default function Avoirs() {
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [selectedCreditNote, setSelectedCreditNote] = useState<CreditNote | null>(null);
 
-  // Form states
-  const [newCreditNote, setNewCreditNote] = useState({
-    invoiceId: "",
-    amount: "",
-    reason: "",
-  });
-
   const [refundForm, setRefundForm] = useState({
     method: "" as CreditNote["refundMethod"],
     reference: "",
@@ -200,76 +194,22 @@ export default function Avoirs() {
     }).format(value);
   };
 
-  // Generate next credit note number
-  const getNextNumber = () => {
-    const currentYear = new Date().getFullYear();
-    const existingNumbers = creditNotes
-      .filter((cn) => cn.number.includes(`AV-${currentYear}`))
-      .map((cn) => parseInt(cn.number.split("-")[2]));
-    const maxNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
-    return `AV-${currentYear}-${String(maxNumber + 1).padStart(4, "0")}`;
-  };
+  // Récupérer les factures pour le formulaire de création
+  const invoicesForAvoir: InvoiceForAvoir[] = mockInvoices.map((inv) => ({
+    id: inv.id,
+    number: inv.number,
+    client: inv.client,
+    clientId: inv.clientId,
+    amount: inv.amount,
+  }));
 
-  // Create credit note
-  const handleCreateCreditNote = () => {
-    const invoice = mockInvoices.find((inv) => inv.id === newCreditNote.invoiceId);
-    if (!invoice) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner une facture",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const amount = parseFloat(newCreditNote.amount);
-    if (isNaN(amount) || amount <= 0) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez entrer un montant valide",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (amount > invoice.amount) {
-      toast({
-        title: "Erreur",
-        description: "Le montant de l'avoir ne peut pas dépasser le montant de la facture",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!newCreditNote.reason.trim()) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez indiquer le motif de l'avoir",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const creditNote: CreditNote = {
-      id: String(creditNotes.length + 1),
-      number: getNextNumber(),
-      invoiceNumber: invoice.number,
-      invoiceId: invoice.id,
-      client: invoice.client,
-      clientId: invoice.clientId,
-      date: new Date().toLocaleDateString("fr-FR"),
-      amount,
-      reason: newCreditNote.reason.trim(),
-      status: "pending",
-    };
-
-    setCreditNotes((prev) => [creditNote, ...prev]);
+  // Callback quand un avoir est créé via le store
+  const handleAvoirCreated = () => {
+    // Rafraîchir la liste locale (dans une vraie app, ceci viendrait du store)
     setCreateDialogOpen(false);
-    setNewCreditNote({ invoiceId: "", amount: "", reason: "" });
-
     toast({
-      title: "Avoir créé",
-      description: `L'avoir ${creditNote.number} a été créé avec succès`,
+      title: "Avoir créé avec succès",
+      description: "L'avoir a été ajouté et est disponible pour compensation",
     });
   };
 
@@ -552,77 +492,12 @@ export default function Avoirs() {
         </Card>
 
         {/* Create Credit Note Dialog */}
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Créer un avoir</DialogTitle>
-              <DialogDescription>
-                Créez un avoir lié à une facture existante
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="invoice">Facture concernée</Label>
-                <Select
-                  value={newCreditNote.invoiceId}
-                  onValueChange={(value) =>
-                    setNewCreditNote((prev) => ({ ...prev, invoiceId: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une facture" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockInvoices.map((inv) => (
-                      <SelectItem key={inv.id} value={inv.id}>
-                        {inv.number} - {inv.client} ({formatCurrency(inv.amount)} FCFA)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="amount">Montant de l'avoir (FCFA)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  placeholder="Ex: 150000"
-                  value={newCreditNote.amount}
-                  onChange={(e) =>
-                    setNewCreditNote((prev) => ({ ...prev, amount: e.target.value }))
-                  }
-                />
-                {newCreditNote.invoiceId && (
-                  <p className="text-xs text-muted-foreground">
-                    Max:{" "}
-                    {formatCurrency(
-                      mockInvoices.find((inv) => inv.id === newCreditNote.invoiceId)?.amount || 0
-                    )}{" "}
-                    FCFA
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="reason">Motif de l'avoir</Label>
-                <Textarea
-                  id="reason"
-                  placeholder="Ex: Erreur de facturation, retour de marchandise..."
-                  value={newCreditNote.reason}
-                  onChange={(e) =>
-                    setNewCreditNote((prev) => ({ ...prev, reason: e.target.value }))
-                  }
-                  rows={3}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                Annuler
-              </Button>
-              <Button onClick={handleCreateCreditNote}>Créer l'avoir</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <CreateAvoirDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          invoices={invoicesForAvoir}
+          onAvoirCreated={handleAvoirCreated}
+        />
 
         {/* Refund Dialog */}
         <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
