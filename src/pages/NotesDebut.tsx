@@ -15,8 +15,6 @@ import {
   Container,
   Wrench,
   CreditCard,
-  Warehouse,
-  TreeDeciduous,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -66,7 +64,7 @@ interface NoteDebut {
   number: string;
   client: string;
   clientId: string;
-  type: "ouverture_port" | "detention" | "reparation" | "stockage";
+  type: "ouverture_port" | "detention" | "reparation";
   ordresTravail: string[];
   blNumber: string;
   containerNumber: string;
@@ -144,7 +142,7 @@ const initialNotes: NoteDebut[] = [
     number: "ND-2024-0012",
     client: "Assala Energy",
     clientId: "c4",
-    type: "stockage",
+    type: "detention",
     ordresTravail: ["OT-2024-0035"],
     blNumber: "BL-2024-7766",
     containerNumber: "HLCU6677889",
@@ -156,7 +154,7 @@ const initialNotes: NoteDebut[] = [
     paid: 0,
     advance: 0,
     status: "pending",
-    description: "Stockage entrepôt sécurisé",
+    description: "Détention container 14 jours",
   },
   {
     id: "5",
@@ -194,11 +192,6 @@ const typeConfig = {
     label: "Réparation conteneur",
     icon: Wrench,
     color: "bg-green-100 text-green-700 border-green-200",
-  },
-  stockage: {
-    label: "Stockage de conteneur",
-    icon: Warehouse,
-    color: "bg-purple-100 text-purple-700 border-purple-200",
   },
 };
 
@@ -424,7 +417,7 @@ export default function NotesDebut() {
               Notes de début
             </h1>
             <p className="text-muted-foreground mt-1">
-              Gérez les notes de début (Ouverture de port, Détention, Surestaries, Magasinage)
+              Gérez les notes de début (Ouverture de port, Détention, Réparation conteneur)
             </p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -720,52 +713,6 @@ export default function NotesDebut() {
                       </div>
                     )}
 
-                    {selectedType === "stockage" && (
-                      <div className="border rounded-lg p-4 border-purple-200 bg-purple-50">
-                        <h4 className="font-medium mb-3 text-purple-700">Type de stockage</h4>
-                        <p className="text-sm text-muted-foreground mb-4">Quel type de stockage souhaitez-vous créer ?</p>
-                        <div className="grid grid-cols-2 gap-4">
-                          <button
-                            type="button"
-                            className="p-6 rounded-xl border-2 border-dashed border-purple-300 transition-all hover:border-purple-500 hover:bg-purple-100 bg-white"
-                          >
-                            <Warehouse className="h-8 w-8 mx-auto mb-3 text-purple-600" />
-                            <p className="font-semibold text-purple-700">Entrepôt sécurisé</p>
-                          </button>
-                          <button
-                            type="button"
-                            className="p-6 rounded-xl border-2 border-dashed border-purple-300 transition-all hover:border-purple-500 hover:bg-purple-100 bg-white"
-                          >
-                            <TreeDeciduous className="h-8 w-8 mx-auto mb-3 text-purple-600" />
-                            <p className="font-semibold text-purple-700">Stockage plein air</p>
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 mt-4">
-                          <div className="space-y-2">
-                            <Label>Emplacement *</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="zone_a">Zone A - Owendo</SelectItem>
-                                <SelectItem value="zone_b">Zone B - Owendo</SelectItem>
-                                <SelectItem value="zone_c">Zone C - Port-Gentil</SelectItem>
-                                <SelectItem value="zone_d">Zone D - Libreville</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Durée prévue (jours)</Label>
-                            <Input type="number" placeholder="30" />
-                          </div>
-                        </div>
-                        <div className="space-y-2 mt-4">
-                          <Label>Conditions particulières</Label>
-                          <Textarea placeholder="Ex: Marchandises fragiles, surveillance 24h, accès restreint..." />
-                        </div>
-                      </div>
-                    )}
 
                     {/* Description */}
                     <div className="space-y-2">
