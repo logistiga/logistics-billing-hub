@@ -6,15 +6,15 @@ import {
   Filter,
   FileDown,
   Eye,
-  Trash2,
   RefreshCw,
   CheckCircle,
   Clock,
   XCircle,
   ArrowLeftRight,
+  Banknote,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -51,81 +51,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { DocumentPDFGenerator, type DocumentData } from "@/lib/generateDocumentPDF";
-import { CreateAvoirDialog, type InvoiceForAvoir } from "@/components/CreateAvoirDialog";
-import { avoirStore } from "@/lib/avoirStore";
-
-interface CreditNote {
-  id: string;
-  number: string;
-  invoiceNumber: string;
-  invoiceId: string;
-  client: string;
-  clientId: string;
-  date: string;
-  amount: number;
-  reason: string;
-  status: "pending" | "refunded" | "applied" | "cancelled";
-  refundMethod?: "virement" | "especes" | "cheque" | "compensation";
-  refundDate?: string;
-  refundReference?: string;
-}
-
-const initialCreditNotes: CreditNote[] = [
-  {
-    id: "1",
-    number: "AV-2024-0012",
-    invoiceNumber: "FAC-2024-0142",
-    invoiceId: "1",
-    client: "COMILOG SA",
-    clientId: "c1",
-    date: "18/12/2024",
-    amount: 250000,
-    reason: "Erreur de facturation - quantité incorrecte",
-    status: "refunded",
-    refundMethod: "virement",
-    refundDate: "20/12/2024",
-    refundReference: "VIR-2024-0089",
-  },
-  {
-    id: "2",
-    number: "AV-2024-0011",
-    invoiceNumber: "FAC-2024-0140",
-    invoiceId: "3",
-    client: "Total Energies",
-    clientId: "c3",
-    date: "15/12/2024",
-    amount: 420000,
-    reason: "Annulation partielle de prestation",
-    status: "applied",
-  },
-  {
-    id: "3",
-    number: "AV-2024-0010",
-    invoiceNumber: "FAC-2024-0138",
-    invoiceId: "5",
-    client: "SEEG",
-    clientId: "c5",
-    date: "12/12/2024",
-    amount: 150000,
-    reason: "Retour de matériel",
-    status: "pending",
-  },
-  {
-    id: "4",
-    number: "AV-2024-0009",
-    invoiceNumber: "FAC-2024-0135",
-    invoiceId: "8",
-    client: "OLAM Gabon",
-    clientId: "c2",
-    date: "10/12/2024",
-    amount: 180000,
-    reason: "Double facturation",
-    status: "cancelled",
-  },
-];
+import { CreateAvoirDialog, type InvoiceForAvoir, type ClientForAvoir } from "@/components/CreateAvoirDialog";
+import { avoirStore, type Avoir } from "@/lib/avoirStore";
 
 // Mock invoices for creating new credit notes
-const mockInvoices = [
+const mockInvoices: InvoiceForAvoir[] = [
   { id: "1", number: "FAC-2024-0142", client: "COMILOG SA", clientId: "c1", amount: 3250000 },
   { id: "2", number: "FAC-2024-0141", client: "OLAM Gabon", clientId: "c2", amount: 1875000 },
   { id: "3", number: "FAC-2024-0140", client: "Total Energies", clientId: "c3", amount: 5420000 },
@@ -133,26 +63,42 @@ const mockInvoices = [
   { id: "5", number: "FAC-2024-0138", client: "SEEG", clientId: "c5", amount: 890000 },
 ];
 
+// Mock clients pour les avoirs libres
+const mockClients: ClientForAvoir[] = [
+  { id: "c1", name: "COMILOG SA" },
+  { id: "c2", name: "OLAM Gabon" },
+  { id: "c3", name: "Total Energies" },
+  { id: "c4", name: "Assala Energy" },
+  { id: "c5", name: "SEEG" },
+  { id: "c6", name: "Perenco Gabon" },
+  { id: "c7", name: "Gabon Telecom" },
+];
+
 const statusConfig = {
-  pending: {
-    label: "En attente",
+  disponible: {
+    label: "Disponible",
+    class: "bg-success/20 text-success border-success/30",
+    icon: CheckCircle,
+  },
+  partiellement_utilise: {
+    label: "Partiellement utilisé",
     class: "bg-warning/20 text-warning border-warning/30",
     icon: Clock,
   },
-  refunded: {
-    label: "Remboursé",
-    class: "bg-success text-success-foreground",
-    icon: CheckCircle,
-  },
-  applied: {
+  utilise: {
     label: "Compensé",
     class: "bg-primary/20 text-primary border-primary/30",
     icon: ArrowLeftRight,
   },
-  cancelled: {
+  annule: {
     label: "Annulé",
     class: "bg-muted text-muted-foreground",
     icon: XCircle,
+  },
+  rembourse: {
+    label: "Remboursé",
+    class: "bg-blue-500/20 text-blue-600 border-blue-500/30",
+    icon: Banknote,
   },
 };
 
@@ -160,30 +106,35 @@ const refundMethods = [
   { value: "virement", label: "Virement bancaire" },
   { value: "especes", label: "Espèces" },
   { value: "cheque", label: "Chèque" },
-  { value: "compensation", label: "Compensation facture" },
 ];
 
 export default function Avoirs() {
-  const [creditNotes, setCreditNotes] = useState<CreditNote[]>(initialCreditNotes);
+  // Utiliser le store pour les avoirs
+  const avoirs = useSyncExternalStore(
+    avoirStore.subscribe,
+    avoirStore.getAll,
+    avoirStore.getAll
+  );
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
-  const [selectedCreditNote, setSelectedCreditNote] = useState<CreditNote | null>(null);
+  const [selectedAvoir, setSelectedAvoir] = useState<Avoir | null>(null);
 
   const [refundForm, setRefundForm] = useState({
-    method: "" as CreditNote["refundMethod"],
+    method: "" as "virement" | "especes" | "cheque" | "",
     reference: "",
   });
 
-  const filteredCreditNotes = creditNotes.filter((cn) => {
+  const filteredAvoirs = avoirs.filter((avoir) => {
     const matchesSearch =
-      cn.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cn.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cn.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || cn.status === statusFilter;
+      avoir.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      avoir.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (avoir.linkedInvoice?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const matchesStatus = statusFilter === "all" || avoir.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -194,28 +145,19 @@ export default function Avoirs() {
     }).format(value);
   };
 
-  // Récupérer les factures pour le formulaire de création
-  const invoicesForAvoir: InvoiceForAvoir[] = mockInvoices.map((inv) => ({
-    id: inv.id,
-    number: inv.number,
-    client: inv.client,
-    clientId: inv.clientId,
-    amount: inv.amount,
-  }));
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("fr-FR");
+  };
 
   // Callback quand un avoir est créé via le store
   const handleAvoirCreated = () => {
-    // Rafraîchir la liste locale (dans une vraie app, ceci viendrait du store)
     setCreateDialogOpen(false);
-    toast({
-      title: "Avoir créé avec succès",
-      description: "L'avoir a été ajouté et est disponible pour compensation",
-    });
   };
 
   // Process refund
   const handleProcessRefund = () => {
-    if (!selectedCreditNote || !refundForm.method) {
+    if (!selectedAvoir || !refundForm.method) {
       toast({
         title: "Erreur",
         description: "Veuillez sélectionner un mode de remboursement",
@@ -224,101 +166,111 @@ export default function Avoirs() {
       return;
     }
 
-    setCreditNotes((prev) =>
-      prev.map((cn) =>
-        cn.id === selectedCreditNote.id
-          ? {
-              ...cn,
-              status: refundForm.method === "compensation" ? "applied" : "refunded",
-              refundMethod: refundForm.method,
-              refundDate: new Date().toLocaleDateString("fr-FR"),
-              refundReference: refundForm.reference || undefined,
-            }
-          : cn
-      )
+    const result = avoirStore.processRefund(
+      selectedAvoir.id,
+      refundForm.method,
+      refundForm.reference || undefined
     );
 
-    setRefundDialogOpen(false);
-    setSelectedCreditNote(null);
-    setRefundForm({ method: undefined, reference: "" });
-
-    toast({
-      title: refundForm.method === "compensation" ? "Avoir compensé" : "Remboursement effectué",
-      description: `L'avoir ${selectedCreditNote.number} a été traité`,
-    });
+    if (result.success) {
+      toast({
+        title: "Remboursement effectué",
+        description: `L'avoir ${selectedAvoir.number} a été remboursé par ${
+          refundMethods.find((m) => m.value === refundForm.method)?.label
+        }`,
+      });
+      setRefundDialogOpen(false);
+      setSelectedAvoir(null);
+      setRefundForm({ method: "", reference: "" });
+    } else {
+      toast({
+        title: "Erreur",
+        description: result.error,
+        variant: "destructive",
+      });
+    }
   };
 
-  // Cancel credit note
-  const handleCancel = (creditNote: CreditNote) => {
-    setCreditNotes((prev) =>
-      prev.map((cn) =>
-        cn.id === creditNote.id ? { ...cn, status: "cancelled" } : cn
-      )
-    );
-    toast({
-      title: "Avoir annulé",
-      description: `L'avoir ${creditNote.number} a été annulé`,
-    });
+  // Cancel avoir
+  const handleCancel = (avoir: Avoir) => {
+    const result = avoirStore.cancel(avoir.id);
+    if (result.success) {
+      toast({
+        title: "Avoir annulé",
+        description: `L'avoir ${avoir.number} a été annulé`,
+      });
+    } else {
+      toast({
+        title: "Erreur",
+        description: result.error,
+        variant: "destructive",
+      });
+    }
   };
 
   // Download PDF
-  const handleDownloadPDF = (creditNote: CreditNote) => {
-    const parseDate = (dateStr: string) => {
-      const [day, month, year] = dateStr.split("/");
-      return `${year}-${month}-${day}`;
-    };
-
+  const handleDownloadPDF = (avoir: Avoir) => {
     const documentData: DocumentData = {
       type: "avoir",
-      numero: creditNote.number,
-      date: parseDate(creditNote.date),
+      numero: avoir.number,
+      date: avoir.date,
       client: {
-        nom: creditNote.client,
+        nom: avoir.clientName,
       },
       lignes: [
         {
-          description: `Avoir sur facture ${creditNote.invoiceNumber}\nMotif: ${creditNote.reason}`,
+          description: avoir.linkedInvoice
+            ? `Avoir sur facture ${avoir.linkedInvoice}\nMotif: ${avoir.reason}`
+            : `Avoir libre\nMotif: ${avoir.reason}`,
           quantite: 1,
-          prixUnitaire: -creditNote.amount,
+          prixUnitaire: -avoir.originalAmount,
         },
       ],
       tauxTVA: 18,
-      notes: `Facture d'origine: ${creditNote.invoiceNumber}${
-        creditNote.refundMethod
-          ? `\nMode de remboursement: ${refundMethods.find((m) => m.value === creditNote.refundMethod)?.label}`
-          : ""
-      }${creditNote.refundReference ? `\nRéférence: ${creditNote.refundReference}` : ""}`,
+      notes: avoir.linkedInvoice
+        ? `Facture d'origine: ${avoir.linkedInvoice}`
+        : "Avoir libre (non lié à une facture)",
     };
 
     const generator = new DocumentPDFGenerator();
     generator.generateAndDownload(documentData);
     toast({
       title: "PDF généré",
-      description: `L'avoir ${creditNote.number} a été téléchargé`,
+      description: `L'avoir ${avoir.number} a été téléchargé`,
     });
   };
 
   // Calculate stats
   const stats = [
     {
-      label: "Total avoirs",
-      value: formatCurrency(creditNotes.filter((cn) => cn.status !== "cancelled").reduce((sum, cn) => sum + cn.amount, 0)),
+      label: "Total avoirs disponibles",
+      value: formatCurrency(
+        avoirs
+          .filter((a) => a.status === "disponible" || a.status === "partiellement_utilise")
+          .reduce((sum, a) => sum + a.remainingAmount, 0)
+      ),
       unit: "FCFA",
     },
     {
       label: "En attente",
-      value: formatCurrency(creditNotes.filter((cn) => cn.status === "pending").reduce((sum, cn) => sum + cn.amount, 0)),
+      value: formatCurrency(
+        avoirs.filter((a) => a.status === "disponible").reduce((sum, a) => sum + a.remainingAmount, 0)
+      ),
       unit: "FCFA",
-      count: creditNotes.filter((cn) => cn.status === "pending").length,
+      count: avoirs.filter((a) => a.status === "disponible").length,
     },
     {
       label: "Remboursés",
-      value: formatCurrency(creditNotes.filter((cn) => cn.status === "refunded").reduce((sum, cn) => sum + cn.amount, 0)),
+      value: formatCurrency(
+        avoirs.filter((a) => a.status === "rembourse").reduce((sum, a) => sum + a.originalAmount, 0)
+      ),
       unit: "FCFA",
     },
     {
       label: "Compensés",
-      value: formatCurrency(creditNotes.filter((cn) => cn.status === "applied").reduce((sum, cn) => sum + cn.amount, 0)),
+      value: formatCurrency(
+        avoirs.filter((a) => a.status === "utilise").reduce((sum, a) => sum + a.originalAmount, 0)
+      ),
       unit: "FCFA",
     },
   ];
@@ -354,12 +306,10 @@ export default function Avoirs() {
               <Card className="border-border/50">
                 <CardContent className="p-4">
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold font-heading mt-1">
-                    {stat.value}
-                  </p>
+                  <p className="text-2xl font-bold font-heading mt-1">{stat.value}</p>
                   <p className="text-xs text-muted-foreground">
                     {stat.unit}
-                    {"count" in stat && ` (${stat.count} avoir${stat.count > 1 ? "s" : ""})`}
+                    {"count" in stat && ` (${stat.count} avoir${(stat.count as number) > 1 ? "s" : ""})`}
                   </p>
                 </CardContent>
               </Card>
@@ -379,15 +329,16 @@ export default function Avoirs() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Statut" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les statuts</SelectItem>
-              <SelectItem value="pending">En attente</SelectItem>
-              <SelectItem value="refunded">Remboursés</SelectItem>
-              <SelectItem value="applied">Compensés</SelectItem>
-              <SelectItem value="cancelled">Annulés</SelectItem>
+              <SelectItem value="disponible">Disponible</SelectItem>
+              <SelectItem value="partiellement_utilise">Partiellement utilisé</SelectItem>
+              <SelectItem value="utilise">Compensé</SelectItem>
+              <SelectItem value="rembourse">Remboursé</SelectItem>
+              <SelectItem value="annule">Annulé</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline">
@@ -407,39 +358,51 @@ export default function Avoirs() {
                   <TableHead>Client</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead className="text-right">Montant</TableHead>
+                  <TableHead className="text-right">Solde</TableHead>
                   <TableHead>Motif</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCreditNotes.length === 0 ? (
+                {filteredAvoirs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Aucun avoir trouvé
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCreditNotes.map((creditNote) => {
-                    const StatusIcon = statusConfig[creditNote.status].icon;
+                  filteredAvoirs.map((avoir) => {
+                    const StatusIcon = statusConfig[avoir.status].icon;
                     return (
-                      <TableRow key={creditNote.id} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">{creditNote.number}</TableCell>
+                      <TableRow key={avoir.id} className="hover:bg-muted/30">
+                        <TableCell className="font-medium">{avoir.number}</TableCell>
                         <TableCell className="text-muted-foreground">
-                          {creditNote.invoiceNumber}
+                          {avoir.linkedInvoice || (
+                            <span className="italic text-xs">Avoir libre</span>
+                          )}
                         </TableCell>
-                        <TableCell>{creditNote.client}</TableCell>
-                        <TableCell>{creditNote.date}</TableCell>
+                        <TableCell>{avoir.clientName}</TableCell>
+                        <TableCell>{formatDate(avoir.date)}</TableCell>
                         <TableCell className="text-right font-medium text-destructive">
-                          -{formatCurrency(creditNote.amount)} FCFA
+                          -{formatCurrency(avoir.originalAmount)} FCFA
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate" title={creditNote.reason}>
-                          {creditNote.reason}
+                        <TableCell className="text-right font-medium">
+                          {avoir.remainingAmount > 0 ? (
+                            <span className="text-success">
+                              {formatCurrency(avoir.remainingAmount)} FCFA
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">0 FCFA</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate" title={avoir.reason}>
+                          {avoir.reason}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={statusConfig[creditNote.status].class}>
+                          <Badge variant="outline" className={statusConfig[avoir.status].class}>
                             <StatusIcon className="h-3 w-3 mr-1" />
-                            {statusConfig[creditNote.status].label}
+                            {statusConfig[avoir.status].label}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -450,7 +413,7 @@ export default function Avoirs() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleDownloadPDF(creditNote)}>
+                              <DropdownMenuItem onClick={() => handleDownloadPDF(avoir)}>
                                 <FileDown className="h-4 w-4 mr-2" />
                                 Télécharger PDF
                               </DropdownMenuItem>
@@ -458,24 +421,37 @@ export default function Avoirs() {
                                 <Eye className="h-4 w-4 mr-2" />
                                 Voir détails
                               </DropdownMenuItem>
-                              {creditNote.status === "pending" && (
+                              {(avoir.status === "disponible" ||
+                                avoir.status === "partiellement_utilise") && (
                                 <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedCreditNote(creditNote);
-                                      setRefundDialogOpen(true);
-                                    }}
-                                  >
-                                    <RefreshCw className="h-4 w-4 mr-2" />
-                                    Traiter le remboursement
-                                  </DropdownMenuItem>
+                                  {avoir.status === "disponible" && (
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedAvoir(avoir);
+                                        setRefundDialogOpen(true);
+                                      }}
+                                    >
+                                      <Banknote className="h-4 w-4 mr-2" />
+                                      Rembourser le client
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem
                                     className="text-destructive"
-                                    onClick={() => handleCancel(creditNote)}
+                                    onClick={() => handleCancel(avoir)}
                                   >
                                     <XCircle className="h-4 w-4 mr-2" />
                                     Annuler l'avoir
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {avoir.status === "rembourse" && avoir.refundMethod && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem disabled className="text-muted-foreground">
+                                    <Banknote className="h-4 w-4 mr-2" />
+                                    Remboursé par{" "}
+                                    {refundMethods.find((m) => m.value === avoir.refundMethod)?.label}
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -495,7 +471,8 @@ export default function Avoirs() {
         <CreateAvoirDialog
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
-          invoices={invoicesForAvoir}
+          invoices={mockInvoices}
+          clients={mockClients}
           onAvoirCreated={handleAvoirCreated}
         />
 
@@ -503,22 +480,37 @@ export default function Avoirs() {
         <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
-              <DialogTitle>Traiter le remboursement</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Banknote className="h-5 w-5 text-primary" />
+                Rembourser le client
+              </DialogTitle>
               <DialogDescription>
-                {selectedCreditNote && (
+                {selectedAvoir && (
                   <>
-                    Avoir {selectedCreditNote.number} - {formatCurrency(selectedCreditNote.amount)}{" "}
-                    FCFA
+                    Avoir {selectedAvoir.number} - {formatCurrency(selectedAvoir.remainingAmount)}{" "}
+                    FCFA à rembourser
                   </>
                 )}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {selectedAvoir && (
+                <div className="bg-muted/50 p-3 rounded-lg space-y-1">
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Client:</span>{" "}
+                    <span className="font-medium">{selectedAvoir.clientName}</span>
+                  </p>
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Motif:</span>{" "}
+                    <span>{selectedAvoir.reason}</span>
+                  </p>
+                </div>
+              )}
               <div className="space-y-2">
-                <Label>Mode de remboursement</Label>
+                <Label>Mode de remboursement *</Label>
                 <Select
                   value={refundForm.method}
-                  onValueChange={(value: CreditNote["refundMethod"]) =>
+                  onValueChange={(value: "virement" | "especes" | "cheque") =>
                     setRefundForm((prev) => ({ ...prev, method: value }))
                   }
                 >
@@ -545,19 +537,14 @@ export default function Avoirs() {
                   }
                 />
               </div>
-              {refundForm.method === "compensation" && (
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    Le montant de l'avoir sera déduit des prochaines factures du client.
-                  </p>
-                </div>
-              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setRefundDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button onClick={handleProcessRefund}>Confirmer</Button>
+              <Button onClick={handleProcessRefund} disabled={!refundForm.method}>
+                Confirmer le remboursement
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

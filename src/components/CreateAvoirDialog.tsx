@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, AlertCircle } from "lucide-react";
+import { FileText, AlertCircle, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { avoirStore } from "@/lib/avoirStore";
 
@@ -34,11 +35,18 @@ export interface InvoiceForAvoir {
   date?: string;
 }
 
+// Types pour les clients
+export interface ClientForAvoir {
+  id: string;
+  name: string;
+}
+
 interface CreateAvoirDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   invoice?: InvoiceForAvoir; // Si fourni, pré-remplit le formulaire
   invoices?: InvoiceForAvoir[]; // Liste des factures disponibles si pas de facture spécifique
+  clients?: ClientForAvoir[]; // Liste des clients pour les avoirs libres
   onAvoirCreated?: (avoir: ReturnType<typeof avoirStore.create>) => void;
 }
 
@@ -48,6 +56,7 @@ const reasonOptions = [
   "Retour de matériel",
   "Réduction commerciale",
   "Double facturation",
+  "Trop-perçu (double paiement)",
   "Autre",
 ];
 
@@ -60,9 +69,12 @@ export function CreateAvoirDialog({
   onOpenChange,
   invoice,
   invoices = [],
+  clients = [],
   onAvoirCreated,
 }: CreateAvoirDialogProps) {
+  const [mode, setMode] = useState<"invoice" | "free">("invoice");
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>("");
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [amount, setAmount] = useState("");
   const [reasonType, setReasonType] = useState("");
   const [customReason, setCustomReason] = useState("");
@@ -72,10 +84,12 @@ export function CreateAvoirDialog({
   useEffect(() => {
     if (open) {
       if (invoice) {
+        setMode("invoice");
         setSelectedInvoiceId(invoice.id);
       } else {
         setSelectedInvoiceId("");
       }
+      setSelectedClientId("");
       setAmount("");
       setReasonType("");
       setCustomReason("");
@@ -85,13 +99,22 @@ export function CreateAvoirDialog({
   // Récupérer la facture sélectionnée
   const selectedInvoice = invoice || invoices.find((inv) => inv.id === selectedInvoiceId);
 
-  // Calculer le montant maximum
-  const maxAmount = selectedInvoice ? selectedInvoice.amount : 0;
+  // Récupérer le client sélectionné (pour mode libre)
+  const selectedClient = clients.find((c) => c.id === selectedClientId);
+
+  // Calculer le montant maximum (seulement en mode facture)
+  const maxAmount = mode === "invoice" && selectedInvoice ? selectedInvoice.amount : undefined;
 
   // Validation du formulaire
   const validateForm = (): string | null => {
-    if (!selectedInvoice) {
-      return "Veuillez sélectionner une facture";
+    if (mode === "invoice") {
+      if (!selectedInvoice) {
+        return "Veuillez sélectionner une facture";
+      }
+    } else {
+      if (!selectedClientId) {
+        return "Veuillez sélectionner un client";
+      }
     }
 
     const amountValue = parseFloat(amount);
@@ -99,7 +122,7 @@ export function CreateAvoirDialog({
       return "Veuillez entrer un montant valide supérieur à 0";
     }
 
-    if (amountValue > maxAmount) {
+    if (mode === "invoice" && maxAmount && amountValue > maxAmount) {
       return `Le montant ne peut pas dépasser ${formatCurrency(maxAmount)}`;
     }
 
@@ -125,8 +148,6 @@ export function CreateAvoirDialog({
       return;
     }
 
-    if (!selectedInvoice) return;
-
     setIsSubmitting(true);
 
     try {
@@ -142,21 +163,42 @@ export function CreateAvoirDialog({
       const nextNumber = currentYearAvoirs.length + 1;
       const avoirNumber = `AV-${year}-${String(nextNumber).padStart(4, "0")}`;
 
+      // Déterminer le client et la facture liée
+      let clientId: string;
+      let clientName: string;
+      let linkedInvoice: string | undefined;
+
+      if (mode === "invoice" && selectedInvoice) {
+        clientId = selectedInvoice.clientId;
+        clientName = selectedInvoice.client;
+        linkedInvoice = selectedInvoice.number;
+      } else if (selectedClient) {
+        clientId = selectedClient.id;
+        clientName = selectedClient.name;
+        linkedInvoice = undefined; // Avoir libre
+      } else {
+        throw new Error("Client non trouvé");
+      }
+
       // Créer l'avoir dans le store
       const newAvoir = avoirStore.create({
         number: avoirNumber,
-        clientId: selectedInvoice.clientId,
-        clientName: selectedInvoice.client,
-        linkedInvoice: selectedInvoice.number,
+        clientId,
+        clientName,
+        linkedInvoice,
         date: new Date().toISOString().split("T")[0],
         originalAmount: amountValue,
         reason,
         createdBy: "Utilisateur", // À remplacer par l'utilisateur connecté
       });
 
+      const description = linkedInvoice
+        ? `L'avoir ${avoirNumber} de ${formatCurrency(amountValue)} a été créé pour la facture ${linkedInvoice}`
+        : `L'avoir libre ${avoirNumber} de ${formatCurrency(amountValue)} a été créé pour ${clientName}`;
+
       toast({
         title: "Avoir créé avec succès",
-        description: `L'avoir ${avoirNumber} de ${formatCurrency(amountValue)} a été créé pour la facture ${selectedInvoice.number}`,
+        description,
       });
 
       onAvoirCreated?.(newAvoir);
@@ -172,6 +214,10 @@ export function CreateAvoirDialog({
     }
   };
 
+  const canSubmit =
+    (mode === "invoice" && selectedInvoice) ||
+    (mode === "free" && selectedClientId);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -181,51 +227,90 @@ export function CreateAvoirDialog({
             Créer un avoir
           </DialogTitle>
           <DialogDescription>
-            Créez un avoir (note de crédit) à partir d'une facture existante
+            Créez un avoir (note de crédit) pour un client
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Sélection de la facture (si pas de facture pré-sélectionnée) */}
-          {!invoice && invoices.length > 0 && (
+        <Tabs value={mode} onValueChange={(v) => setMode(v as "invoice" | "free")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="invoice">Lié à une facture</TabsTrigger>
+            <TabsTrigger value="free">Avoir libre</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="invoice" className="space-y-4 mt-4">
+            {/* Sélection de la facture */}
+            {!invoice && invoices.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="invoice">Facture d'origine *</Label>
+                <Select value={selectedInvoiceId} onValueChange={setSelectedInvoiceId}>
+                  <SelectTrigger id="invoice">
+                    <SelectValue placeholder="Sélectionner une facture" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {invoices.map((inv) => (
+                      <SelectItem key={inv.id} value={inv.id}>
+                        <span className="flex items-center justify-between gap-4">
+                          <span>{inv.number}</span>
+                          <span className="text-muted-foreground text-sm">
+                            {inv.client} - {formatCurrency(inv.amount)}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Affichage de la facture sélectionnée */}
+            {selectedInvoice && (
+              <Alert className="bg-muted/50 border-border">
+                <FileText className="h-4 w-4" />
+                <AlertDescription className="flex flex-col gap-1">
+                  <span className="font-medium">{selectedInvoice.number}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Client: {selectedInvoice.client}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    Montant facturé: {formatCurrency(selectedInvoice.amount)}
+                  </span>
+                </AlertDescription>
+              </Alert>
+            )}
+          </TabsContent>
+
+          <TabsContent value="free" className="space-y-4 mt-4">
+            {/* Sélection du client */}
             <div className="space-y-2">
-              <Label htmlFor="invoice">Facture d'origine *</Label>
-              <Select value={selectedInvoiceId} onValueChange={setSelectedInvoiceId}>
-                <SelectTrigger id="invoice">
-                  <SelectValue placeholder="Sélectionner une facture" />
+              <Label htmlFor="client">Client *</Label>
+              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                <SelectTrigger id="client">
+                  <SelectValue placeholder="Sélectionner un client" />
                 </SelectTrigger>
                 <SelectContent>
-                  {invoices.map((inv) => (
-                    <SelectItem key={inv.id} value={inv.id}>
-                      <span className="flex items-center justify-between gap-4">
-                        <span>{inv.number}</span>
-                        <span className="text-muted-foreground text-sm">
-                          {inv.client} - {formatCurrency(inv.amount)}
-                        </span>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      <span className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        {client.name}
                       </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          )}
 
-          {/* Affichage de la facture sélectionnée */}
-          {selectedInvoice && (
-            <Alert className="bg-muted/50 border-border">
-              <FileText className="h-4 w-4" />
-              <AlertDescription className="flex flex-col gap-1">
-                <span className="font-medium">{selectedInvoice.number}</span>
-                <span className="text-sm text-muted-foreground">
-                  Client: {selectedInvoice.client}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  Montant facturé: {formatCurrency(selectedInvoice.amount)}
-                </span>
+            {/* Info avoir libre */}
+            <Alert className="bg-primary/10 border-primary/30">
+              <AlertCircle className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                Un avoir libre n'est pas lié à une facture spécifique. Idéal pour les trop-perçus découverts lors du rapprochement bancaire.
               </AlertDescription>
             </Alert>
-          )}
+          </TabsContent>
+        </Tabs>
 
+        <div className="space-y-4 pt-2">
           {/* Montant de l'avoir */}
           <div className="space-y-2">
             <Label htmlFor="amount">Montant de l'avoir *</Label>
@@ -244,7 +329,7 @@ export function CreateAvoirDialog({
                 FCFA
               </span>
             </div>
-            {maxAmount > 0 && (
+            {maxAmount && (
               <p className="text-xs text-muted-foreground">
                 Maximum: {formatCurrency(maxAmount)}
               </p>
@@ -286,7 +371,7 @@ export function CreateAvoirDialog({
           <Alert className="border-warning/30 bg-warning/10">
             <AlertCircle className="h-4 w-4 text-warning" />
             <AlertDescription className="text-sm">
-              Une fois créé, l'avoir sera disponible pour compenser de futurs paiements du client.
+              Une fois créé, l'avoir sera disponible pour compenser de futurs paiements ou être remboursé.
             </AlertDescription>
           </Alert>
         </div>
@@ -298,7 +383,7 @@ export function CreateAvoirDialog({
           <Button
             variant="gradient"
             onClick={handleSubmit}
-            disabled={isSubmitting || !selectedInvoice}
+            disabled={isSubmitting || !canSubmit}
           >
             {isSubmitting ? "Création..." : "Créer l'avoir"}
           </Button>
