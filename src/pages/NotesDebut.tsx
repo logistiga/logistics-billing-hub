@@ -13,8 +13,7 @@ import {
   CheckCircle2,
   Anchor,
   Container,
-  Timer,
-  Warehouse,
+  Wrench,
   CreditCard,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
@@ -189,15 +188,10 @@ const typeConfig = {
     icon: Container,
     color: "bg-amber-100 text-amber-700 border-amber-200",
   },
-  surestaries: {
-    label: "Surestaries",
-    icon: Timer,
-    color: "bg-red-100 text-red-700 border-red-200",
-  },
-  magasinage: {
-    label: "Magasinage",
-    icon: Warehouse,
-    color: "bg-purple-100 text-purple-700 border-purple-200",
+  reparation: {
+    label: "Réparation conteneur",
+    icon: Wrench,
+    color: "bg-green-100 text-green-700 border-green-200",
   },
 };
 
@@ -553,7 +547,7 @@ export default function NotesDebut() {
                     {/* Période */}
                     <div className="border rounded-lg p-4 bg-muted/30">
                       <h4 className="font-medium mb-3 flex items-center gap-2">
-                        <Timer className="h-4 w-4" />
+                        <Clock className="h-4 w-4" />
                         Période de facturation
                       </h4>
                       <div className="grid grid-cols-3 gap-4">
@@ -593,62 +587,81 @@ export default function NotesDebut() {
                     </div>
 
                     {/* Champs spécifiques par type */}
-                    {selectedType === "surestaries" && (
-                      <div className="border rounded-lg p-4 border-red-200 bg-red-50">
-                        <h4 className="font-medium mb-3 text-red-700">Informations Surestaries</h4>
+                    {selectedType === "reparation" && (
+                      <div className="border rounded-lg p-4 border-green-200 bg-green-50">
+                        <h4 className="font-medium mb-3 text-green-700">Informations Réparation</h4>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label>Compagnie maritime</Label>
+                            <Label>Type de réparation *</Label>
                             <Select>
                               <SelectTrigger>
                                 <SelectValue placeholder="Sélectionner" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="maersk">Maersk</SelectItem>
-                                <SelectItem value="msc">MSC</SelectItem>
-                                <SelectItem value="cma">CMA CGM</SelectItem>
-                                <SelectItem value="cosco">COSCO</SelectItem>
+                                <SelectItem value="structural">Réparation structurelle</SelectItem>
+                                <SelectItem value="plancher">Remplacement plancher</SelectItem>
+                                <SelectItem value="porte">Réparation porte</SelectItem>
+                                <SelectItem value="toit">Réparation toit</SelectItem>
+                                <SelectItem value="parois">Réparation parois</SelectItem>
+                                <SelectItem value="peinture">Peinture / Nettoyage</SelectItem>
+                                <SelectItem value="autre">Autre</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label>Jours franchise</Label>
-                            <Input type="number" placeholder="7" />
+                            <Label>Niveau d'urgence</Label>
+                            <Select>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Sélectionner" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="normal">Normal</SelectItem>
+                                <SelectItem value="urgent">Urgent</SelectItem>
+                                <SelectItem value="tres_urgent">Très urgent</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
-                      </div>
-                    )}
-
-                    {selectedType === "magasinage" && (
-                      <div className="border rounded-lg p-4 border-purple-200 bg-purple-50">
-                        <h4 className="font-medium mb-3 text-purple-700">Informations Magasinage</h4>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4 mt-4">
                           <div className="space-y-2">
-                            <Label>Type de marchandise</Label>
+                            <Label>Équipe assignée</Label>
                             <Select>
                               <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner" />
+                                <SelectValue placeholder="Sélectionner l'équipe" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="general">Marchandises générales</SelectItem>
-                                <SelectItem value="dangereux">Marchandises dangereuses</SelectItem>
-                                <SelectItem value="refrigere">Produits réfrigérés</SelectItem>
-                                <SelectItem value="vrac">Vrac</SelectItem>
+                                <SelectItem value="equipe_a">Équipe A - Owendo</SelectItem>
+                                <SelectItem value="equipe_b">Équipe B - Libreville</SelectItem>
+                                <SelectItem value="equipe_c">Équipe C - Port-Gentil</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label>Entrepôt</Label>
+                            <Label>État du container</Label>
                             <Select>
                               <SelectTrigger>
                                 <SelectValue placeholder="Sélectionner" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="owendo">Owendo</SelectItem>
-                                <SelectItem value="libreville">Libreville Port</SelectItem>
-                                <SelectItem value="portgentil">Port-Gentil</SelectItem>
+                                <SelectItem value="leger">Dommages légers</SelectItem>
+                                <SelectItem value="modere">Dommages modérés</SelectItem>
+                                <SelectItem value="grave">Dommages graves</SelectItem>
                               </SelectContent>
                             </Select>
+                          </div>
+                        </div>
+                        <div className="space-y-2 mt-4">
+                          <Label>Description des dommages</Label>
+                          <Textarea placeholder="Décrivez les dommages constatés et les réparations à effectuer..." />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                          <div className="space-y-2">
+                            <Label>Coût estimé main d'œuvre (FCFA)</Label>
+                            <Input type="number" placeholder="150000" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Coût estimé pièces (FCFA)</Label>
+                            <Input type="number" placeholder="50000" />
                           </div>
                         </div>
                       </div>
