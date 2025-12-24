@@ -5,15 +5,19 @@ export interface Avoir {
   number: string;
   clientId: string;
   clientName: string;
-  linkedInvoice?: string;
+  linkedInvoice?: string; // Optionnel pour les avoirs libres
   date: string;
   originalAmount: number;
   usedAmount: number;
   remainingAmount: number;
-  status: "disponible" | "partiellement_utilise" | "utilise" | "annule";
+  status: "disponible" | "partiellement_utilise" | "utilise" | "annule" | "rembourse";
   reason: string;
   createdBy: string;
   createdAt: string;
+  // Champs pour le remboursement
+  refundMethod?: "virement" | "especes" | "cheque";
+  refundDate?: string;
+  refundReference?: string;
 }
 
 export interface AvoirCompensation {
@@ -341,6 +345,46 @@ export const avoirStore = {
     notifyListeners();
 
     return { success: true };
+  },
+
+  // Traiter un remboursement
+  processRefund(
+    avoirId: string,
+    method: "virement" | "especes" | "cheque",
+    reference?: string
+  ): { success: boolean; error?: string; updatedAvoir?: Avoir } {
+    const avoir = avoirs.find((a) => a.id === avoirId);
+
+    if (!avoir) {
+      return { success: false, error: "Avoir non trouvé" };
+    }
+
+    if (avoir.status === "utilise" || avoir.status === "rembourse") {
+      return { success: false, error: "Cet avoir a déjà été traité" };
+    }
+
+    if (avoir.status === "annule") {
+      return { success: false, error: "Impossible de rembourser un avoir annulé" };
+    }
+
+    if (avoir.usedAmount > 0) {
+      return {
+        success: false,
+        error: "Impossible de rembourser un avoir partiellement utilisé en compensation"
+      };
+    }
+
+    // Mettre à jour l'avoir
+    avoir.status = "rembourse";
+    avoir.refundMethod = method;
+    avoir.refundDate = new Date().toISOString().split("T")[0];
+    avoir.refundReference = reference;
+    avoir.usedAmount = avoir.originalAmount;
+    avoir.remainingAmount = 0;
+
+    notifyListeners();
+
+    return { success: true, updatedAvoir: { ...avoir } };
   },
 
   // S'abonner aux changements
