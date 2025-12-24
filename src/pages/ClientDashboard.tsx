@@ -19,6 +19,11 @@ import {
   TrendingDown,
   Calendar,
   User,
+  ReceiptText,
+  CheckCircle,
+  Clock,
+  XCircle,
+  ArrowLeftRight,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,6 +94,31 @@ const mockPayments = [
   { id: "PAY-2024-028", date: "2024-04-02", invoiceId: "FAC-2024-002", amount: 800000, method: "Espèces", reference: "ESP-345678" },
 ];
 
+// Mock credit notes (avoirs)
+interface CreditNote {
+  id: string;
+  number: string;
+  invoiceNumber: string;
+  date: string;
+  amount: number;
+  reason: string;
+  status: "pending" | "refunded" | "applied" | "cancelled";
+  refundMethod?: string;
+  refundDate?: string;
+}
+
+const mockCreditNotes: CreditNote[] = [
+  { id: "1", number: "AV-2024-001", invoiceNumber: "FAC-2024-001", date: "2024-02-20", amount: 250000, reason: "Erreur de facturation", status: "applied" },
+  { id: "2", number: "AV-2024-002", invoiceNumber: "FAC-2024-008", date: "2024-03-25", amount: 180000, reason: "Retour de matériel", status: "pending" },
+];
+
+const creditNoteStatusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string; icon: typeof CheckCircle }> = {
+  pending: { variant: "secondary", label: "En attente", icon: Clock },
+  refunded: { variant: "default", label: "Remboursé", icon: CheckCircle },
+  applied: { variant: "default", label: "Compensé", icon: ArrowLeftRight },
+  cancelled: { variant: "outline", label: "Annulé", icon: XCircle },
+};
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -136,9 +166,14 @@ export default function ClientDashboard() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
+  // Calculate totals with avoirs
   const totalInvoiced = mockInvoices.reduce((sum, inv) => sum + inv.amount, 0);
   const totalPaid = mockPayments.reduce((sum, pay) => sum + pay.amount, 0);
-  const balance = totalInvoiced - totalPaid;
+  const totalCreditNotes = mockCreditNotes.filter(cn => cn.status !== "cancelled").reduce((sum, cn) => sum + cn.amount, 0);
+  const appliedCreditNotes = mockCreditNotes.filter(cn => cn.status === "applied").reduce((sum, cn) => sum + cn.amount, 0);
+  
+  // Balance = Factures - Paiements - Avoirs compensés
+  const balance = totalInvoiced - totalPaid - appliedCreditNotes;
   const pendingQuotes = mockQuotes.filter(q => q.status === "en attente").length;
 
   return (
@@ -314,7 +349,7 @@ export default function ClientDashboard() {
         <Card className="border-border/50">
           <Tabs defaultValue="invoices" className="w-full">
             <CardHeader className="pb-0">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="invoices" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   <span className="hidden sm:inline">Factures</span>
@@ -324,6 +359,11 @@ export default function ClientDashboard() {
                   <Receipt className="h-4 w-4" />
                   <span className="hidden sm:inline">Devis</span>
                   <Badge variant="secondary" className="ml-1">{mockQuotes.length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="avoirs" className="flex items-center gap-2">
+                  <ReceiptText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Avoirs</span>
+                  <Badge variant="secondary" className="ml-1">{mockCreditNotes.length}</Badge>
                 </TabsTrigger>
                 <TabsTrigger value="workorders" className="flex items-center gap-2">
                   <ClipboardList className="h-4 w-4" />
@@ -421,6 +461,68 @@ export default function ClientDashboard() {
                         </TableCell>
                       </TableRow>
                     ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            {/* Avoirs Tab */}
+            <TabsContent value="avoirs" className="p-6 pt-4">
+              <div className="mb-4 p-4 rounded-lg bg-muted/50 border border-border/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total avoirs</p>
+                    <p className="text-xl font-bold text-destructive">-{formatCurrency(totalCreditNotes)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Compensés (déduits du solde)</p>
+                    <p className="text-xl font-bold text-primary">{formatCurrency(appliedCreditNotes)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg border border-border/50 overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>N° Avoir</TableHead>
+                      <TableHead>Facture liée</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Montant</TableHead>
+                      <TableHead>Motif</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockCreditNotes.map((creditNote) => {
+                      const config = creditNoteStatusConfig[creditNote.status];
+                      const StatusIcon = config.icon;
+                      return (
+                        <TableRow key={creditNote.id}>
+                          <TableCell className="font-medium">{creditNote.number}</TableCell>
+                          <TableCell className="text-muted-foreground">{creditNote.invoiceNumber}</TableCell>
+                          <TableCell>{formatDate(creditNote.date)}</TableCell>
+                          <TableCell className="text-right font-medium text-destructive">-{formatCurrency(creditNote.amount)}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{creditNote.reason}</TableCell>
+                          <TableCell>
+                            <Badge variant={config.variant} className="flex items-center gap-1 w-fit">
+                              <StatusIcon className="h-3 w-3" />
+                              {config.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
