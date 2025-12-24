@@ -77,6 +77,12 @@ const mockOrdresTravail = [
   ], compagnie: "COSCO" },
 ];
 
+// Extract unique clients from OTs
+const mockClients = Array.from(new Set(mockOrdresTravail.map(ot => ot.clientKey))).map(key => {
+  const ot = mockOrdresTravail.find(o => o.clientKey === key);
+  return { key, name: ot?.client || "" };
+});
+
 interface SelectedOT {
   id: string;
   otId: string;
@@ -100,9 +106,15 @@ export default function NouvelleNoteDebut() {
   const [containerLines, setContainerLines] = useState<ContainerLine[]>([]);
   
   // Current selection for adding
+  const [selectedClient, setSelectedClient] = useState<string>("");
   const [currentOT, setCurrentOT] = useState<string>("");
   const [currentContainers, setCurrentContainers] = useState<string[]>([]);
   const [availableContainers, setAvailableContainers] = useState<{ numero: string; description: string }[]>([]);
+  
+  // Filtered OTs based on selected client
+  const filteredOTs = selectedClient 
+    ? mockOrdresTravail.filter(ot => ot.clientKey === selectedClient)
+    : [];
   
   // Common fields
   const [blNumber, setBlNumber] = useState("");
@@ -116,10 +128,9 @@ export default function NouvelleNoteDebut() {
   const [montantReparation, setMontantReparation] = useState("");
   
   // Derived values
-  const getClient = () => {
-    if (containerLines.length > 0) {
-      const firstOT = mockOrdresTravail.find(ot => ot.id === containerLines[0].otId);
-      return firstOT?.client || "";
+  const getClientName = () => {
+    if (selectedClient) {
+      return mockClients.find(c => c.key === selectedClient)?.name || "";
     }
     return "";
   };
@@ -349,17 +360,48 @@ export default function NouvelleNoteDebut() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Client *</Label>
+                    <Select 
+                      value={selectedClient} 
+                      onValueChange={(value) => {
+                        setSelectedClient(value);
+                        setCurrentOT("");
+                        setCurrentContainers([]);
+                        setAvailableContainers([]);
+                      }}
+                      disabled={containerLines.length > 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockClients.map((client) => (
+                          <SelectItem key={client.key} value={client.key}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {containerLines.length > 0 && (
+                      <p className="text-xs text-muted-foreground">Client verrouillé après ajout de conteneurs</p>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Ordre de travail</Label>
-                      <Select value={currentOT} onValueChange={handleOTChange}>
+                      <Select 
+                        value={currentOT} 
+                        onValueChange={handleOTChange}
+                        disabled={!selectedClient}
+                      >
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un OT" />
+                          <SelectValue placeholder={selectedClient ? "Sélectionner un OT" : "Sélectionnez d'abord un client"} />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockOrdresTravail.map((ot) => (
+                          {filteredOTs.map((ot) => (
                             <SelectItem key={ot.id} value={ot.id}>
-                              {ot.id} - {ot.client}
+                              {ot.id} - {ot.type}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -464,7 +506,7 @@ export default function NouvelleNoteDebut() {
                   <div className="space-y-2">
                     <Label>Client</Label>
                     <Input 
-                      value={getClient()} 
+                      value={getClientName()} 
                       disabled 
                       className="bg-muted"
                     />
