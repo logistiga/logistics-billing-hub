@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        heading: ['Poppins', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        heading: ['Space Grotesk', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -77,9 +77,15 @@ export default {
           red: "hsl(var(--logistica-red))",
           "red-light": "hsl(var(--logistica-red-light))",
           "red-dark": "hsl(var(--logistica-red-dark))",
-          gray: "hsl(var(--logistica-gray))",
-          "gray-light": "hsl(var(--logistica-gray-light))",
-          "gray-dark": "hsl(var(--logistica-gray-dark))",
+          navy: "hsl(var(--logistica-navy))",
+          slate: "hsl(var(--logistica-slate))",
+          gold: "hsl(var(--logistica-gold))",
+        },
+        mode: {
+          virement: "hsl(var(--mode-virement))",
+          cheque: "hsl(var(--mode-cheque))",
+          carte: "hsl(var(--mode-carte))",
+          prelevement: "hsl(var(--mode-prelevement))",
         },
       },
       borderRadius: {

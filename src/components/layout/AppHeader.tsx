@@ -44,7 +44,7 @@ export function AppHeader({
           marginLeft: isMobile ? 0 : sidebarCollapsed ? 72 : 280,
         }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="fixed top-0 right-0 z-30 h-16 bg-card/80 backdrop-blur-xl border-b border-border flex items-center justify-between px-4 md:px-6"
+        className="fixed top-0 right-0 z-30 h-16 bg-card/95 backdrop-blur-xl border-b border-border/50 flex items-center justify-between px-4 md:px-6 shadow-sm"
         style={{
           width: isMobile ? "100%" : `calc(100% - ${sidebarCollapsed ? 72 : 280}px)`,
         }}
@@ -57,7 +57,7 @@ export function AppHeader({
               variant="ghost"
               size="icon"
               onClick={onMenuToggle}
-              className="lg:hidden"
+              className="lg:hidden hover:bg-primary/10"
             >
               <Menu className="h-5 w-5" />
             </Button>
@@ -66,13 +66,13 @@ export function AppHeader({
           {/* Search Button */}
           <Button
             variant="outline"
-            className="relative w-40 sm:w-64 justify-start text-muted-foreground bg-secondary/50 border-0 hover:bg-secondary"
+            className="relative w-40 sm:w-72 justify-start text-muted-foreground bg-muted/50 border-border/50 hover:bg-muted hover:border-primary/30 transition-all duration-200 group"
             onClick={() => setSearchOpen(true)}
           >
-            <Search className="mr-2 h-4 w-4" />
+            <Search className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
             <span className="flex-1 text-left hidden sm:inline">Rechercher...</span>
             <span className="flex-1 text-left sm:hidden">Recherche</span>
-            <kbd className="pointer-events-none ml-auto hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 md:flex">
+            <kbd className="pointer-events-none ml-auto hidden h-5 select-none items-center gap-1 rounded-md border border-border/80 bg-background px-1.5 font-mono text-[10px] font-medium opacity-100 md:flex">
               <Command className="h-3 w-3" />K
             </kbd>
           </Button>
@@ -91,27 +91,30 @@ export function AppHeader({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="flex items-center gap-2 px-2 hover:bg-secondary"
+                className="flex items-center gap-2 px-2 hover:bg-muted transition-colors"
               >
-                <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary-foreground" />
+                <div className="relative">
+                  <div className="h-9 w-9 rounded-xl gradient-primary flex items-center justify-center shadow-colored">
+                    <User className="h-4 w-4 text-primary-foreground" />
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success border-2 border-card" />
                 </div>
                 <div className="hidden lg:block text-left">
-                  <p className="text-sm font-medium">Admin</p>
+                  <p className="text-sm font-semibold">Admin</p>
                   <p className="text-xs text-muted-foreground">admin@logistica.ga</p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Mon Compte</DropdownMenuLabel>
+              <DropdownMenuLabel className="font-heading">Mon Compte</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/profil")}>
+              <DropdownMenuItem onClick={() => navigate("/profil")} className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
                 Profil
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive focus:text-destructive">
+              <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
                 Déconnexion
               </DropdownMenuItem>

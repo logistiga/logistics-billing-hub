@@ -218,17 +218,17 @@ const categoriesSortie = [
 ];
 
 const modesPaiement = [
-  { value: "virement", label: "Virement", icon: ArrowUpRight },
-  { value: "cheque", label: "Chèque", icon: Receipt },
-  { value: "carte", label: "Carte bancaire", icon: CreditCard },
-  { value: "prelevement", label: "Prélèvement", icon: RefreshCw },
+  { value: "virement", label: "Virement", icon: ArrowUpRight, color: "bg-mode-virement/15 text-mode-virement border-mode-virement/30" },
+  { value: "cheque", label: "Chèque", icon: Receipt, color: "bg-mode-cheque/15 text-mode-cheque border-mode-cheque/30" },
+  { value: "carte", label: "Carte", icon: CreditCard, color: "bg-mode-carte/15 text-mode-carte border-mode-carte/30" },
+  { value: "prelevement", label: "Prélèvement", icon: RefreshCw, color: "bg-mode-prelevement/15 text-mode-prelevement border-mode-prelevement/30" },
 ];
 
 const statutConfig: Record<string, { label: string; color: string; icon: any }> = {
-  en_attente: { label: "En attente", color: "bg-amber-500/10 text-amber-500", icon: Clock },
-  valide: { label: "Validé", color: "bg-blue-500/10 text-blue-500", icon: CheckCircle2 },
-  rapproche: { label: "Rapproché", color: "bg-emerald-500/10 text-emerald-500", icon: CheckCircle2 },
-  rejete: { label: "Rejeté", color: "bg-destructive/10 text-destructive", icon: AlertCircle },
+  en_attente: { label: "En attente", color: "bg-warning/15 text-warning border-warning/30", icon: Clock },
+  valide: { label: "Validé", color: "bg-info/15 text-info border-info/30", icon: CheckCircle2 },
+  rapproche: { label: "Rapproché", color: "bg-success/15 text-success border-success/30", icon: CheckCircle2 },
+  rejete: { label: "Rejeté", color: "bg-destructive/15 text-destructive border-destructive/30", icon: AlertCircle },
 };
 
 export default function SuiviBanque() {
@@ -429,56 +429,87 @@ export default function SuiviBanque() {
       <TabsContent value="transactions" className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/10">
-              <Landmark className="h-6 w-6 text-blue-500" />
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl animate-pulse" />
+              <div className="relative p-3 rounded-2xl gradient-primary shadow-colored">
+                <Landmark className="h-7 w-7 text-primary-foreground" />
+              </div>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Suivi Banque</h1>
+              <h1 className="text-3xl font-heading font-bold text-foreground tracking-tight">
+                Suivi Banque
+              </h1>
               <p className="text-muted-foreground">
-                Gestion des transactions bancaires (virements, chèques, cartes)
+                Gestion des transactions bancaires
               </p>
             </div>
           </div>
-        </div>
-        <div className="flex gap-2">
+        </motion.div>
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="flex gap-2"
+        >
           <Button
+            className="border-2 border-success bg-success/10 text-success hover:bg-success hover:text-success-foreground transition-all duration-300 hover:shadow-lg hover:shadow-success/25"
             variant="outline"
-            className="border-emerald-500 text-emerald-500 hover:bg-emerald-500/10"
             onClick={() => openDialog("entree")}
           >
             <Plus className="h-4 w-4 mr-2" />
             Encaissement
           </Button>
           <Button
+            className="border-2 border-destructive bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all duration-300 hover:shadow-lg hover:shadow-destructive/25"
             variant="outline"
-            className="border-destructive text-destructive hover:bg-destructive/10"
             onClick={() => openDialog("sortie")}
           >
             <Minus className="h-4 w-4 mr-2" />
             Décaissement
           </Button>
-        </div>
+        </motion.div>
       </div>
 
       {/* Bank Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Solde Total - Premium Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          whileHover={{ y: -4 }}
+          transition={{ duration: 0.3 }}
+          className="lg:col-span-1"
         >
-          <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-500">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Solde Total Banques</p>
-                  <p className={`text-xl font-bold ${soldeTotalBanque >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+          <Card className="relative overflow-hidden border-0 shadow-xl">
+            <div className="absolute inset-0 gradient-primary opacity-95" />
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYtMi42ODYgNi02cy0yLjY4Ni02LTYtNi02IDIuNjg2LTYgNiAyLjY4NiA2IDYgNnptMCAzMGMzLjMxNCAwIDYtMi42ODYgNi02cy0yLjY4Ni02LTYtNi02IDIuNjg2LTYgNiAyLjY4NiA2IDYgNnoiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iLjA1Ii8+PC9nPjwvc3ZnPg==')] opacity-30" />
+            <CardContent className="relative p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-white/80">Solde Total Banques</p>
+                  <p className={`text-3xl font-heading font-bold text-white`}>
                     {formatCurrency(soldeTotalBanque)}
                   </p>
+                  <div className="flex items-center gap-2 text-xs text-white/70">
+                    <span className="flex items-center gap-1">
+                      <ArrowUpRight className="h-3 w-3" />
+                      {formatCurrency(totalEntrees)}
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <ArrowDownLeft className="h-3 w-3" />
+                      {formatCurrency(totalSorties)}
+                    </span>
+                  </div>
                 </div>
-                <div className="p-3 rounded-full bg-blue-500/10">
-                  <Building className="h-6 w-6 text-blue-500" />
+                <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
+                  <Building className="h-7 w-7 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -490,19 +521,22 @@ export default function SuiviBanque() {
             key={banque.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: (index + 1) * 0.1 }}
+            whileHover={{ y: -4, boxShadow: "var(--shadow-lg)" }}
+            transition={{ delay: (index + 1) * 0.1, duration: 0.3 }}
           >
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card className="h-full hover:border-primary/30 transition-all duration-300 group">
               <CardContent className="p-6">
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">{banque.nom}</p>
-                    <Landmark className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-semibold text-foreground">{banque.nom}</p>
+                    <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
+                      <Landmark className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
                   </div>
-                  <p className={`text-lg font-bold ${getSoldeBanque(banque.id) >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                  <p className={`text-2xl font-heading font-bold ${getSoldeBanque(banque.id) >= 0 ? "text-success" : "text-destructive"}`}>
                     {formatCurrency(getSoldeBanque(banque.id))}
                   </p>
-                  <p className="text-xs text-muted-foreground font-mono">
+                  <p className="text-xs text-muted-foreground font-mono tracking-tight">
                     {banque.compte}
                   </p>
                 </div>
@@ -514,18 +548,19 @@ export default function SuiviBanque() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          whileHover={{ y: -4 }}
+          transition={{ delay: 0.3, duration: 0.3 }}
         >
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="h-full border-warning/30 bg-warning/5 hover:bg-warning/10 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">En attente</p>
-                  <p className="text-xl font-bold text-amber-500">{enAttente}</p>
-                  <p className="text-xs text-muted-foreground">À rapprocher</p>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground font-medium">En attente</p>
+                  <p className="text-3xl font-heading font-bold text-warning">{enAttente}</p>
+                  <p className="text-xs text-warning/80">À rapprocher</p>
                 </div>
-                <div className="p-3 rounded-full bg-amber-500/10">
-                  <Clock className="h-6 w-6 text-amber-500" />
+                <div className="p-3 rounded-xl bg-warning/20">
+                  <Clock className="h-6 w-6 text-warning animate-pulse" />
                 </div>
               </div>
             </CardContent>
@@ -655,12 +690,19 @@ export default function SuiviBanque() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="capitalize">
-                          {modesPaiement.find((m) => m.value === transaction.modePaiement)?.label}
-                        </Badge>
+                        {(() => {
+                          const mode = modesPaiement.find((m) => m.value === transaction.modePaiement);
+                          const ModeIcon = mode?.icon;
+                          return (
+                            <Badge variant="outline" className={`${mode?.color} border font-medium gap-1`}>
+                              {ModeIcon && <ModeIcon className="h-3 w-3" />}
+                              {mode?.label}
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
-                        <Badge className={statut.color}>
+                        <Badge variant="outline" className={`${statut.color} border font-medium`}>
                           <statut.icon className="h-3 w-3 mr-1" />
                           {statut.label}
                         </Badge>
