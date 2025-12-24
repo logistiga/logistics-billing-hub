@@ -66,7 +66,7 @@ interface NoteDebut {
   number: string;
   client: string;
   clientId: string;
-  type: "ouverture_port" | "detention" | "surestaries" | "magasinage";
+  type: "ouverture_port" | "detention" | "reparation" | "stockage";
   ordresTravail: string[];
   blNumber: string;
   containerNumber: string;
@@ -125,7 +125,7 @@ const initialNotes: NoteDebut[] = [
     number: "ND-2024-0013",
     client: "Total Energies",
     clientId: "c3",
-    type: "surestaries",
+    type: "reparation",
     ordresTravail: ["OT-2024-0038", "OT-2024-0039"],
     blNumber: "BL-2024-8899",
     containerNumber: "MSCU5544332",
@@ -137,14 +137,14 @@ const initialNotes: NoteDebut[] = [
     paid: 1200000,
     advance: 0,
     status: "paid",
-    description: "Surestaries 12 jours - Retard enlèvement",
+    description: "Réparation structurelle container",
   },
   {
     id: "4",
     number: "ND-2024-0012",
     client: "Assala Energy",
     clientId: "c4",
-    type: "magasinage",
+    type: "stockage",
     ordresTravail: ["OT-2024-0035"],
     blNumber: "BL-2024-7766",
     containerNumber: "HLCU6677889",
@@ -156,7 +156,7 @@ const initialNotes: NoteDebut[] = [
     paid: 0,
     advance: 0,
     status: "pending",
-    description: "Magasinage marchandises diverses",
+    description: "Stockage entrepôt sécurisé",
   },
   {
     id: "5",
