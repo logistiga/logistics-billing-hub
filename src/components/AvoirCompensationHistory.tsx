@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeftRight,
@@ -11,7 +11,6 @@ import {
   User,
   Filter,
   Download,
-  Eye,
 } from "lucide-react";
 import {
   Dialog,
@@ -45,26 +44,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-
-// Types pour l'historique des compensations
-export interface AvoirCompensation {
-  id: string;
-  date: string;
-  avoirId: string;
-  avoirNumber: string;
-  avoirOriginalAmount: number;
-  compensatedAmount: number;
-  remainingAfter: number;
-  documentId: string;
-  documentNumber: string;
-  documentType: "facture" | "ordre";
-  clientId: string;
-  clientName: string;
-  paymentId: string;
-  paymentMethod: string;
-  operateur: string;
-  notes?: string;
-}
+import { avoirStore, AvoirCompensation } from "@/lib/avoirStore";
 
 interface AvoirCompensationHistoryProps {
   open: boolean;
@@ -72,99 +52,6 @@ interface AvoirCompensationHistoryProps {
   clientId?: string;
   avoirId?: string;
 }
-
-// Mock data pour l'historique des compensations
-const mockCompensations: AvoirCompensation[] = [
-  {
-    id: "comp-001",
-    date: "2024-01-15T10:30:00",
-    avoirId: "av-001",
-    avoirNumber: "AV-2024-001",
-    avoirOriginalAmount: 500000,
-    compensatedAmount: 250000,
-    remainingAfter: 250000,
-    documentId: "fac-001",
-    documentNumber: "FAC-2024-0125",
-    documentType: "facture",
-    clientId: "cl-001",
-    clientName: "COMILOG SA",
-    paymentId: "pay-001",
-    paymentMethod: "Mixte (Avoir + Virement)",
-    operateur: "Jean Dupont",
-    notes: "Compensation partielle sur facture de maintenance",
-  },
-  {
-    id: "comp-002",
-    date: "2024-01-18T14:15:00",
-    avoirId: "av-001",
-    avoirNumber: "AV-2024-001",
-    avoirOriginalAmount: 500000,
-    compensatedAmount: 250000,
-    remainingAfter: 0,
-    documentId: "fac-002",
-    documentNumber: "FAC-2024-0142",
-    documentType: "facture",
-    clientId: "cl-001",
-    clientName: "COMILOG SA",
-    paymentId: "pay-002",
-    paymentMethod: "Avoir uniquement",
-    operateur: "Marie Koumba",
-    notes: "Solde de l'avoir utilisé",
-  },
-  {
-    id: "comp-003",
-    date: "2024-01-20T09:00:00",
-    avoirId: "av-002",
-    avoirNumber: "AV-2024-002",
-    avoirOriginalAmount: 1200000,
-    compensatedAmount: 800000,
-    remainingAfter: 400000,
-    documentId: "ord-001",
-    documentNumber: "OT-2024-0089",
-    documentType: "ordre",
-    clientId: "cl-002",
-    clientName: "Total Gabon",
-    paymentId: "pay-003",
-    paymentMethod: "Mixte (Avoir + Espèces)",
-    operateur: "Jean Dupont",
-  },
-  {
-    id: "comp-004",
-    date: "2024-01-22T16:45:00",
-    avoirId: "av-003",
-    avoirNumber: "AV-2024-003",
-    avoirOriginalAmount: 350000,
-    compensatedAmount: 350000,
-    remainingAfter: 0,
-    documentId: "fac-003",
-    documentNumber: "FAC-2024-0156",
-    documentType: "facture",
-    clientId: "cl-003",
-    clientName: "SEEG",
-    paymentId: "pay-004",
-    paymentMethod: "Avoir uniquement",
-    operateur: "Paul Mba",
-    notes: "Compensation totale",
-  },
-  {
-    id: "comp-005",
-    date: "2024-01-25T11:20:00",
-    avoirId: "av-002",
-    avoirNumber: "AV-2024-002",
-    avoirOriginalAmount: 1200000,
-    compensatedAmount: 400000,
-    remainingAfter: 0,
-    documentId: "fac-004",
-    documentNumber: "FAC-2024-0178",
-    documentType: "facture",
-    clientId: "cl-002",
-    clientName: "Total Gabon",
-    paymentId: "pay-005",
-    paymentMethod: "Mixte (Avoir + Chèque)",
-    operateur: "Marie Koumba",
-    notes: "Utilisation du solde restant de l'avoir",
-  },
-];
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("fr-FR").format(amount) + " FCFA";
@@ -191,8 +78,14 @@ export function AvoirCompensationHistory({
   const [filterPeriod, setFilterPeriod] = useState<string>("all");
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
 
+  // Utiliser le store pour récupérer les compensations en temps réel
+  const compensations = useSyncExternalStore(
+    avoirStore.subscribe,
+    avoirStore.getCompensationsHistory
+  );
+
   // Filtrer les compensations
-  let filteredCompensations = mockCompensations;
+  let filteredCompensations = compensations;
   
   if (clientId) {
     filteredCompensations = filteredCompensations.filter(c => c.clientId === clientId);
@@ -218,7 +111,7 @@ export function AvoirCompensationHistory({
 
   // Obtenir les clients uniques pour le filtre
   const uniqueClients = Array.from(
-    new Map(mockCompensations.map(c => [c.clientId, { id: c.clientId, name: c.clientName }])).values()
+    new Map(compensations.map(c => [c.clientId, { id: c.clientId, name: c.clientName }])).values()
   );
 
   // Calculer les statistiques
