@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -36,6 +36,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { generateOrdrePDF } from "@/lib/generateOrdrePDF";
+import { partenaireStore } from "@/lib/partenaireStore";
 
 const typeConfig = {
   Manutention: {
@@ -111,6 +112,23 @@ export default function NouvelOrdreTravail() {
   const [searchParams] = useSearchParams();
   const fromDevisId = searchParams.get("fromDevis");
   const isDevisMode = searchParams.get("mode") === "devis";
+  
+  // Charger les données des partenaires depuis le store
+  const compagniesMaritimes = useSyncExternalStore(
+    partenaireStore.subscribe,
+    partenaireStore.getCompagnies,
+    partenaireStore.getCompagnies
+  );
+  const transitairesList = useSyncExternalStore(
+    partenaireStore.subscribe,
+    partenaireStore.getTransitaires,
+    partenaireStore.getTransitaires
+  );
+  const representantsList = useSyncExternalStore(
+    partenaireStore.subscribe,
+    partenaireStore.getRepresentants,
+    partenaireStore.getRepresentants
+  );
   
   const [dialogStep, setDialogStep] = useState<DialogStep>("type");
   const [selectedType, setSelectedType] = useState("");
@@ -289,11 +307,12 @@ export default function NouvelOrdreTravail() {
 
   const renderTransportForm = () => (
     <div className="space-y-4">
+      {/* Trajet - non obligatoire pour Import */}
       <div className="border rounded-lg p-4 border-border bg-muted/30">
         <h4 className="font-medium mb-3 text-foreground">Trajet</h4>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Point de départ (A) *</Label>
+            <Label>Point de départ (A) {selectedSubType !== "import" && "*"}</Label>
             <Input 
               placeholder="Ex: Port d'Owendo" 
               value={pointDepart}
@@ -301,7 +320,7 @@ export default function NouvelOrdreTravail() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Point d'arrivée (B) *</Label>
+            <Label>Point d'arrivée (B) {selectedSubType !== "import" && "*"}</Label>
             <Input 
               placeholder="Ex: Port-Gentil"
               value={pointArrivee}
@@ -340,23 +359,14 @@ export default function NouvelOrdreTravail() {
                   <SelectValue placeholder="Choisir une compagnie" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MSC">MSC</SelectItem>
-                  <SelectItem value="Maersk">Maersk</SelectItem>
-                  <SelectItem value="CMA CGM">CMA CGM</SelectItem>
-                  <SelectItem value="Hapag-Lloyd">Hapag-Lloyd</SelectItem>
+                  {compagniesMaritimes.map((comp) => (
+                    <SelectItem key={comp.id} value={comp.nom}>
+                      {comp.nom} ({comp.code})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Navire</Label>
-              <Input 
-                placeholder="Nom du navire"
-                value={navire}
-                onChange={(e) => setNavire(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="space-y-2">
               <Label>Transitaire *</Label>
               <Select value={transitaire} onValueChange={setTransitaire}>
@@ -364,15 +374,13 @@ export default function NouvelOrdreTravail() {
                   <SelectValue placeholder="Choisir un transitaire" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Trans Gabon Logistics">Trans Gabon Logistics</SelectItem>
-                  <SelectItem value="Bolloré Transport & Logistics">Bolloré Transport & Logistics</SelectItem>
-                  <SelectItem value="SDV Gabon">SDV Gabon</SelectItem>
+                  {transitairesList.map((trans) => (
+                    <SelectItem key={trans.id} value={trans.nom}>
+                      {trans.nom}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Prime de Transitaire</Label>
-              <Input type="number" step="0.1" placeholder="0" disabled className="bg-muted" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
@@ -383,9 +391,11 @@ export default function NouvelOrdreTravail() {
                   <SelectValue placeholder="Choisir un représentant" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Jean-Paul Ndong">Jean-Paul Ndong</SelectItem>
-                  <SelectItem value="Marie Obame">Marie Obame</SelectItem>
-                  <SelectItem value="Pierre Nguema">Pierre Nguema</SelectItem>
+                  {representantsList.map((rep) => (
+                    <SelectItem key={rep.id} value={`${rep.prenom} ${rep.nom}`}>
+                      {rep.prenom} {rep.nom} {rep.transitaire && `(${rep.transitaire})`}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -494,7 +504,7 @@ export default function NouvelOrdreTravail() {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Date d'enlèvement *</Label>
+          <Label>Date d'enlèvement</Label>
           <Input 
             type="date"
             value={dateEnlevement}
