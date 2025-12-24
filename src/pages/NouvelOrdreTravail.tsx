@@ -307,12 +307,12 @@ export default function NouvelOrdreTravail() {
 
   const renderTransportForm = () => (
     <div className="space-y-4">
-      {/* Trajet - non obligatoire pour Import */}
+      {/* Trajet - non obligatoire pour Import et Export */}
       <div className="border rounded-lg p-4 border-border bg-muted/30">
         <h4 className="font-medium mb-3 text-foreground">Trajet</h4>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Point de départ (A) {selectedSubType !== "import" && "*"}</Label>
+            <Label>Point de départ (A) {selectedSubType !== "import" && selectedSubType !== "export" && "*"}</Label>
             <Input 
               placeholder="Ex: Port d'Owendo" 
               value={pointDepart}
@@ -320,7 +320,7 @@ export default function NouvelOrdreTravail() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Point d'arrivée (B) {selectedSubType !== "import" && "*"}</Label>
+            <Label>Point d'arrivée (B) {selectedSubType !== "import" && selectedSubType !== "export" && "*"}</Label>
             <Input 
               placeholder="Ex: Port-Gentil"
               value={pointArrivee}
@@ -430,28 +430,39 @@ export default function NouvelOrdreTravail() {
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="space-y-2">
-              <Label>Compagnie Maritime *</Label>
+              <Label>Compagnie Maritime</Label>
               <Select value={compagnieMaritime} onValueChange={setCompagnieMaritime}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choisir une compagnie" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MSC">MSC</SelectItem>
-                  <SelectItem value="Maersk">Maersk</SelectItem>
-                  <SelectItem value="CMA CGM">CMA CGM</SelectItem>
-                  <SelectItem value="Hapag-Lloyd">Hapag-Lloyd</SelectItem>
+                  {compagniesMaritimes.map((comp) => (
+                    <SelectItem key={comp.id} value={comp.nom}>
+                      {comp.nom} ({comp.code})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>N° Container</Label>
-              <Input 
-                placeholder="MSKU1234567"
-                value={numeroConteneur}
-                onChange={(e) => setNumeroConteneur(e.target.value)}
-              />
+              <Label>Transitaire</Label>
+              <Select value={transitaire} onValueChange={setTransitaire}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un transitaire" />
+                </SelectTrigger>
+                <SelectContent>
+                  {transitairesList.map((trans) => (
+                    <SelectItem key={trans.id} value={trans.nom}>
+                      {trans.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+          <p className="text-sm text-muted-foreground mt-4">
+            Les numéros de conteneurs sont renseignés dans chaque ligne de prestation ci-dessous.
+          </p>
         </div>
       )}
 
