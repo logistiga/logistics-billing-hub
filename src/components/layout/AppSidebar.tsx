@@ -159,8 +159,8 @@ export function AppSidebar({
       {/* Logo */}
       <div
         className={cn(
-          "flex items-center justify-between border-b border-sidebar-border transition-all duration-300",
-          collapsed && !isMobile ? "h-16 px-2 justify-center" : "h-20 px-4"
+          "flex items-center justify-center border-b border-sidebar-border transition-all duration-300 relative",
+          collapsed && !isMobile ? "h-20 px-2" : "h-28 px-4"
         )}
       >
         <AnimatePresence mode="wait">
@@ -170,14 +170,18 @@ export function AppSidebar({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.2 }}
-              className="flex items-center gap-3"
+              className="flex flex-col items-center justify-center gap-2"
             >
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-xl blur-xl" />
-                <img
+                {/* Glow effect */}
+                <div className="absolute -inset-3 bg-gradient-to-br from-primary/30 via-primary/10 to-transparent rounded-2xl blur-2xl" />
+                <div className="absolute -inset-1 bg-gradient-to-br from-primary/20 to-transparent rounded-xl blur-lg" />
+                <motion.img
                   src={logo}
                   alt="Logistiga"
-                  className="relative h-12 w-auto object-contain drop-shadow-lg"
+                  className="relative h-16 w-auto object-contain drop-shadow-2xl"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 300 }}
                 />
               </div>
             </motion.div>
@@ -188,8 +192,15 @@ export function AppSidebar({
               exit={{ opacity: 0 }}
               className="flex items-center justify-center"
             >
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-                <Truck className="h-5 w-5 text-primary-foreground" />
+              <div className="relative">
+                <div className="absolute -inset-2 bg-gradient-to-br from-primary/30 to-transparent rounded-xl blur-lg" />
+                <motion.img
+                  src={logo}
+                  alt="Logistiga"
+                  className="relative h-12 w-auto object-contain drop-shadow-xl"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                />
               </div>
             </motion.div>
           )}
@@ -199,7 +210,7 @@ export function AppSidebar({
         {isMobile && (
           <button
             onClick={onCloseMobile}
-            className="p-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+            className="absolute top-4 right-4 p-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
