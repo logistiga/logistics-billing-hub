@@ -66,7 +66,7 @@ interface NoteDebut {
   client: string;
   clientId: string;
   type: "ouverture_port" | "detention" | "surestaries" | "magasinage";
-  factureOrigine: string;
+  ordresTravail: string[];
   blNumber: string;
   containerNumber: string;
   dateDebut: string;
@@ -87,7 +87,7 @@ const initialNotes: NoteDebut[] = [
     client: "COMILOG SA",
     clientId: "c1",
     type: "ouverture_port",
-    factureOrigine: "FAC-2024-0120",
+    ordresTravail: ["OT-2024-0045", "OT-2024-0046"],
     blNumber: "BL-2024-5678",
     containerNumber: "MSKU1234567",
     dateDebut: "01/12/2024",
@@ -106,7 +106,7 @@ const initialNotes: NoteDebut[] = [
     client: "OLAM Gabon",
     clientId: "c2",
     type: "detention",
-    factureOrigine: "FAC-2024-0115",
+    ordresTravail: ["OT-2024-0042"],
     blNumber: "BL-2024-4321",
     containerNumber: "TCLU9876543",
     dateDebut: "05/12/2024",
@@ -125,7 +125,7 @@ const initialNotes: NoteDebut[] = [
     client: "Total Energies",
     clientId: "c3",
     type: "surestaries",
-    factureOrigine: "FAC-2024-0110",
+    ordresTravail: ["OT-2024-0038", "OT-2024-0039"],
     blNumber: "BL-2024-8899",
     containerNumber: "MSCU5544332",
     dateDebut: "28/11/2024",
@@ -144,7 +144,7 @@ const initialNotes: NoteDebut[] = [
     client: "Assala Energy",
     clientId: "c4",
     type: "magasinage",
-    factureOrigine: "FAC-2024-0105",
+    ordresTravail: ["OT-2024-0035"],
     blNumber: "BL-2024-7766",
     containerNumber: "HLCU6677889",
     dateDebut: "01/12/2024",
@@ -163,7 +163,7 @@ const initialNotes: NoteDebut[] = [
     client: "COMILOG SA",
     clientId: "c1",
     type: "detention",
-    factureOrigine: "FAC-2024-0100",
+    ordresTravail: ["OT-2024-0030", "OT-2024-0031", "OT-2024-0032"],
     blNumber: "BL-2024-1234",
     containerNumber: "MSKU7654321",
     dateDebut: "01/12/2024",
@@ -466,17 +466,9 @@ export default function NotesDebut() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Facture d'origine</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Référence facture" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="fac-120">FAC-2024-0120</SelectItem>
-                            <SelectItem value="fac-115">FAC-2024-0115</SelectItem>
-                            <SelectItem value="fac-110">FAC-2024-0110</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label>N° OT (Ordres de Travail)</Label>
+                        <Input placeholder="OT-2024-001, OT-2024-002..." />
+                        <p className="text-xs text-muted-foreground">Séparez les numéros par des virgules</p>
                       </div>
                     </div>
 
@@ -626,24 +618,18 @@ export default function NotesDebut() {
                     {selectedType === "ouverture_port" && (
                       <div className="border rounded-lg p-4 border-blue-200 bg-blue-50">
                         <h4 className="font-medium mb-3 text-blue-700">Informations Ouverture de port</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Port</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="owendo">Port d'Owendo</SelectItem>
-                                <SelectItem value="libreville">Port de Libreville</SelectItem>
-                                <SelectItem value="portgentil">Port de Port-Gentil</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>N° Escale navire</Label>
-                            <Input placeholder="ESC-2024-XXX" />
-                          </div>
+                        <div className="space-y-2">
+                          <Label>Port</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sélectionner" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="owendo">Port d'Owendo</SelectItem>
+                              <SelectItem value="libreville">Port de Libreville</SelectItem>
+                              <SelectItem value="portgentil">Port de Port-Gentil</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     )}
