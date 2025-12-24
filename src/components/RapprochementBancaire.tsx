@@ -48,15 +48,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-interface TransactionReleve {
-  id: string;
-  date: string;
-  libelle: string;
-  montant: number;
-  type: "credit" | "debit";
-  reference?: string;
-}
+import { parseBankStatement, TransactionReleve } from "@/lib/pdfParser";
 
 interface TransactionApp {
   id: string;
@@ -87,22 +79,6 @@ interface RapprochementBancaireProps {
   transactions: TransactionApp[];
   onValidateRapprochement: (rapprochements: Rapprochement[]) => void;
 }
-
-// Simulation de parsing PDF (dans une vraie app, cela passerait par une edge function)
-const simulatePdfParsing = async (): Promise<TransactionReleve[]> => {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-  
-  return [
-    { id: "r1", date: "2024-01-15", libelle: "VIR TOTAL GABON REGLEMENT FACTURE", montant: 5500000, type: "credit", reference: "VIR-001" },
-    { id: "r2", date: "2024-01-14", libelle: "VIREMENT SALAIRES JANVIER", montant: 8500000, type: "debit" },
-    { id: "r3", date: "2024-01-13", libelle: "REM CHQ COMILOG", montant: 3200000, type: "credit", reference: "CHQ-001" },
-    { id: "r4", date: "2024-01-12", libelle: "VIR FOURNISSEUR PIECES AUTO", montant: 1850000, type: "debit" },
-    { id: "r5", date: "2024-01-11", libelle: "PRLV ASSURANCE VEHICULES", montant: 450000, type: "debit" },
-    { id: "r6", date: "2024-01-10", libelle: "VIR ASSALA ENERGY", montant: 2750000, type: "credit" },
-    { id: "r7", date: "2024-01-09", libelle: "VIR DGI TVA DECEMBRE", montant: 1200000, type: "debit" },
-    { id: "r8", date: "2024-01-08", libelle: "VIR INCONNU CLIENT XYZ", montant: 750000, type: "credit" },
-  ];
-};
 
 // Algorithme de matching
 const matchTransactions = (
@@ -250,19 +226,10 @@ export default function RapprochementBancaire({
     setProgress(0);
 
     try {
-      // Simuler le progress
-      const progressInterval = setInterval(() => {
-        setProgress((p) => Math.min(p + 10, 90));
-      }, 200);
-
-      // Simuler le parsing du PDF
-      const releveItems = await simulatePdfParsing();
-
-      clearInterval(progressInterval);
-      setProgress(100);
+      // Parser le PDF réel
+      const releveItems = await parseBankStatement(file, (p) => setProgress(p));
 
       // Filtrer les transactions de l'app pour la banque sélectionnée
-      const banqueNom = banques.find((b) => b.id === selectedBanque)?.nom;
       const banqueTransactions = transactions.filter(
         (t) => t.statut !== "rapproche" // Exclure les déjà rapprochées
       );
