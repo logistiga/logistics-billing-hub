@@ -6,12 +6,8 @@ import {
   Minus,
   ArrowDownLeft,
   ArrowUpRight,
-  Calendar,
   Search,
-  Filter,
   Download,
-  TrendingUp,
-  TrendingDown,
   CreditCard,
   Receipt,
   Building,
@@ -23,6 +19,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  FileUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,8 +58,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ExportDialog } from "@/components/ExportDialog";
+import { ExportBanqueDialog } from "@/components/ExportBanqueDialog";
+import RapprochementBancaire from "@/components/RapprochementBancaire";
 import { generateExportPDF, generateExportExcel } from "@/lib/exportComptabilite";
+import { toast } from "sonner";
 
 interface TransactionBanque {
   id: string;
@@ -338,19 +337,24 @@ export default function SuiviBanque() {
     setDialogOpen(true);
   };
 
-  const handleExport = (format: "pdf" | "excel", dateDebut: string, dateFin: string) => {
-    const filteredByDate = transactions.filter((t) => {
-      return t.date >= dateDebut && t.date <= dateFin;
+  const handleExport = (format: "pdf" | "excel", dateDebut: string, dateFin: string, selectedBanques: string[]) => {
+    // Filtrer par banques sélectionnées
+    const banqueNoms = selectedBanques.map((id) => banques.find((b) => b.id === id)?.nom);
+    
+    const filteredByDateAndBank = transactions.filter((t) => {
+      const dateMatch = t.date >= dateDebut && t.date <= dateFin;
+      const banqueMatch = banqueNoms.includes(t.banque);
+      return dateMatch && banqueMatch;
     });
 
     const totaux = {
-      entrees: filteredByDate.filter((t) => t.type === "entree").reduce((sum, t) => sum + t.montant, 0),
-      sorties: filteredByDate.filter((t) => t.type === "sortie").reduce((sum, t) => sum + t.montant, 0),
+      entrees: filteredByDateAndBank.filter((t) => t.type === "entree").reduce((sum, t) => sum + t.montant, 0),
+      sorties: filteredByDateAndBank.filter((t) => t.type === "sortie").reduce((sum, t) => sum + t.montant, 0),
       solde: 0,
     };
     totaux.solde = totaux.entrees - totaux.sorties;
 
-    const exportTransactions = filteredByDate.map((t) => ({
+    const exportTransactions = filteredByDateAndBank.map((t) => ({
       date: t.date,
       reference: t.reference,
       description: t.description,
@@ -362,9 +366,13 @@ export default function SuiviBanque() {
       banque: t.banque,
     }));
 
+    const banqueLabel = selectedBanques.length === banques.length 
+      ? "Toutes les banques" 
+      : banqueNoms.filter(Boolean).join(", ");
+
     const options = {
       titre: "Journal Bancaire",
-      sousTitre: "Transactions bancaires (virements, chèques, cartes)",
+      sousTitre: `Transactions bancaires - ${banqueLabel}`,
       periodeDebut: dateDebut,
       periodeFin: dateFin,
       transactions: exportTransactions,
@@ -377,10 +385,35 @@ export default function SuiviBanque() {
     } else {
       generateExportExcel(options);
     }
+
+    toast.success(`Export ${format.toUpperCase()} généré pour ${banqueLabel}`);
+  };
+
+  const handleValidateRapprochement = (rapprochements: any[]) => {
+    // Mettre à jour le statut des transactions rapprochées
+    const matchedIds = rapprochements
+      .filter((r) => r.matchedItem)
+      .map((r) => r.matchedItem.id);
+    
+    setTransactions((prev) =>
+      prev.map((t) =>
+        matchedIds.includes(t.id) ? { ...t, statut: "rapproche" as const } : t
+      )
+    );
+    toast.success("Rapprochements validés et transactions mises à jour");
   };
 
   return (
-    <div className="space-y-6">
+    <Tabs defaultValue="transactions" className="space-y-6">
+      <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsTrigger value="transactions">Transactions</TabsTrigger>
+        <TabsTrigger value="rapprochement" className="gap-2">
+          <FileUp className="h-4 w-4" />
+          Rapprochement
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="transactions" className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -808,12 +841,31 @@ export default function SuiviBanque() {
       </Dialog>
 
       {/* Export Dialog */}
-      <ExportDialog
+      <ExportBanqueDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
         onExport={handleExport}
+        banques={banques}
         title="Journal Bancaire"
       />
-    </div>
+      </TabsContent>
+
+      <TabsContent value="rapprochement">
+        <RapprochementBancaire
+          banques={banques}
+          transactions={transactions.map((t) => ({
+            id: t.id,
+            date: t.date,
+            description: t.description,
+            montant: t.montant,
+            type: t.type,
+            reference: t.reference,
+            client: t.client,
+            statut: t.statut,
+          }))}
+          onValidateRapprochement={handleValidateRapprochement}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }
