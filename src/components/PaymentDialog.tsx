@@ -10,6 +10,8 @@ import {
   FileText,
   Landmark,
   Wallet,
+  ReceiptText,
+  ArrowLeftRight,
 } from "lucide-react";
 import {
   Dialog,
@@ -60,6 +62,21 @@ export interface Payment {
   notes?: string;
   isAdvance: boolean;
   documentIds: string[];
+  avoirIds?: string[];
+  avoirAmount?: number;
+}
+
+// Avoir (Credit Note) interface
+export interface CreditNote {
+  id: string;
+  number: string;
+  clientId: string;
+  client: string;
+  date: string;
+  amount: number;
+  appliedAmount: number;
+  status: "disponible" | "partiellement_utilise" | "utilise";
+  linkedInvoice?: string;
 }
 
 interface PaymentDialogProps {
@@ -68,6 +85,8 @@ interface PaymentDialogProps {
   documents: PayableDocument[];
   onPaymentComplete: (payment: Payment, updatedDocuments: PayableDocument[]) => void;
   mode?: "single" | "group" | "advance";
+  availableCredits?: CreditNote[];
+  onCreditsApplied?: (appliedCredits: { id: string; amount: number }[]) => void;
 }
 
 // Moyens de paiement Gabon uniquement
@@ -108,6 +127,8 @@ export function PaymentDialog({
   documents,
   onPaymentComplete,
   mode = "single",
+  availableCredits = [],
+  onCreditsApplied,
 }: PaymentDialogProps) {
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [paymentType, setPaymentType] = useState<"full" | "partial" | "advance">(
@@ -119,10 +140,30 @@ export function PaymentDialog({
   const [banque, setBanque] = useState("");
   const [notes, setNotes] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  
+  // État pour les avoirs sélectionnés
+  const [selectedAvoirIds, setSelectedAvoirIds] = useState<string[]>([]);
+  const [avoirAmounts, setAvoirAmounts] = useState<Record<string, number>>({});
+
+  // Filtrer les avoirs disponibles pour le client du document
+  const clientId = documents.length > 0 ? documents[0].clientId : "";
+  const clientAvoirs = availableCredits.filter(
+    (credit) => credit.clientId === clientId && credit.status !== "utilise"
+  );
+
+  // Calculer le montant total des avoirs sélectionnés
+  const totalAvoirAmount = selectedAvoirIds.reduce(
+    (sum, id) => sum + (avoirAmounts[id] || 0),
+    0
+  );
 
   // Initialize selected documents
   useEffect(() => {
     if (open) {
+      // Reset avoirs selection
+      setSelectedAvoirIds([]);
+      setAvoirAmounts({});
+      
       if (mode === "single" && documents.length === 1) {
         setSelectedDocIds([documents[0].id]);
         const remaining = documents[0].amount - documents[0].paid;
@@ -147,6 +188,12 @@ export function PaymentDialog({
   const totalPaid = selectedDocs.reduce((sum, d) => sum + d.paid, 0);
   const totalRemaining = totalAmount - totalPaid;
   const enteredAmount = parseFloat(amount) || 0;
+  
+  // Montant restant après application des avoirs
+  const remainingAfterAvoirs = Math.max(0, totalRemaining - totalAvoirAmount);
+  
+  // Montant effectif à payer (en espèces/virement/chèque)
+  const effectivePaymentAmount = Math.max(0, enteredAmount - totalAvoirAmount);
 
   const handleDocumentToggle = (docId: string) => {
     setSelectedDocIds((prev) =>
@@ -173,6 +220,37 @@ export function PaymentDialog({
     }
   };
 
+  // Gestion de la sélection d'un avoir
+  const handleAvoirToggle = (avoirId: string) => {
+    setSelectedAvoirIds((prev) => {
+      if (prev.includes(avoirId)) {
+        // Désélectionner et supprimer le montant
+        const newAmounts = { ...avoirAmounts };
+        delete newAmounts[avoirId];
+        setAvoirAmounts(newAmounts);
+        return prev.filter((id) => id !== avoirId);
+      } else {
+        // Sélectionner avec le montant disponible par défaut
+        const avoir = clientAvoirs.find((a) => a.id === avoirId);
+        if (avoir) {
+          const availableAmount = avoir.amount - avoir.appliedAmount;
+          setAvoirAmounts((prev) => ({ ...prev, [avoirId]: availableAmount }));
+        }
+        return [...prev, avoirId];
+      }
+    });
+  };
+
+  // Modifier le montant d'un avoir sélectionné
+  const handleAvoirAmountChange = (avoirId: string, value: string) => {
+    const avoir = clientAvoirs.find((a) => a.id === avoirId);
+    if (!avoir) return;
+    
+    const maxAmount = avoir.amount - avoir.appliedAmount;
+    const newAmount = Math.min(Math.max(0, parseFloat(value) || 0), maxAmount);
+    setAvoirAmounts((prev) => ({ ...prev, [avoirId]: newAmount }));
+  };
+
   const handleSubmit = () => {
     if (selectedDocIds.length === 0) {
       toast({
@@ -183,10 +261,23 @@ export function PaymentDialog({
       return;
     }
 
-    if (!paymentMethod) {
+    // Vérifier si un paiement est nécessaire (soit avoir, soit mode de paiement)
+    const hasAvoirPayment = totalAvoirAmount > 0;
+    const hasCashPayment = effectivePaymentAmount > 0;
+    
+    if (!hasAvoirPayment && !paymentMethod) {
       toast({
         title: "Erreur",
-        description: "Veuillez sélectionner un mode de paiement",
+        description: "Veuillez sélectionner un mode de paiement ou un avoir",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (hasCashPayment && !paymentMethod) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un mode de paiement pour le montant restant",
         variant: "destructive",
       });
       return;
@@ -202,7 +293,7 @@ export function PaymentDialog({
     }
 
     // Validation pour Chèque et Virement: référence et banque obligatoires
-    if (paymentMethod === "cheque" || paymentMethod === "virement") {
+    if (hasCashPayment && (paymentMethod === "cheque" || paymentMethod === "virement")) {
       if (!reference) {
         toast({
           title: "Erreur",
@@ -227,6 +318,12 @@ export function PaymentDialog({
     setTimeout(() => {
       const selectedBank = mockBanques.find(b => b.id === banque);
       
+      // Créer la liste des avoirs appliqués
+      const appliedCredits = selectedAvoirIds.map((id) => ({
+        id,
+        amount: avoirAmounts[id] || 0,
+      }));
+      
       const payment: Payment = {
         id: Date.now().toString(),
         date: new Date().toISOString(),
@@ -237,6 +334,8 @@ export function PaymentDialog({
         notes: notes || undefined,
         isAdvance: paymentType === "advance",
         documentIds: selectedDocIds,
+        avoirIds: selectedAvoirIds.length > 0 ? selectedAvoirIds : undefined,
+        avoirAmount: totalAvoirAmount > 0 ? totalAvoirAmount : undefined,
       };
 
       // Update documents with payment
@@ -254,17 +353,32 @@ export function PaymentDialog({
         };
       });
 
+      // Notifier les avoirs appliqués
+      if (onCreditsApplied && appliedCredits.length > 0) {
+        onCreditsApplied(appliedCredits);
+      }
+
       onPaymentComplete(payment, updatedDocuments);
 
       // Message de confirmation selon le mode de paiement
       let confirmMessage = "";
-      if (paymentMethod === "especes") {
-        caisseGlobale.solde += enteredAmount;
-        confirmMessage = `${formatCurrency(enteredAmount)} encaissé en espèces. Caisse mise à jour.`;
-      } else if (paymentMethod === "virement" || paymentMethod === "cheque") {
-        if (selectedBank) {
-          selectedBank.solde += enteredAmount;
-          confirmMessage = `${formatCurrency(enteredAmount)} par ${paymentMethod === "virement" ? "virement" : "chèque"} sur ${selectedBank.bankName}. Banque mise à jour.`;
+      
+      // Montant effectif encaissé (hors avoirs)
+      const cashAmount = effectivePaymentAmount;
+      
+      if (totalAvoirAmount > 0) {
+        confirmMessage += `${formatCurrency(totalAvoirAmount)} compensé par avoir. `;
+      }
+      
+      if (cashAmount > 0) {
+        if (paymentMethod === "especes") {
+          caisseGlobale.solde += cashAmount;
+          confirmMessage += `${formatCurrency(cashAmount)} encaissé en espèces. Caisse mise à jour.`;
+        } else if (paymentMethod === "virement" || paymentMethod === "cheque") {
+          if (selectedBank) {
+            selectedBank.solde += cashAmount;
+            confirmMessage += `${formatCurrency(cashAmount)} par ${paymentMethod === "virement" ? "virement" : "chèque"} sur ${selectedBank.bankName}. Banque mise à jour.`;
+          }
         }
       }
 
@@ -279,6 +393,8 @@ export function PaymentDialog({
       setReference("");
       setBanque("");
       setNotes("");
+      setSelectedAvoirIds([]);
+      setAvoirAmounts({});
       setIsLoading(false);
       onOpenChange(false);
     }, 800);
@@ -454,6 +570,76 @@ export function PaymentDialog({
 
           <Separator />
 
+          {/* Sélection des avoirs disponibles */}
+          {clientAvoirs.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <ReceiptText className="h-4 w-4 text-orange-500" />
+                <Label className="text-sm font-medium">Compenser avec un avoir</Label>
+                {totalAvoirAmount > 0 && (
+                  <Badge className="bg-orange-500/20 text-orange-600 text-xs">
+                    -{formatCurrency(totalAvoirAmount)}
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="border rounded-lg divide-y max-h-40 overflow-y-auto">
+                {clientAvoirs.map((avoir) => {
+                  const availableAmount = avoir.amount - avoir.appliedAmount;
+                  const isSelected = selectedAvoirIds.includes(avoir.id);
+
+                  return (
+                    <div
+                      key={avoir.id}
+                      className={cn(
+                        "flex items-center gap-3 p-3 transition-colors",
+                        isSelected && "bg-orange-500/5"
+                      )}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => handleAvoirToggle(avoir.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{avoir.number}</span>
+                          <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                            Avoir
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Disponible: {formatCurrency(availableAmount)}
+                        </p>
+                      </div>
+                      {isSelected && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={avoirAmounts[avoir.id] || 0}
+                            onChange={(e) => handleAvoirAmountChange(avoir.id, e.target.value)}
+                            className="w-28 h-8 text-sm text-right"
+                            max={availableAmount}
+                          />
+                          <span className="text-xs text-muted-foreground">FCFA</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {totalAvoirAmount > 0 && (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-orange-500/10 text-xs text-orange-700">
+                  <ArrowLeftRight className="h-4 w-4" />
+                  <span>
+                    <strong>{formatCurrency(totalAvoirAmount)}</strong> sera compensé par avoir. 
+                    Reste à payer: <strong>{formatCurrency(remainingAfterAvoirs)}</strong>
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Payment Method */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">Mode de paiement *</Label>
@@ -608,10 +794,30 @@ export function PaymentDialog({
                 <span className="font-medium text-right text-success">
                   {formatCurrency(totalPaid)}
                 </span>
+                
+                {totalAvoirAmount > 0 && (
+                  <>
+                    <span className="text-muted-foreground">Avoir appliqué:</span>
+                    <span className="font-medium text-right text-orange-600">
+                      -{formatCurrency(totalAvoirAmount)}
+                    </span>
+                  </>
+                )}
+                
                 <span className="text-muted-foreground">Ce paiement:</span>
                 <span className="font-bold text-right text-primary">
                   {formatCurrency(enteredAmount)}
                 </span>
+                
+                {totalAvoirAmount > 0 && (
+                  <>
+                    <span className="text-muted-foreground text-xs">(dont avoir: {formatCurrency(totalAvoirAmount)})</span>
+                    <span className="text-xs text-right text-muted-foreground">
+                      (espèces/banque: {formatCurrency(effectivePaymentAmount)})
+                    </span>
+                  </>
+                )}
+                
                 <Separator className="col-span-2 my-1" />
                 <span className="text-muted-foreground">Reste après:</span>
                 <span className="font-bold text-right">
