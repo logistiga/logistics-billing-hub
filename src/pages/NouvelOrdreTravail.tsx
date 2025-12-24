@@ -79,12 +79,16 @@ const operationTypes = [
 ];
 
 interface LignePrestation {
+  operationType: string;
   numeroConteneur: string;
+  numeroLot: string;
+  numeroOperation: string;
+  dateDebut: string;
+  dateFin: string;
   description: string;
   quantite: number;
   prixUnit: number;
   total: number;
-  operationType: string;
 }
 
 // Mock des conteneurs existants pour les notes de débit
@@ -143,7 +147,7 @@ export default function NouvelOrdreTravail() {
 
   // Lines with operation type
   const [lignes, setLignes] = useState<LignePrestation[]>([
-    { numeroConteneur: "", description: "", quantite: 1, prixUnit: 0, total: 0, operationType: "none" }
+    { operationType: "none", numeroConteneur: "", numeroLot: "", numeroOperation: "", dateDebut: "", dateFin: "", description: "", quantite: 1, prixUnit: 0, total: 0 }
   ]);
 
   // Effet pour pré-remplir depuis un devis
@@ -167,12 +171,16 @@ export default function NouvelOrdreTravail() {
       else if (devis.type === "Location") opType = "location-engin";
       
       setLignes([{
+        operationType: opType,
         numeroConteneur: "",
+        numeroLot: "",
+        numeroOperation: "",
+        dateDebut: "",
+        dateFin: "",
         description: `Prestation ${devis.type} - Réf. Devis ${devis.number}`,
         quantite: 1,
         prixUnit: devis.amount,
-        total: devis.amount,
-        operationType: opType
+        total: devis.amount
       }]);
       
       toast.success(`Données récupérées du devis ${devis.number}`);
@@ -217,7 +225,7 @@ export default function NouvelOrdreTravail() {
   };
 
   const addLigne = () => {
-    setLignes([...lignes, { numeroConteneur: "", description: "", quantite: 1, prixUnit: 0, total: 0, operationType: "none" }]);
+    setLignes([...lignes, { operationType: "none", numeroConteneur: "", numeroLot: "", numeroOperation: "", dateDebut: "", dateFin: "", description: "", quantite: 1, prixUnit: 0, total: 0 }]);
   };
 
   const removeLigne = (index: number) => {
@@ -578,100 +586,177 @@ export default function NouvelOrdreTravail() {
     );
   };
 
+  // Helper to determine which fields to show based on operation type
+  const getFieldsForOperationType = (opType: string) => {
+    if (opType === "none") return { showConteneur: false, showLot: false, showOperation: false, showDates: false };
+    if (opType.startsWith("manutention")) return { showConteneur: true, showLot: true, showOperation: false, showDates: false };
+    if (opType.startsWith("stockage")) return { showConteneur: true, showLot: true, showOperation: false, showDates: true };
+    if (opType.startsWith("location")) return { showConteneur: false, showLot: false, showOperation: true, showDates: true };
+    return { showConteneur: false, showLot: false, showOperation: false, showDates: false };
+  };
+
   // ========== RENDER LIGNES DE PRESTATION ==========
   const renderLignesPrestation = () => {
     return (
       <div className="border rounded-lg p-4">
         <h4 className="font-medium mb-3">Lignes de prestation</h4>
-        <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-2">
-          <div className="col-span-2">N° Conteneur/Lot</div>
-          <div className="col-span-2">Type d'opération</div>
-          <div className="col-span-3">Description</div>
-          <div className="col-span-1">Qté</div>
-          <div className="col-span-2">Prix unit.</div>
-          <div className="col-span-1">Total</div>
-          <div className="col-span-1"></div>
-        </div>
-        {lignes.map((ligne, index) => (
-          <div key={index} className="grid grid-cols-12 gap-2 mb-2">
-            <Input 
-              className="col-span-2" 
-              placeholder="MSKU1234567"
-              value={ligne.numeroConteneur}
-              onChange={(e) => updateLigne(index, "numeroConteneur", e.target.value.toUpperCase())}
-            />
-            <Select 
-              value={ligne.operationType} 
-              onValueChange={(value) => updateLigne(index, "operationType", value)}
-            >
-              <SelectTrigger className="col-span-2">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Aucune opération</SelectItem>
-                <SelectGroup>
-                  <SelectLabel className="flex items-center gap-2">
-                    <Forklift className="h-3 w-3" /> Manutention
-                  </SelectLabel>
-                  {operationTypes.filter(o => o.category === "Manutention").map(op => (
-                    <SelectItem key={op.key} value={op.key}>{op.label}</SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectGroup>
-                  <SelectLabel className="flex items-center gap-2">
-                    <Warehouse className="h-3 w-3" /> Stockage
-                  </SelectLabel>
-                  {operationTypes.filter(o => o.category === "Stockage").map(op => (
-                    <SelectItem key={op.key} value={op.key}>{op.label}</SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectGroup>
-                  <SelectLabel className="flex items-center gap-2">
-                    <Car className="h-3 w-3" /> Location
-                  </SelectLabel>
-                  {operationTypes.filter(o => o.category === "Location").map(op => (
-                    <SelectItem key={op.key} value={op.key}>{op.label}</SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <Input 
-              className="col-span-3" 
-              placeholder="Description de la prestation"
-              value={ligne.description}
-              onChange={(e) => updateLigne(index, "description", e.target.value)}
-            />
-            <Input 
-              className="col-span-1" 
-              type="number" 
-              placeholder="1"
-              value={ligne.quantite || ""}
-              onChange={(e) => updateLigne(index, "quantite", parseInt(e.target.value) || 0)}
-            />
-            <Input 
-              className="col-span-2" 
-              type="number" 
-              placeholder="0"
-              value={ligne.prixUnit || ""}
-              onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
-            />
-            <Input 
-              className="col-span-1" 
-              disabled 
-              value={ligne.total.toLocaleString("fr-FR")}
-            />
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="col-span-1"
-              onClick={() => removeLigne(index)}
-              disabled={lignes.length === 1}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-        <Button variant="ghost" size="sm" className="mt-2" onClick={addLigne}>
+        
+        {lignes.map((ligne, index) => {
+          const fields = getFieldsForOperationType(ligne.operationType);
+          const hasAnyField = fields.showConteneur || fields.showLot || fields.showOperation || fields.showDates;
+          
+          return (
+            <div key={index} className="mb-4 p-4 border rounded-lg bg-muted/30">
+              {/* Row 1: Type d'opération en premier */}
+              <div className="flex items-center gap-4 mb-3">
+                <div className="flex-1 max-w-xs">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Type d'opération *</Label>
+                  <Select 
+                    value={ligne.operationType} 
+                    onValueChange={(value) => updateLigne(index, "operationType", value)}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Choisir le type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- Sélectionner --</SelectItem>
+                      <SelectGroup>
+                        <SelectLabel className="flex items-center gap-2">
+                          <Forklift className="h-3 w-3" /> Manutention
+                        </SelectLabel>
+                        {operationTypes.filter(o => o.category === "Manutention").map(op => (
+                          <SelectItem key={op.key} value={op.key}>{op.label}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                      <SelectGroup>
+                        <SelectLabel className="flex items-center gap-2">
+                          <Warehouse className="h-3 w-3" /> Stockage
+                        </SelectLabel>
+                        {operationTypes.filter(o => o.category === "Stockage").map(op => (
+                          <SelectItem key={op.key} value={op.key}>{op.label}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                      <SelectGroup>
+                        <SelectLabel className="flex items-center gap-2">
+                          <Car className="h-3 w-3" /> Location
+                        </SelectLabel>
+                        {operationTypes.filter(o => o.category === "Location").map(op => (
+                          <SelectItem key={op.key} value={op.key}>{op.label}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="mt-5"
+                  onClick={() => removeLigne(index)}
+                  disabled={lignes.length === 1}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Row 2: Dynamic fields based on operation type */}
+              {hasAnyField && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                  {fields.showConteneur && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">N° Conteneur</Label>
+                      <Input 
+                        placeholder="MSKU1234567"
+                        value={ligne.numeroConteneur}
+                        onChange={(e) => updateLigne(index, "numeroConteneur", e.target.value.toUpperCase())}
+                      />
+                    </div>
+                  )}
+                  {fields.showLot && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">N° Lot</Label>
+                      <Input 
+                        placeholder="LOT-001"
+                        value={ligne.numeroLot}
+                        onChange={(e) => updateLigne(index, "numeroLot", e.target.value.toUpperCase())}
+                      />
+                    </div>
+                  )}
+                  {fields.showOperation && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">N° Opération</Label>
+                      <Input 
+                        placeholder="OP-001"
+                        value={ligne.numeroOperation}
+                        onChange={(e) => updateLigne(index, "numeroOperation", e.target.value.toUpperCase())}
+                      />
+                    </div>
+                  )}
+                  {fields.showDates && (
+                    <>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1 block">Date début</Label>
+                        <Input 
+                          type="date"
+                          value={ligne.dateDebut}
+                          onChange={(e) => updateLigne(index, "dateDebut", e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1 block">Date fin</Label>
+                        <Input 
+                          type="date"
+                          value={ligne.dateFin}
+                          onChange={(e) => updateLigne(index, "dateFin", e.target.value)}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              
+              {/* Row 3: Description, Quantité, Prix, Total */}
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-5">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Description</Label>
+                  <Input 
+                    placeholder="Description de la prestation"
+                    value={ligne.description}
+                    onChange={(e) => updateLigne(index, "description", e.target.value)}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Quantité</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="1"
+                    value={ligne.quantite || ""}
+                    onChange={(e) => updateLigne(index, "quantite", parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="col-span-3">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Prix unitaire</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="0"
+                    value={ligne.prixUnit || ""}
+                    onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Total</Label>
+                  <Input 
+                    disabled 
+                    className="bg-muted font-medium"
+                    value={ligne.total.toLocaleString("fr-FR") + " FCFA"}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        
+        <Button variant="outline" size="sm" className="mt-2" onClick={addLigne}>
           <Plus className="h-4 w-4 mr-1" />
           Ajouter une ligne
         </Button>
