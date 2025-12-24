@@ -16,6 +16,7 @@ import {
   Mail,
   Wallet,
   TrendingUp,
+  BarChart3,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -76,6 +77,7 @@ const navItems: NavItem[] = [
     icon: TrendingUp,
     children: [
       { title: "Vue globale", href: "/comptabilite", icon: TrendingUp },
+      { title: "Tableau des Flux", href: "/tableau-flux", icon: BarChart3 },
       { title: "Caisse", href: "/caisse", icon: Wallet },
       { title: "Suivi Banque", href: "/suivi-banque", icon: Landmark },
       { title: "Rapports", href: "/rapports", icon: FileText },
