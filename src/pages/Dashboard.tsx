@@ -19,6 +19,7 @@ import {
   TrendingDown,
   Calendar,
 } from "lucide-react";
+import { SEO } from "@/components/SEO";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard, StatCardGrid } from "@/components/ui/stat-card";
@@ -218,6 +219,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function Dashboard() {
   return (
     <PageTransition>
+      <SEO 
+        title="Tableau de bord" 
+        description="Tableau de bord Logistica - Vue d'ensemble de votre activité logistique, chiffre d'affaires, clients et ordres de travail."
+        keywords="tableau de bord, logistique, gestion, KPI, statistiques"
+      />
       <div className="space-y-6">
         {/* Header Premium */}
         <PageHeader
