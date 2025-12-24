@@ -55,6 +55,7 @@ const typeConfig = {
       { key: "hors-lbv", label: "Hors Libreville", icon: MapPin },
       { key: "import", label: "Import sur Libreville", icon: Ship },
       { key: "export", label: "Export", icon: ArrowRightLeft },
+      { key: "vrac", label: "Transport en vrac", icon: Package },
       { key: "exceptionnel", label: "Exceptionnel", icon: Sparkles },
     ],
   },
@@ -186,6 +187,15 @@ export default function NouvelOrdreTravail() {
   const [dimensions, setDimensions] = useState("");
   const [typeEscorte, setTypeEscorte] = useState("");
   const [autorisationSpeciale, setAutorisationSpeciale] = useState("");
+
+  // Transport en vrac fields
+  const [produitVrac, setProduitVrac] = useState("");
+  const [quantiteVrac, setQuantiteVrac] = useState("");
+  const [uniteVrac, setUniteVrac] = useState("");
+  const [prixUnitaireVrac, setPrixUnitaireVrac] = useState("");
+
+  // Calcul total vrac
+  const totalVrac = parseFloat(quantiteVrac || "0") * parseFloat(prixUnitaireVrac || "0");
 
   // Manutention fields
   const [lieuPrestation, setLieuPrestation] = useState("");
@@ -463,6 +473,62 @@ export default function NouvelOrdreTravail() {
           <p className="text-sm text-muted-foreground mt-4">
             Les numéros de conteneurs sont renseignés dans chaque ligne de prestation ci-dessous.
           </p>
+        </div>
+      )}
+
+      {selectedSubType === "vrac" && (
+        <div className="border rounded-lg p-4 border-orange-200 bg-orange-50">
+          <h4 className="font-medium mb-3 text-orange-700">Transport en Vrac</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Produit / Matière *</Label>
+              <Input 
+                placeholder="Ex: Ferro-béton, Bois, Sable..."
+                value={produitVrac}
+                onChange={(e) => setProduitVrac(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Unité de mesure *</Label>
+              <Select value={uniteVrac} onValueChange={setUniteVrac}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner l'unité" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tonne">Tonne</SelectItem>
+                  <SelectItem value="m3">Mètre cube (m³)</SelectItem>
+                  <SelectItem value="kg">Kilogramme (kg)</SelectItem>
+                  <SelectItem value="litre">Litre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            <div className="space-y-2">
+              <Label>Quantité *</Label>
+              <Input 
+                type="number"
+                placeholder="0"
+                value={quantiteVrac}
+                onChange={(e) => setQuantiteVrac(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Prix unitaire (FCFA/{uniteVrac || "unité"}) *</Label>
+              <Input 
+                type="number"
+                placeholder="0"
+                value={prixUnitaireVrac}
+                onChange={(e) => setPrixUnitaireVrac(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Total estimé</Label>
+              <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted flex items-center font-medium">
+                {totalVrac.toLocaleString("fr-FR")} FCFA
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
