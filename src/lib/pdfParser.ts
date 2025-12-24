@@ -1,8 +1,3 @@
-import * as pdfjsLib from "pdfjs-dist";
-
-// Configure le worker PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs`;
-
 export interface TransactionReleve {
   id: string;
   date: string;
@@ -31,10 +26,45 @@ const amountPatterns = [
   /(\d+(?:\s\d{3})*(?:[.,]\d{2})?)/g,
 ];
 
+// Cache pour pdf.js
+let pdfjsLibCache: any = null;
+
 /**
- * Extrait le texte d'un fichier PDF
+ * Charge pdf.js dynamiquement depuis le CDN
+ */
+async function loadPdfJs(): Promise<any> {
+  if (pdfjsLibCache) {
+    return pdfjsLibCache;
+  }
+  
+  // Charger le script principal
+  await new Promise<void>((resolve, reject) => {
+    if ((window as any).pdfjsLib) {
+      resolve();
+      return;
+    }
+    
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    script.onload = () => resolve();
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  
+  const pdfjsLib = (window as any).pdfjsLib;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  
+  pdfjsLibCache = pdfjsLib;
+  return pdfjsLib;
+}
+
+/**
+ * Extrait le texte d'un fichier PDF en utilisant pdf.js via CDN
  */
 export async function extractTextFromPdf(file: File): Promise<string> {
+  // Charger pdf.js dynamiquement depuis le CDN
+  const pdfjsLib = await loadPdfJs();
+  
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   
@@ -48,13 +78,13 @@ export async function extractTextFromPdf(file: File): Promise<string> {
     const lines: Map<number, string[]> = new Map();
     
     for (const item of textContent.items) {
-      if ("str" in item && item.str.trim()) {
+      if ("str" in item && (item as any).str.trim()) {
         // Arrondir la position Y pour grouper les éléments sur la même ligne
         const y = Math.round((item as any).transform[5]);
         if (!lines.has(y)) {
           lines.set(y, []);
         }
-        lines.get(y)!.push(item.str);
+        lines.get(y)!.push((item as any).str);
       }
     }
     
