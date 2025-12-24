@@ -260,6 +260,9 @@ export default function NotesDebut() {
   const [selectedCompagnie, setSelectedCompagnie] = useState<string>("");
   const [selectedContainer, setSelectedContainer] = useState<string>("");
   const [selectedClient, setSelectedClient] = useState<string>("");
+  
+  // Validation states
+  const [formErrors, setFormErrors] = useState<{ ot?: string; container?: string }>({});
 
   // Payment dialog states
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -326,6 +329,42 @@ export default function NotesDebut() {
     setSelectedOT("");
     setAvailableContainers([]);
     setSelectedCompagnie("");
+    setSelectedContainer("");
+    setSelectedClient("");
+    setFormErrors({});
+  };
+
+  const validateForm = (): boolean => {
+    const errors: { ot?: string; container?: string } = {};
+    
+    if (!selectedOT) {
+      errors.ot = "Veuillez sélectionner un ordre de travail";
+    }
+    if (!selectedContainer) {
+      errors.container = "Veuillez sélectionner un conteneur";
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleCreateNote = () => {
+    if (!validateForm()) {
+      toast({
+        title: "Formulaire incomplet",
+        description: "Veuillez sélectionner un OT et un conteneur",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Création réussie
+    toast({
+      title: "Note créée",
+      description: "La note de débit a été créée avec succès",
+    });
+    setIsDialogOpen(false);
+    resetDialog();
   };
 
   // Payment handlers
@@ -504,8 +543,11 @@ export default function NotesDebut() {
                       </div>
                       <div className="space-y-2">
                         <Label>N° OT (Ordre de Travail) *</Label>
-                        <Select value={selectedOT} onValueChange={handleOTChange}>
-                          <SelectTrigger>
+                        <Select value={selectedOT} onValueChange={(value) => {
+                          handleOTChange(value);
+                          setFormErrors(prev => ({ ...prev, ot: undefined }));
+                        }}>
+                          <SelectTrigger className={formErrors.ot ? "border-destructive" : ""}>
                             <SelectValue placeholder="Sélectionner un OT" />
                           </SelectTrigger>
                           <SelectContent>
@@ -516,6 +558,7 @@ export default function NotesDebut() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {formErrors.ot && <p className="text-sm text-destructive">{formErrors.ot}</p>}
                       </div>
                     </div>
 
@@ -525,10 +568,13 @@ export default function NotesDebut() {
                         <Label>N° Conteneur *</Label>
                         <Select 
                           value={selectedContainer} 
-                          onValueChange={setSelectedContainer}
+                          onValueChange={(value) => {
+                            setSelectedContainer(value);
+                            setFormErrors(prev => ({ ...prev, container: undefined }));
+                          }}
                           disabled={availableContainers.length === 0}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className={formErrors.container ? "border-destructive" : ""}>
                             <SelectValue placeholder={availableContainers.length === 0 ? "Sélectionnez un OT d'abord" : "Sélectionner un conteneur"} />
                           </SelectTrigger>
                           <SelectContent>
@@ -539,6 +585,7 @@ export default function NotesDebut() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {formErrors.container && <p className="text-sm text-destructive">{formErrors.container}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label>Compagnie maritime</Label>
@@ -747,10 +794,7 @@ export default function NotesDebut() {
                   }}>
                     Annuler
                   </Button>
-                  <Button variant="gradient" onClick={() => {
-                    setIsDialogOpen(false);
-                    resetDialog();
-                  }}>
+                  <Button variant="gradient" onClick={handleCreateNote}>
                     Créer la note
                   </Button>
                 </DialogFooter>
