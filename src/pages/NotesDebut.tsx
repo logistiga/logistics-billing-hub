@@ -544,47 +544,51 @@ export default function NotesDebut() {
                       <Input placeholder="BL-2024-XXXX" />
                     </div>
 
-                    {/* Période */}
-                    <div className="border rounded-lg p-4 bg-muted/30">
-                      <h4 className="font-medium mb-3 flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Période de facturation
-                      </h4>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label>Date début *</Label>
-                          <Input type="date" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Date fin *</Label>
-                          <Input type="date" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Nombre de jours</Label>
-                          <Input type="number" placeholder="0" disabled className="bg-muted" />
+                    {/* Période - seulement pour ouverture_port et detention */}
+                    {(selectedType === "ouverture_port" || selectedType === "detention") && (
+                      <div className="border rounded-lg p-4 bg-muted/30">
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          Période de facturation
+                        </h4>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label>Date début *</Label>
+                            <Input type="date" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Date fin *</Label>
+                            <Input type="date" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Nombre de jours</Label>
+                            <Input type="number" placeholder="0" disabled className="bg-muted" />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Tarification */}
-                    <div className="border rounded-lg p-4 bg-muted/30">
-                      <h4 className="font-medium mb-3">Tarification</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Tarif journalier (FCFA) *</Label>
-                          <Input type="number" placeholder="50000" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Montant total (FCFA)</Label>
-                          <Input 
-                            type="text" 
-                            disabled 
-                            placeholder="0 FCFA" 
-                            className="bg-muted font-semibold text-primary"
-                          />
+                    {/* Tarification - seulement pour ouverture_port et detention */}
+                    {(selectedType === "ouverture_port" || selectedType === "detention") && (
+                      <div className="border rounded-lg p-4 bg-muted/30">
+                        <h4 className="font-medium mb-3">Tarification</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Tarif journalier (FCFA) *</Label>
+                            <Input type="number" placeholder="50000" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Montant total (FCFA)</Label>
+                            <Input 
+                              type="text" 
+                              disabled 
+                              placeholder="0 FCFA" 
+                              className="bg-muted font-semibold text-primary"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Champs spécifiques par type */}
                     {selectedType === "reparation" && (
