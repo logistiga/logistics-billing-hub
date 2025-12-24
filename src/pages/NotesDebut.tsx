@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -9,7 +10,6 @@ import {
   Trash2,
   Edit,
   Eye,
-  Clock,
   CheckCircle2,
   Anchor,
   Container,
@@ -30,23 +30,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -246,23 +235,12 @@ const mockOrdresTravail = [
 ];
 
 export default function NotesDebut() {
+  const navigate = useNavigate();
   const [notes, setNotes] = useState<NoteDebut[]>(initialNotes);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<string>("");
-  const [formStep, setFormStep] = useState<"type" | "form">("type");
 
-  // Form states
-  const [selectedOT, setSelectedOT] = useState<string>("");
-  const [availableContainers, setAvailableContainers] = useState<{ numero: string; description: string }[]>([]);
-  const [selectedCompagnie, setSelectedCompagnie] = useState<string>("");
-  const [selectedContainer, setSelectedContainer] = useState<string>("");
-  const [selectedClient, setSelectedClient] = useState<string>("");
-  
-  // Validation states
-  const [formErrors, setFormErrors] = useState<{ ot?: string; container?: string }>({});
 
   // Payment dialog states
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -272,22 +250,6 @@ export default function NotesDebut() {
   // Payment history states
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedNoteForHistory, setSelectedNoteForHistory] = useState<NoteDebut | null>(null);
-
-  // Handle OT selection - load containers and shipping company
-  const handleOTChange = (otId: string) => {
-    setSelectedOT(otId);
-    setSelectedContainer("");
-    const ot = mockOrdresTravail.find(o => o.id === otId);
-    if (ot) {
-      setAvailableContainers(ot.containers);
-      setSelectedCompagnie(ot.compagnie);
-      setSelectedClient(ot.clientKey);
-    } else {
-      setAvailableContainers([]);
-      setSelectedCompagnie("");
-      setSelectedClient("");
-    }
-  };
 
   const filteredNotes = notes.filter((note) => {
     const matchesSearch =
@@ -323,49 +285,6 @@ export default function NotesDebut() {
     }).format(value);
   };
 
-  const resetDialog = () => {
-    setSelectedType("");
-    setFormStep("type");
-    setSelectedOT("");
-    setAvailableContainers([]);
-    setSelectedCompagnie("");
-    setSelectedContainer("");
-    setSelectedClient("");
-    setFormErrors({});
-  };
-
-  const validateForm = (): boolean => {
-    const errors: { ot?: string; container?: string } = {};
-    
-    if (!selectedOT) {
-      errors.ot = "Veuillez sélectionner un ordre de travail";
-    }
-    if (!selectedContainer) {
-      errors.container = "Veuillez sélectionner un conteneur";
-    }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleCreateNote = () => {
-    if (!validateForm()) {
-      toast({
-        title: "Formulaire incomplet",
-        description: "Veuillez sélectionner un OT et un conteneur",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Création réussie
-    toast({
-      title: "Note créée",
-      description: "La note de débit a été créée avec succès",
-    });
-    setIsDialogOpen(false);
-    resetDialog();
-  };
 
   // Payment handlers
   const toPayableDocument = (note: NoteDebut): PayableDocument => ({
@@ -473,334 +392,10 @@ export default function NotesDebut() {
               Gérez les notes de début (Ouverture de port, Détention, Réparation conteneur)
             </p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) resetDialog();
-          }}>
-            <DialogTrigger asChild>
-              <Button variant="gradient">
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvelle note
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle className="font-heading">
-                  Nouvelle note de début
-                </DialogTitle>
-                <DialogDescription>
-                  {formStep === "type" 
-                    ? "Sélectionnez le type de note de début"
-                    : `Remplissez les informations pour ${typeConfig[selectedType as keyof typeof typeConfig]?.label}`
-                  }
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-6">
-                {formStep === "type" ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    {Object.entries(typeConfig).map(([key, config]) => {
-                      const Icon = config.icon;
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            setSelectedType(key);
-                            setFormStep("form");
-                          }}
-                          className={`p-6 rounded-xl border-2 border-dashed transition-all hover:border-primary hover:bg-primary/5 ${config.color}`}
-                        >
-                          <Icon className="h-8 w-8 mx-auto mb-3" />
-                          <p className="font-semibold">{config.label}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-6">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setFormStep("type")}
-                      >
-                        ← Retour
-                      </Button>
-                      <Badge className={typeConfig[selectedType as keyof typeof typeConfig]?.color}>
-                        {typeConfig[selectedType as keyof typeof typeConfig]?.label}
-                      </Badge>
-                    </div>
-
-                    {/* Client et références */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Client *</Label>
-                        <Input 
-                          value={selectedClient ? mockOrdresTravail.find(ot => ot.clientKey === selectedClient)?.client || "" : ""} 
-                          disabled 
-                          placeholder="Sélectionnez un OT" 
-                          className="bg-muted"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>N° OT (Ordre de Travail) *</Label>
-                        <Select value={selectedOT} onValueChange={(value) => {
-                          handleOTChange(value);
-                          setFormErrors(prev => ({ ...prev, ot: undefined }));
-                        }}>
-                          <SelectTrigger className={formErrors.ot ? "border-destructive" : ""}>
-                            <SelectValue placeholder="Sélectionner un OT" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {mockOrdresTravail.map((ot) => (
-                              <SelectItem key={ot.id} value={ot.id}>
-                                {ot.id} - {ot.client} ({ot.containers.length} conteneur{ot.containers.length > 1 ? 's' : ''})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {formErrors.ot && <p className="text-sm text-destructive">{formErrors.ot}</p>}
-                      </div>
-                    </div>
-
-                    {/* Conteneur et Compagnie maritime */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>N° Conteneur *</Label>
-                        <Select 
-                          value={selectedContainer} 
-                          onValueChange={(value) => {
-                            setSelectedContainer(value);
-                            setFormErrors(prev => ({ ...prev, container: undefined }));
-                          }}
-                          disabled={availableContainers.length === 0}
-                        >
-                          <SelectTrigger className={formErrors.container ? "border-destructive" : ""}>
-                            <SelectValue placeholder={availableContainers.length === 0 ? "Sélectionnez un OT d'abord" : "Sélectionner un conteneur"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableContainers.map((container) => (
-                              <SelectItem key={container.numero} value={container.numero}>
-                                {container.numero} - {container.description}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {formErrors.container && <p className="text-sm text-destructive">{formErrors.container}</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Compagnie maritime</Label>
-                        <Input 
-                          value={selectedCompagnie} 
-                          disabled 
-                          placeholder="Rempli automatiquement" 
-                          className="bg-muted"
-                        />
-                      </div>
-                    </div>
-
-                    {/* N° BL */}
-                    <div className="space-y-2">
-                      <Label>N° Connaissement (BL) *</Label>
-                      <Input placeholder="BL-2024-XXXX" />
-                    </div>
-
-                    {/* Période - seulement pour ouverture_port et detention */}
-                    {(selectedType === "ouverture_port" || selectedType === "detention") && (
-                      <div className="border rounded-lg p-4 bg-muted/30">
-                        <h4 className="font-medium mb-3 flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          Période de facturation
-                        </h4>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <Label>Date début *</Label>
-                            <Input type="date" />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Date fin *</Label>
-                            <Input type="date" />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Nombre de jours</Label>
-                            <Input type="number" placeholder="0" disabled className="bg-muted" />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Tarification - seulement pour ouverture_port et detention */}
-                    {(selectedType === "ouverture_port" || selectedType === "detention") && (
-                      <div className="border rounded-lg p-4 bg-muted/30">
-                        <h4 className="font-medium mb-3">Tarification</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Tarif journalier (FCFA) *</Label>
-                            <Input type="number" placeholder="50000" />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Montant total (FCFA)</Label>
-                            <Input 
-                              type="text" 
-                              disabled 
-                              placeholder="0 FCFA" 
-                              className="bg-muted font-semibold text-primary"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Champs spécifiques par type */}
-                    {selectedType === "reparation" && (
-                      <div className="border rounded-lg p-4 border-green-200 bg-green-50">
-                        <h4 className="font-medium mb-3 text-green-700">Informations Réparation</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Type de réparation *</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="structural">Réparation structurelle</SelectItem>
-                                <SelectItem value="plancher">Remplacement plancher</SelectItem>
-                                <SelectItem value="porte">Réparation porte</SelectItem>
-                                <SelectItem value="toit">Réparation toit</SelectItem>
-                                <SelectItem value="parois">Réparation parois</SelectItem>
-                                <SelectItem value="peinture">Peinture / Nettoyage</SelectItem>
-                                <SelectItem value="autre">Autre</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Niveau d'urgence</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="normal">Normal</SelectItem>
-                                <SelectItem value="urgent">Urgent</SelectItem>
-                                <SelectItem value="tres_urgent">Très urgent</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 mt-4">
-                          <div className="space-y-2">
-                            <Label>Équipe assignée</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner l'équipe" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="equipe_a">Équipe A - Owendo</SelectItem>
-                                <SelectItem value="equipe_b">Équipe B - Libreville</SelectItem>
-                                <SelectItem value="equipe_c">Équipe C - Port-Gentil</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>État du container</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="leger">Dommages légers</SelectItem>
-                                <SelectItem value="modere">Dommages modérés</SelectItem>
-                                <SelectItem value="grave">Dommages graves</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div className="space-y-2 mt-4">
-                          <Label>Description des dommages</Label>
-                          <Textarea placeholder="Décrivez les dommages constatés et les réparations à effectuer..." />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 mt-4">
-                          <div className="space-y-2">
-                            <Label>Coût estimé main d'œuvre (FCFA)</Label>
-                            <Input type="number" placeholder="150000" />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Coût estimé pièces (FCFA)</Label>
-                            <Input type="number" placeholder="50000" />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedType === "detention" && (
-                      <div className="border rounded-lg p-4 border-amber-200 bg-amber-50">
-                        <h4 className="font-medium mb-3 text-amber-700">Informations Détention</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Type de container</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="20gp">20' GP</SelectItem>
-                                <SelectItem value="40gp">40' GP</SelectItem>
-                                <SelectItem value="40hc">40' HC</SelectItem>
-                                <SelectItem value="20rf">20' Reefer</SelectItem>
-                                <SelectItem value="40rf">40' Reefer</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Motif détention</Label>
-                            <Input placeholder="Ex: Retard dédouanement" />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedType === "ouverture_port" && (
-                      <div className="border rounded-lg p-4 border-blue-200 bg-blue-50">
-                        <h4 className="font-medium mb-3 text-blue-700">Informations Ouverture de port</h4>
-                        <div className="space-y-2">
-                          <Label>Port</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionner" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="owendo">Port d'Owendo</SelectItem>
-                              <SelectItem value="libreville">Port de Libreville</SelectItem>
-                              <SelectItem value="portgentil">Port de Port-Gentil</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    )}
-
-
-                    {/* Description */}
-                    <div className="space-y-2">
-                      <Label>Notes / Description</Label>
-                      <Textarea placeholder="Informations complémentaires..." />
-                    </div>
-                  </div>
-                )}
-              </div>
-              {formStep === "form" && (
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => {
-                    setIsDialogOpen(false);
-                    resetDialog();
-                  }}>
-                    Annuler
-                  </Button>
-                  <Button variant="gradient" onClick={handleCreateNote}>
-                    Créer la note
-                  </Button>
-                </DialogFooter>
-              )}
-            </DialogContent>
-          </Dialog>
+          <Button variant="gradient" onClick={() => navigate("/notes-debut/nouvelle")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle note
+          </Button>
         </div>
 
         {/* Stats */}
