@@ -188,15 +188,6 @@ export default function NouvelOrdreTravail() {
   const [typeEscorte, setTypeEscorte] = useState("");
   const [autorisationSpeciale, setAutorisationSpeciale] = useState("");
 
-  // Transport en vrac fields
-  const [produitVrac, setProduitVrac] = useState("");
-  const [quantiteVrac, setQuantiteVrac] = useState("");
-  const [uniteVrac, setUniteVrac] = useState("");
-  const [prixUnitaireVrac, setPrixUnitaireVrac] = useState("");
-
-  // Calcul total vrac
-  const totalVrac = parseFloat(quantiteVrac || "0") * parseFloat(prixUnitaireVrac || "0");
-
   // Manutention fields
   const [lieuPrestation, setLieuPrestation] = useState("");
   const [typeMarchandise, setTypeMarchandise] = useState("");
@@ -317,12 +308,12 @@ export default function NouvelOrdreTravail() {
 
   const renderTransportForm = () => (
     <div className="space-y-4">
-      {/* Trajet - non obligatoire pour Import et Export */}
+      {/* Trajet - non obligatoire pour Import, Export et Vrac */}
       <div className="border rounded-lg p-4 border-border bg-muted/30">
         <h4 className="font-medium mb-3 text-foreground">Trajet</h4>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Point de départ (A) {selectedSubType !== "import" && selectedSubType !== "export" && "*"}</Label>
+            <Label>Point de départ (A) {selectedSubType !== "import" && selectedSubType !== "export" && selectedSubType !== "vrac" && "*"}</Label>
             <Input 
               placeholder="Ex: Port d'Owendo" 
               value={pointDepart}
@@ -330,7 +321,7 @@ export default function NouvelOrdreTravail() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Point d'arrivée (B) {selectedSubType !== "import" && selectedSubType !== "export" && "*"}</Label>
+            <Label>Point d'arrivée (B) {selectedSubType !== "import" && selectedSubType !== "export" && selectedSubType !== "vrac" && "*"}</Label>
             <Input 
               placeholder="Ex: Port-Gentil"
               value={pointArrivee}
@@ -473,62 +464,6 @@ export default function NouvelOrdreTravail() {
           <p className="text-sm text-muted-foreground mt-4">
             Les numéros de conteneurs sont renseignés dans chaque ligne de prestation ci-dessous.
           </p>
-        </div>
-      )}
-
-      {selectedSubType === "vrac" && (
-        <div className="border rounded-lg p-4 border-orange-200 bg-orange-50">
-          <h4 className="font-medium mb-3 text-orange-700">Transport en Vrac</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Produit / Matière *</Label>
-              <Input 
-                placeholder="Ex: Ferro-béton, Bois, Sable..."
-                value={produitVrac}
-                onChange={(e) => setProduitVrac(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Unité de mesure *</Label>
-              <Select value={uniteVrac} onValueChange={setUniteVrac}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner l'unité" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tonne">Tonne</SelectItem>
-                  <SelectItem value="m3">Mètre cube (m³)</SelectItem>
-                  <SelectItem value="kg">Kilogramme (kg)</SelectItem>
-                  <SelectItem value="litre">Litre</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4 mt-4">
-            <div className="space-y-2">
-              <Label>Quantité *</Label>
-              <Input 
-                type="number"
-                placeholder="0"
-                value={quantiteVrac}
-                onChange={(e) => setQuantiteVrac(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Prix unitaire (FCFA/{uniteVrac || "unité"}) *</Label>
-              <Input 
-                type="number"
-                placeholder="0"
-                value={prixUnitaireVrac}
-                onChange={(e) => setPrixUnitaireVrac(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Total estimé</Label>
-              <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted flex items-center font-medium">
-                {totalVrac.toLocaleString("fr-FR")} FCFA
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
@@ -1045,55 +980,114 @@ export default function NouvelOrdreTravail() {
                 {/* Lignes de prestation */}
                 <div className="border rounded-lg p-4">
                   <h4 className="font-medium mb-3">
-                    {selectedType === "Transport" ? "Conteneurs / Opérations" : "Lignes de prestation"}
+                    {selectedType === "Transport" 
+                      ? (selectedSubType === "vrac" ? "Lots / Produits à transporter" : "Conteneurs / Opérations") 
+                      : "Lignes de prestation"}
                   </h4>
                   {selectedType === "Transport" ? (
-                    <>
-                      <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-2">
-                        <div className="col-span-3">N° Conteneur *</div>
-                        <div className="col-span-4">Description</div>
-                        <div className="col-span-2">Prix unit.</div>
-                        <div className="col-span-2">Total</div>
-                        <div className="col-span-1"></div>
-                      </div>
-                      {lignes.map((ligne, index) => (
-                        <div key={index} className="grid grid-cols-12 gap-2 mb-2">
-                          <Input 
-                            className="col-span-3" 
-                            placeholder="MSKU1234567"
-                            value={ligne.numeroConteneur}
-                            onChange={(e) => updateLigne(index, "numeroConteneur", e.target.value.toUpperCase())}
-                          />
-                          <Input 
-                            className="col-span-4" 
-                            placeholder="Description opération"
-                            value={ligne.description}
-                            onChange={(e) => updateLigne(index, "description", e.target.value)}
-                          />
-                          <Input 
-                            className="col-span-2" 
-                            type="number" 
-                            placeholder="0"
-                            value={ligne.prixUnit || ""}
-                            onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
-                          />
-                          <Input 
-                            className="col-span-2" 
-                            disabled 
-                            value={`${ligne.prixUnit.toLocaleString("fr-FR")} FCFA`}
-                          />
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="col-span-1"
-                            onClick={() => removeLigne(index)}
-                            disabled={lignes.length === 1}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                    selectedSubType === "vrac" ? (
+                      <>
+                        <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-2">
+                          <div className="col-span-2">N° Lot</div>
+                          <div className="col-span-4">Produit / Description</div>
+                          <div className="col-span-2">Quantité</div>
+                          <div className="col-span-2">Prix unit.</div>
+                          <div className="col-span-1">Total</div>
+                          <div className="col-span-1"></div>
                         </div>
-                      ))}
-                    </>
+                        {lignes.map((ligne, index) => (
+                          <div key={index} className="grid grid-cols-12 gap-2 mb-2">
+                            <Input 
+                              className="col-span-2" 
+                              placeholder="LOT-001"
+                              value={ligne.numeroConteneur}
+                              onChange={(e) => updateLigne(index, "numeroConteneur", e.target.value.toUpperCase())}
+                            />
+                            <Input 
+                              className="col-span-4" 
+                              placeholder="Ex: Ferro-béton, Bois, Sable..."
+                              value={ligne.description}
+                              onChange={(e) => updateLigne(index, "description", e.target.value)}
+                            />
+                            <Input 
+                              className="col-span-2" 
+                              type="number" 
+                              placeholder="0"
+                              value={ligne.quantite || ""}
+                              onChange={(e) => updateLigne(index, "quantite", parseInt(e.target.value) || 0)}
+                            />
+                            <Input 
+                              className="col-span-2" 
+                              type="number" 
+                              placeholder="0"
+                              value={ligne.prixUnit || ""}
+                              onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
+                            />
+                            <Input 
+                              className="col-span-1" 
+                              disabled 
+                              value={ligne.total.toLocaleString("fr-FR")}
+                            />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="col-span-1"
+                              onClick={() => removeLigne(index)}
+                              disabled={lignes.length === 1}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-2">
+                          <div className="col-span-3">N° Conteneur *</div>
+                          <div className="col-span-4">Description</div>
+                          <div className="col-span-2">Prix unit.</div>
+                          <div className="col-span-2">Total</div>
+                          <div className="col-span-1"></div>
+                        </div>
+                        {lignes.map((ligne, index) => (
+                          <div key={index} className="grid grid-cols-12 gap-2 mb-2">
+                            <Input 
+                              className="col-span-3" 
+                              placeholder="MSKU1234567"
+                              value={ligne.numeroConteneur}
+                              onChange={(e) => updateLigne(index, "numeroConteneur", e.target.value.toUpperCase())}
+                            />
+                            <Input 
+                              className="col-span-4" 
+                              placeholder="Description opération"
+                              value={ligne.description}
+                              onChange={(e) => updateLigne(index, "description", e.target.value)}
+                            />
+                            <Input 
+                              className="col-span-2" 
+                              type="number" 
+                              placeholder="0"
+                              value={ligne.prixUnit || ""}
+                              onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
+                            />
+                            <Input 
+                              className="col-span-2" 
+                              disabled 
+                              value={`${ligne.prixUnit.toLocaleString("fr-FR")} FCFA`}
+                            />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="col-span-1"
+                              onClick={() => removeLigne(index)}
+                              disabled={lignes.length === 1}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </>
+                    )
                   ) : (
                     <>
                       <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-2">
