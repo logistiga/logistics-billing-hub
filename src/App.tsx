@@ -16,6 +16,9 @@ import NouvelOrdreTravail from "./pages/NouvelOrdreTravail";
 import OrdresEnAttente from "./pages/OrdresEnAttente";
 import NotesDebut from "./pages/NotesDebut";
 import NouvelleNoteDebut from "./pages/NouvelleNoteDebut";
+import NouvelleNoteOuverturePort from "./pages/NouvelleNoteOuverturePort";
+import NouvelleNoteDetention from "./pages/NouvelleNoteDetention";
+import NouvelleNoteReparation from "./pages/NouvelleNoteReparation";
 import Entreprise from "./pages/Entreprise";
 import Banques from "./pages/Banques";
 import Taxes from "./pages/Taxes";
@@ -60,6 +63,9 @@ const App = () => (
               <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
               <Route path="/notes-debut" element={<NotesDebut />} />
               <Route path="/notes-debut/nouvelle" element={<NouvelleNoteDebut />} />
+              <Route path="/notes-debut/ouverture-port" element={<NouvelleNoteOuverturePort />} />
+              <Route path="/notes-debut/detention" element={<NouvelleNoteDetention />} />
+              <Route path="/notes-debut/reparation" element={<NouvelleNoteReparation />} />
               <Route path="/entreprise" element={<Entreprise />} />
               <Route path="/banques" element={<Banques />} />
               <Route path="/taxes" element={<Taxes />} />
