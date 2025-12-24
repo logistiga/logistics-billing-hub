@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -27,6 +27,7 @@ import {
   History,
   Banknote,
   Layers,
+  Filter,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -52,6 +62,7 @@ import {
 import { AvoirCompensationHistory } from "@/components/AvoirCompensationHistory";
 import { PaymentDialog, type PayableDocument, type Payment } from "@/components/PaymentDialog";
 import { toast } from "@/hooks/use-toast";
+import { generatePaymentSummaryPDF, type PaymentSummaryData } from "@/lib/generatePaymentSummaryPDF";
 
 // Mock client data
 const mockClientDetails = {
@@ -95,10 +106,12 @@ const mockWorkOrders = [
 ];
 
 // Mock payments
-const mockPayments = [
+const mockPaymentsData = [
   { id: "PAY-2024-001", date: "2024-02-10", invoiceId: "FAC-2024-001", amount: 2500000, method: "Virement bancaire", reference: "VIR-123456" },
   { id: "PAY-2024-015", date: "2024-03-05", invoiceId: "FAC-2023-089", amount: 1500000, method: "Chèque", reference: "CHQ-789012" },
   { id: "PAY-2024-028", date: "2024-04-02", invoiceId: "FAC-2024-002", amount: 800000, method: "Espèces", reference: "ESP-345678" },
+  { id: "PAY-2024-035", date: "2024-01-15", invoiceId: "FAC-2024-003", amount: 1200000, method: "Virement bancaire", reference: "VIR-654321" },
+  { id: "PAY-2024-042", date: "2024-04-20", invoiceId: "FAC-2024-004", amount: 950000, method: "Chèque", reference: "CHQ-111222" },
 ];
 
 // Mock credit notes (avoirs)
@@ -154,6 +167,11 @@ export default function ClientDashboard() {
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
   const [documentsForPayment, setDocumentsForPayment] = useState<PayableDocument[]>([]);
 
+  // État pour les filtres de paiements
+  const [paymentDateFrom, setPaymentDateFrom] = useState("");
+  const [paymentDateTo, setPaymentDateTo] = useState("");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
+
   const client = mockClientDetails;
 
   const formatCurrency = (value: number) => {
@@ -185,7 +203,7 @@ export default function ClientDashboard() {
 
   // Calculate totals with avoirs
   const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-  const totalPaid = mockPayments.reduce((sum, pay) => sum + pay.amount, 0);
+  const totalPaid = mockPaymentsData.reduce((sum, pay) => sum + pay.amount, 0);
   const totalCreditNotes = mockCreditNotes.filter(cn => cn.status !== "cancelled").reduce((sum, cn) => sum + cn.amount, 0);
   const appliedCreditNotes = mockCreditNotes.filter(cn => cn.status === "applied").reduce((sum, cn) => sum + cn.amount, 0);
   
@@ -390,7 +408,7 @@ export default function ClientDashboard() {
                 <TabsTrigger value="payments" className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
                   <span className="hidden sm:inline">Paiements</span>
-                  <Badge variant="secondary" className="ml-1">{mockPayments.length}</Badge>
+                  <Badge variant="secondary" className="ml-1">{mockPaymentsData.length}</Badge>
                 </TabsTrigger>
               </TabsList>
             </CardHeader>
@@ -731,41 +749,217 @@ export default function ClientDashboard() {
 
             {/* Payments Tab */}
             <TabsContent value="payments" className="p-6 pt-4">
-              <div className="rounded-lg border border-border/50 overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead>Référence</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Facture liée</TableHead>
-                      <TableHead>Méthode</TableHead>
-                      <TableHead className="text-right">Montant</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockPayments.map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell className="font-medium">{payment.reference}</TableCell>
-                        <TableCell>{formatDate(payment.date)}</TableCell>
-                        <TableCell>{payment.invoiceId}</TableCell>
-                        <TableCell>{payment.method}</TableCell>
-                        <TableCell className="text-right font-medium text-green-600">{formatCurrency(payment.amount)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Download className="h-4 w-4" />
-                            </Button>
+              {/* Filtres et récapitulatif */}
+              {(() => {
+                // Filtrer les paiements
+                const filteredPayments = mockPaymentsData.filter((payment) => {
+                  const paymentDate = new Date(payment.date);
+                  const fromDate = paymentDateFrom ? new Date(paymentDateFrom) : null;
+                  const toDate = paymentDateTo ? new Date(paymentDateTo) : null;
+
+                  if (fromDate && paymentDate < fromDate) return false;
+                  if (toDate && paymentDate > toDate) return false;
+                  if (paymentMethodFilter !== "all" && payment.method !== paymentMethodFilter)
+                    return false;
+                  return true;
+                });
+
+                const totalFiltered = filteredPayments.reduce(
+                  (sum, p) => sum + p.amount,
+                  0
+                );
+
+                const handleExportPDF = () => {
+                  const data: PaymentSummaryData = {
+                    client: {
+                      nom: client.name,
+                      adresse: `${client.address}, ${client.city}`,
+                      nif: client.nif,
+                    },
+                    periode: {
+                      debut: paymentDateFrom || "2024-01-01",
+                      fin: paymentDateTo || new Date().toISOString().split("T")[0],
+                    },
+                    paiements: filteredPayments.map((p) => ({
+                      reference: p.reference,
+                      date: p.date,
+                      facture: p.invoiceId,
+                      methode: p.method,
+                      montant: p.amount,
+                    })),
+                    totaux: {
+                      totalPaiements: totalFiltered,
+                      totalFacture: totalInvoiced,
+                      soldeRestant: balance,
+                    },
+                  };
+                  generatePaymentSummaryPDF(data);
+                  toast({
+                    title: "PDF généré",
+                    description: "Le récapitulatif des paiements a été téléchargé.",
+                  });
+                };
+
+                return (
+                  <>
+                    {/* Barre de filtres */}
+                    <div className="mb-4 p-4 rounded-lg bg-muted/50 border border-border/50">
+                      <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="dateFrom" className="text-sm">
+                              Du
+                            </Label>
+                            <Input
+                              id="dateFrom"
+                              type="date"
+                              value={paymentDateFrom}
+                              onChange={(e) => setPaymentDateFrom(e.target.value)}
+                            />
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="dateTo" className="text-sm">
+                              Au
+                            </Label>
+                            <Input
+                              id="dateTo"
+                              type="date"
+                              value={paymentDateTo}
+                              onChange={(e) => setPaymentDateTo(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="method" className="text-sm">
+                              Méthode
+                            </Label>
+                            <Select
+                              value={paymentMethodFilter}
+                              onValueChange={setPaymentMethodFilter}
+                            >
+                              <SelectTrigger id="method">
+                                <SelectValue placeholder="Toutes" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">Toutes les méthodes</SelectItem>
+                                <SelectItem value="Virement bancaire">
+                                  Virement bancaire
+                                </SelectItem>
+                                <SelectItem value="Chèque">Chèque</SelectItem>
+                                <SelectItem value="Espèces">Espèces</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setPaymentDateFrom("");
+                              setPaymentDateTo("");
+                              setPaymentMethodFilter("all");
+                            }}
+                          >
+                            <Filter className="h-4 w-4 mr-2" />
+                            Réinitialiser
+                          </Button>
+                          <Button
+                            variant="gradient"
+                            size="sm"
+                            onClick={handleExportPDF}
+                            disabled={filteredPayments.length === 0}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Exporter PDF
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Récapitulatif */}
+                      <div className="mt-4 pt-4 border-t border-border/50 flex flex-wrap items-center gap-6">
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            Paiements affichés
+                          </p>
+                          <p className="text-lg font-bold text-foreground">
+                            {filteredPayments.length}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            Total période
+                          </p>
+                          <p className="text-lg font-bold text-success">
+                            {formatCurrency(totalFiltered)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            Total tous paiements
+                          </p>
+                          <p className="text-lg font-bold text-foreground">
+                            {formatCurrency(totalPaid)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tableau des paiements */}
+                    <div className="rounded-lg border border-border/50 overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/50">
+                            <TableHead>Référence</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Facture liée</TableHead>
+                            <TableHead>Méthode</TableHead>
+                            <TableHead className="text-right">Montant</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredPayments.length === 0 ? (
+                            <TableRow>
+                              <TableCell
+                                colSpan={6}
+                                className="text-center py-8 text-muted-foreground"
+                              >
+                                Aucun paiement trouvé pour cette période
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            filteredPayments.map((payment) => (
+                              <TableRow key={payment.id}>
+                                <TableCell className="font-medium">
+                                  {payment.reference}
+                                </TableCell>
+                                <TableCell>{formatDate(payment.date)}</TableCell>
+                                <TableCell>{payment.invoiceId}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{payment.method}</Badge>
+                                </TableCell>
+                                <TableCell className="text-right font-medium text-success">
+                                  {formatCurrency(payment.amount)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-1">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                );
+              })()}
             </TabsContent>
           </Tabs>
         </Card>
