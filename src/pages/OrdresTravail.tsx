@@ -25,7 +25,6 @@ import {
   ReceiptText,
   ClipboardList,
 } from "lucide-react";
-import { SEO } from "@/components/SEO";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard, StatCardGrid } from "@/components/ui/stat-card";
@@ -511,11 +510,6 @@ export default function OrdresTravail() {
 
   return (
     <PageTransition>
-      <SEO 
-        title="Ordres de travail" 
-        description="Gestion des ordres de travail et connaissements - Créez, suivez et gérez vos ordres logistiques."
-        keywords="ordres de travail, connaissements, logistique, transit, manutention"
-      />
       <div className="space-y-6">
         {/* Header Premium */}
         <PageHeader

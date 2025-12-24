@@ -21,7 +21,6 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
-import { SEO } from "@/components/SEO";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard, StatCardGrid } from "@/components/ui/stat-card";
@@ -469,11 +468,6 @@ export default function Factures() {
 
   return (
     <PageTransition>
-      <SEO 
-        title="Factures" 
-        description="Gestion des factures - Créez, suivez et gérez vos factures clients avec suivi des paiements."
-        keywords="factures, facturation, paiements, comptabilité, gestion financière"
-      />
       <div className="space-y-6">
         {/* Header Premium */}
         <PageHeader
