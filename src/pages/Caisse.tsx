@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Wallet,
@@ -55,134 +55,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ExportDialog } from "@/components/ExportDialog";
 import { generateExportPDF, generateExportExcel } from "@/lib/exportComptabilite";
-
-interface Transaction {
-  id: string;
-  date: string;
-  type: "entree" | "sortie";
-  categorie: string;
-  description: string;
-  reference: string;
-  montant: number;
-  client?: string;
-  facture?: string;
-  createdBy: string;
-}
-
-const mockTransactions: Transaction[] = [
-  {
-    id: "1",
-    date: "2024-01-15",
-    type: "entree",
-    categorie: "Paiement facture",
-    description: "Règlement facture FAC-2024-001 - Paiement espèces",
-    reference: "CAI-001",
-    montant: 2500000,
-    client: "Total Gabon",
-    facture: "FAC-2024-001",
-    createdBy: "Admin",
-  },
-  {
-    id: "2",
-    date: "2024-01-14",
-    type: "sortie",
-    categorie: "Carburant",
-    description: "Carburant véhicules - Janvier",
-    reference: "CAI-002",
-    montant: 450000,
-    createdBy: "Comptable",
-  },
-  {
-    id: "3",
-    date: "2024-01-13",
-    type: "entree",
-    categorie: "Paiement facture",
-    description: "Acompte commande CMD-2024-015",
-    reference: "CAI-003",
-    montant: 1200000,
-    client: "Comilog",
-    createdBy: "Admin",
-  },
-  {
-    id: "4",
-    date: "2024-01-12",
-    type: "sortie",
-    categorie: "Fournitures",
-    description: "Fournitures de bureau",
-    reference: "CAI-004",
-    montant: 125000,
-    createdBy: "Comptable",
-  },
-  {
-    id: "5",
-    date: "2024-01-11",
-    type: "entree",
-    categorie: "Paiement facture",
-    description: "Règlement facture FAC-2024-003",
-    reference: "CAI-005",
-    montant: 890000,
-    client: "Assala Energy",
-    facture: "FAC-2024-003",
-    createdBy: "Admin",
-  },
-  {
-    id: "6",
-    date: "2024-01-10",
-    type: "sortie",
-    categorie: "Frais divers",
-    description: "Petit équipement bureau",
-    reference: "CAI-006",
-    montant: 85000,
-    createdBy: "Comptable",
-  },
-  {
-    id: "7",
-    date: "2024-01-09",
-    type: "entree",
-    categorie: "Autre",
-    description: "Vente matériel occasion",
-    reference: "CAI-007",
-    montant: 350000,
-    createdBy: "Admin",
-  },
-  {
-    id: "8",
-    date: "2024-01-08",
-    type: "sortie",
-    categorie: "Transport",
-    description: "Frais de transport personnel",
-    reference: "CAI-008",
-    montant: 75000,
-    createdBy: "Comptable",
-  },
-];
-
-const categoriesEntree = [
-  "Paiement facture",
-  "Acompte",
-  "Remboursement",
-  "Vente",
-  "Autre",
-];
-
-const categoriesSortie = [
-  "Carburant",
-  "Fournitures",
-  "Transport",
-  "Frais divers",
-  "Alimentation",
-  "Entretien",
-  "Autre",
-];
+import { toast } from "@/hooks/use-toast";
+import { 
+  cashFlowStore, 
+  CashTransaction,
+  encaissementCategories,
+  decaissementCategories 
+} from "@/lib/cashFlowStore";
 
 export default function Caisse() {
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+  const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "entree" | "sortie">("all");
-  const [filterPeriod, setFilterPeriod] = useState("all");
+  const [filterType, setFilterType] = useState<"all" | "encaissement" | "decaissement">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [transactionType, setTransactionType] = useState<"entree" | "sortie">("entree");
+  const [transactionType, setTransactionType] = useState<"encaissement" | "decaissement">("encaissement");
   
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -192,6 +79,17 @@ export default function Caisse() {
     client: "",
     facture: "",
   });
+
+  // Charger et écouter les changements du store
+  useEffect(() => {
+    const loadTransactions = () => {
+      setTransactions(cashFlowStore.getPastTransactions());
+    };
+    
+    loadTransactions();
+    const unsubscribe = cashFlowStore.subscribe(loadTransactions);
+    return () => unsubscribe();
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-FR").format(amount) + " FCFA";
@@ -205,12 +103,17 @@ export default function Caisse() {
     });
   };
 
+  const getCategoryLabel = (value: string, type: "encaissement" | "decaissement") => {
+    const categories = type === "encaissement" ? encaissementCategories : decaissementCategories;
+    return categories.find(c => c.value === value)?.label || value;
+  };
+
   const totalEntrees = transactions
-    .filter((t) => t.type === "entree")
+    .filter((t) => t.type === "encaissement")
     .reduce((sum, t) => sum + t.montant, 0);
 
   const totalSorties = transactions
-    .filter((t) => t.type === "sortie")
+    .filter((t) => t.type === "decaissement")
     .reduce((sum, t) => sum + t.montant, 0);
 
   const soldeCaisse = totalEntrees - totalSorties;
@@ -225,20 +128,44 @@ export default function Caisse() {
   });
 
   const handleSubmit = () => {
-    const newTransaction: Transaction = {
-      id: Date.now().toString(),
+    if (!formData.categorie || !formData.description || !formData.montant) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs obligatoires",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const montant = parseFloat(formData.montant);
+    if (isNaN(montant) || montant <= 0) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer un montant valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    cashFlowStore.add({
       date: formData.date,
       type: transactionType,
       categorie: formData.categorie,
       description: formData.description,
-      reference: `CAI-${String(transactions.length + 1).padStart(3, "0")}`,
-      montant: parseFloat(formData.montant) || 0,
+      reference: `CAI-${Date.now().toString().slice(-6)}`,
+      montant,
       client: formData.client || undefined,
       facture: formData.facture || undefined,
+      status: "confirmed",
+      source: "caisse",
       createdBy: "Admin",
-    };
+    });
 
-    setTransactions([newTransaction, ...transactions]);
+    toast({
+      title: transactionType === "encaissement" ? "Encaissement enregistré" : "Décaissement enregistré",
+      description: `${formatCurrency(montant)} ${transactionType === "encaissement" ? "encaissé" : "décaissé"}`,
+    });
+
     setDialogOpen(false);
     setFormData({
       date: new Date().toISOString().split("T")[0],
@@ -250,7 +177,15 @@ export default function Caisse() {
     });
   };
 
-  const openDialog = (type: "entree" | "sortie") => {
+  const handleDelete = (id: string) => {
+    cashFlowStore.delete(id);
+    toast({
+      title: "Transaction supprimée",
+      description: "La transaction a été supprimée avec succès",
+    });
+  };
+
+  const openDialog = (type: "encaissement" | "decaissement") => {
     setTransactionType(type);
     setFormData({ ...formData, categorie: "" });
     setDialogOpen(true);
@@ -262,18 +197,31 @@ export default function Caisse() {
     });
 
     const totaux = {
-      entrees: filteredByDate.filter((t) => t.type === "entree").reduce((sum, t) => sum + t.montant, 0),
-      sorties: filteredByDate.filter((t) => t.type === "sortie").reduce((sum, t) => sum + t.montant, 0),
+      entrees: filteredByDate.filter((t) => t.type === "encaissement").reduce((sum, t) => sum + t.montant, 0),
+      sorties: filteredByDate.filter((t) => t.type === "decaissement").reduce((sum, t) => sum + t.montant, 0),
       solde: 0,
     };
     totaux.solde = totaux.entrees - totaux.sorties;
+
+    const mappedTransactions = filteredByDate.map(t => ({
+      id: t.id,
+      date: t.date,
+      type: t.type === "encaissement" ? "entree" as const : "sortie" as const,
+      categorie: getCategoryLabel(t.categorie, t.type),
+      description: t.description,
+      reference: t.reference,
+      montant: t.montant,
+      client: t.client,
+      facture: t.facture,
+      createdBy: t.createdBy || "Admin",
+    }));
 
     const options = {
       titre: "Journal de Caisse",
       sousTitre: "Transactions en espèces",
       periodeDebut: dateDebut,
       periodeFin: dateFin,
-      transactions: filteredByDate,
+      transactions: mappedTransactions,
       totaux,
       type: "caisse" as const,
     };
@@ -299,7 +247,7 @@ export default function Caisse() {
       icon: TrendingUp,
       color: "text-emerald-500",
       bgColor: "bg-emerald-500/10",
-      subtitle: `${transactions.filter((t) => t.type === "entree").length} opérations`,
+      subtitle: `${transactions.filter((t) => t.type === "encaissement").length} opérations`,
     },
     {
       title: "Sorties Espèces",
@@ -307,7 +255,7 @@ export default function Caisse() {
       icon: TrendingDown,
       color: "text-destructive",
       bgColor: "bg-destructive/10",
-      subtitle: `${transactions.filter((t) => t.type === "sortie").length} opérations`,
+      subtitle: `${transactions.filter((t) => t.type === "decaissement").length} opérations`,
     },
     {
       title: "Transactions du jour",
@@ -341,7 +289,7 @@ export default function Caisse() {
           <Button
             variant="outline"
             className="border-emerald-500 text-emerald-500 hover:bg-emerald-500/10"
-            onClick={() => openDialog("entree")}
+            onClick={() => openDialog("encaissement")}
           >
             <Plus className="h-4 w-4 mr-2" />
             Encaissement
@@ -349,7 +297,7 @@ export default function Caisse() {
           <Button
             variant="outline"
             className="border-destructive text-destructive hover:bg-destructive/10"
-            onClick={() => openDialog("sortie")}
+            onClick={() => openDialog("decaissement")}
           >
             <Minus className="h-4 w-4 mr-2" />
             Décaissement
@@ -408,15 +356,15 @@ export default function Caisse() {
                   className="pl-9"
                 />
               </div>
-              <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
+              <Select value={filterType} onValueChange={(v: "all" | "encaissement" | "decaissement") => setFilterType(v)}>
                 <SelectTrigger className="w-[140px]">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tout</SelectItem>
-                  <SelectItem value="entree">Entrées</SelectItem>
-                  <SelectItem value="sortie">Sorties</SelectItem>
+                  <SelectItem value="encaissement">Entrées</SelectItem>
+                  <SelectItem value="decaissement">Sorties</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
@@ -462,18 +410,20 @@ export default function Caisse() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{transaction.categorie}</Badge>
+                      <Badge variant="outline">
+                        {getCategoryLabel(transaction.categorie, transaction.type)}
+                      </Badge>
                     </TableCell>
                     <TableCell>{transaction.client || "-"}</TableCell>
                     <TableCell className="text-right">
                       <span
                         className={`font-bold ${
-                          transaction.type === "entree"
+                          transaction.type === "encaissement"
                             ? "text-emerald-500"
                             : "text-destructive"
                         }`}
                       >
-                        {transaction.type === "entree" ? "+" : "-"}{" "}
+                        {transaction.type === "encaissement" ? "+" : "-"}{" "}
                         {formatCurrency(transaction.montant)}
                       </span>
                     </TableCell>
@@ -493,7 +443,10 @@ export default function Caisse() {
                             <Edit className="h-4 w-4 mr-2" />
                             Modifier
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleDelete(transaction.id)}
+                          >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Supprimer
                           </DropdownMenuItem>
@@ -520,7 +473,7 @@ export default function Caisse() {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {transactionType === "entree" ? (
+              {transactionType === "encaissement" ? (
                 <>
                   <ArrowDownLeft className="h-5 w-5 text-emerald-500" />
                   <span>Nouvel encaissement espèces</span>
@@ -533,7 +486,7 @@ export default function Caisse() {
               )}
             </DialogTitle>
             <DialogDescription>
-              Enregistrer une {transactionType === "entree" ? "entrée" : "sortie"} en espèces
+              Enregistrer une {transactionType === "encaissement" ? "entrée" : "sortie"} en espèces
             </DialogDescription>
           </DialogHeader>
 
@@ -548,7 +501,7 @@ export default function Caisse() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Montant (FCFA)</Label>
+                <Label>Montant (FCFA) *</Label>
                 <Input
                   type="number"
                   placeholder="0"
@@ -559,7 +512,7 @@ export default function Caisse() {
             </div>
 
             <div className="space-y-2">
-              <Label>Catégorie</Label>
+              <Label>Catégorie *</Label>
               <Select
                 value={formData.categorie}
                 onValueChange={(value) => setFormData({ ...formData, categorie: value })}
@@ -568,14 +521,14 @@ export default function Caisse() {
                   <SelectValue placeholder="Sélectionner..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {(transactionType === "entree" ? categoriesEntree : categoriesSortie).map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  {(transactionType === "encaissement" ? encaissementCategories : decaissementCategories).map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {transactionType === "entree" && (
+            {transactionType === "encaissement" && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Client (optionnel)</Label>
@@ -597,7 +550,7 @@ export default function Caisse() {
             )}
 
             <div className="space-y-2">
-              <Label>Description</Label>
+              <Label>Description *</Label>
               <Textarea
                 placeholder="Description..."
                 value={formData.description}
@@ -613,8 +566,8 @@ export default function Caisse() {
             </Button>
             <Button
               onClick={handleSubmit}
-              className={transactionType === "entree" ? "bg-emerald-500 hover:bg-emerald-600" : ""}
-              variant={transactionType === "sortie" ? "destructive" : "default"}
+              className={transactionType === "encaissement" ? "bg-emerald-500 hover:bg-emerald-600" : ""}
+              variant={transactionType === "decaissement" ? "destructive" : "default"}
             >
               Enregistrer
             </Button>
