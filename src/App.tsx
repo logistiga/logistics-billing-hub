@@ -23,6 +23,7 @@ import Utilisateurs from "./pages/Utilisateurs";
 import Partenaires from "./pages/Partenaires";
 import Caisse from "./pages/Caisse";
 import SuiviBanque from "./pages/SuiviBanque";
+import TableauFlux from "./pages/TableauFlux";
 import ComptabiliteGenerale from "./pages/ComptabiliteGenerale";
 import Rapports from "./pages/Rapports";
 import CreditBancaire from "./pages/CreditBancaire";
@@ -65,6 +66,7 @@ const App = () => (
               <Route path="/partenaires" element={<Partenaires />} />
               <Route path="/caisse" element={<Caisse />} />
               <Route path="/suivi-banque" element={<SuiviBanque />} />
+              <Route path="/tableau-flux" element={<TableauFlux />} />
               <Route path="/comptabilite" element={<ComptabiliteGenerale />} />
               <Route path="/rapports" element={<Rapports />} />
               <Route path="/credit-bancaire" element={<CreditBancaire />} />
