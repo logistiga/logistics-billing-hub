@@ -15,6 +15,7 @@ import OrdresTravail from "./pages/OrdresTravail";
 import NouvelOrdreTravail from "./pages/NouvelOrdreTravail";
 import OrdresEnAttente from "./pages/OrdresEnAttente";
 import NotesDebut from "./pages/NotesDebut";
+import NouvelleNoteDebut from "./pages/NouvelleNoteDebut";
 import Entreprise from "./pages/Entreprise";
 import Banques from "./pages/Banques";
 import Taxes from "./pages/Taxes";
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
               <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
               <Route path="/notes-debut" element={<NotesDebut />} />
+              <Route path="/notes-debut/nouvelle" element={<NouvelleNoteDebut />} />
               <Route path="/entreprise" element={<Entreprise />} />
               <Route path="/banques" element={<Banques />} />
               <Route path="/taxes" element={<Taxes />} />
