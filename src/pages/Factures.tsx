@@ -16,8 +16,14 @@ import {
   Layers,
   FileDown,
   ReceiptText,
+  FileText,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { StatCard, StatCardGrid } from "@/components/ui/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -452,19 +458,28 @@ export default function Factures() {
     },
   ];
 
+  // Stats enrichies
+  const statsData = {
+    total: invoices.length,
+    paid: invoices.filter(i => i.status === "paid").length,
+    pending: invoices.filter(i => i.status === "pending" || i.status === "partial").length,
+    overdue: invoices.filter(i => i.status === "overdue").length,
+  };
+
   return (
     <PageTransition>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-foreground">
-              Factures
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Gérez et suivez toutes vos factures
-            </p>
-          </div>
+        {/* Header Premium */}
+        <PageHeader
+          title="Factures"
+          subtitle="Gérez et suivez toutes vos factures"
+          icon={FileText}
+          badges={[
+            { label: "Payées", value: statsData.paid, variant: "success" },
+            { label: "En attente", value: statsData.pending, variant: "warning" },
+            { label: "En retard", value: statsData.overdue, variant: "destructive" },
+          ]}
+        >
           <div className="flex gap-2">
             {isSomeSelected && (
               <Button variant="outline" onClick={handleGroupPayment}>
@@ -477,29 +492,43 @@ export default function Factures() {
               Nouvelle facture
             </Button>
           </div>
-        </div>
+        </PageHeader>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card className="border-border/50">
-                <CardContent className="p-4">
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold font-heading mt-1">
-                    {stat.value}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{stat.unit}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+        {/* Stats Cards */}
+        <StatCardGrid columns={4}>
+          <StatCard
+            title="Total facturé"
+            value={stats[0].value}
+            unit="FCFA"
+            icon={FileText}
+            variant="primary"
+            delay={0}
+          />
+          <StatCard
+            title="Payé"
+            value={stats[1].value}
+            unit="FCFA"
+            icon={CheckCircle2}
+            variant="success"
+            delay={0.1}
+          />
+          <StatCard
+            title="Avances reçues"
+            value={stats[2].value}
+            unit="FCFA"
+            icon={CreditCard}
+            variant="info"
+            delay={0.2}
+          />
+          <StatCard
+            title="En attente"
+            value={stats[3].value}
+            unit="FCFA"
+            icon={Clock}
+            variant="warning"
+            delay={0.3}
+          />
+        </StatCardGrid>
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4">

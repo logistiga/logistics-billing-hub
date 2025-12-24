@@ -23,8 +23,11 @@ import {
   AlertTriangle,
   CircleDollarSign,
   ReceiptText,
+  ClipboardList,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { StatCard, StatCardGrid } from "@/components/ui/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -496,24 +499,72 @@ export default function OrdresTravail() {
     setDeleteDialogOpen(false);
   };
 
+  // Calcul des statistiques
+  const stats = {
+    total: orders.length,
+    enCours: orders.filter(o => o.status === "in_progress").length,
+    termines: orders.filter(o => o.status === "completed").length,
+    enAttente: orders.filter(o => o.status === "pending").length,
+    montantTotal: orders.reduce((sum, o) => sum + o.amount, 0),
+  };
+
   return (
     <PageTransition>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-foreground">
-              Ordres de travail
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Gérez vos connaissements et ordres de travail
-            </p>
-          </div>
+        {/* Header Premium */}
+        <PageHeader
+          title="Ordres de travail"
+          subtitle="Gérez vos connaissements et ordres de travail"
+          icon={ClipboardList}
+          badges={[
+            { label: "En cours", value: stats.enCours, variant: "info" },
+            { label: "Terminés", value: stats.termines, variant: "success" },
+            { label: "En attente", value: stats.enAttente, variant: "warning" },
+          ]}
+        >
           <Button variant="gradient" onClick={() => navigate("/ordres-travail/nouveau")}>
             <Plus className="h-4 w-4 mr-2" />
             Nouvel ordre
           </Button>
-        </div>
+        </PageHeader>
+
+        {/* Stats Cards */}
+        <StatCardGrid columns={4}>
+          <StatCard
+            title="Total ordres"
+            value={stats.total}
+            unit="ordres"
+            icon={ClipboardList}
+            variant="primary"
+            delay={0}
+          />
+          <StatCard
+            title="En cours"
+            value={stats.enCours}
+            unit="ordres actifs"
+            icon={Clock}
+            variant="info"
+            delay={0.1}
+          />
+          <StatCard
+            title="Terminés"
+            value={stats.termines}
+            unit="ce mois"
+            icon={CheckCircle2}
+            variant="success"
+            delay={0.2}
+          />
+          <StatCard
+            title="Montant total"
+            value={new Intl.NumberFormat("fr-GA").format(stats.montantTotal)}
+            unit="FCFA"
+            icon={CreditCard}
+            variant="warning"
+            change="+8.2%"
+            trend="up"
+            delay={0.3}
+          />
+        </StatCardGrid>
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4">

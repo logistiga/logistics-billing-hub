@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import {
+  LayoutDashboard,
   TrendingUp,
   Users,
   FileText,
@@ -19,6 +20,8 @@ import {
   Calendar,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { StatCard, StatCardGrid } from "@/components/ui/stat-card";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -216,63 +219,39 @@ export default function Dashboard() {
   return (
     <PageTransition>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-foreground">
-              Tableau de bord
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Bienvenue ! Voici un aperçu de votre activité
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Button variant="outline">
-              <Calendar className="h-4 w-4 mr-2" />
-              Décembre 2024
-            </Button>
-            <Button variant="gradient">Nouvelle facture</Button>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        {/* Header Premium */}
+        <PageHeader
+          title="Tableau de bord"
+          subtitle="Bienvenue ! Voici un aperçu de votre activité"
+          icon={LayoutDashboard}
+          badges={[
+            { label: "CA ce mois", value: "24.5M FCFA", variant: "success" },
+            { label: "Clients actifs", value: "156", variant: "info" },
+          ]}
         >
-          {stats.map((stat) => (
-            <motion.div key={stat.title} variants={itemVariants}>
-              <Card className="hover-lift cursor-pointer border-border/50 bg-card">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className={`p-3 rounded-xl ${stat.color}`}>
-                      <stat.icon className="h-5 w-5" />
-                    </div>
-                    <div
-                      className={`flex items-center gap-1 text-sm font-medium ${
-                        stat.trend === "up" ? "text-success" : "text-destructive"
-                      }`}
-                    >
-                      {stat.change}
-                      {stat.trend === "up" ? (
-                        <ArrowUpRight className="h-4 w-4" />
-                      ) : (
-                        <ArrowDownRight className="h-4 w-4" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-2xl font-bold font-heading">{stat.value}</p>
-                    <p className="text-sm text-muted-foreground">{stat.unit}</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">{stat.title}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
+          <Button variant="outline">
+            <Calendar className="h-4 w-4 mr-2" />
+            Décembre 2024
+          </Button>
+          <Button variant="gradient">Nouvelle facture</Button>
+        </PageHeader>
+
+        {/* Stats Grid avec StatCard */}
+        <StatCardGrid columns={4}>
+          {stats.map((stat, index) => (
+            <StatCard
+              key={stat.title}
+              title={stat.title}
+              value={stat.value}
+              unit={stat.unit}
+              change={stat.change}
+              trend={stat.trend as "up" | "down"}
+              icon={stat.icon}
+              variant={stat.trend === "up" ? "success" : "destructive"}
+              delay={index * 0.1}
+            />
           ))}
-        </motion.div>
+        </StatCardGrid>
 
         {/* KPIs avec objectifs */}
         <motion.div

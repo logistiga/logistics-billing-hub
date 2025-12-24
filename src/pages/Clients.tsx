@@ -13,8 +13,15 @@ import {
   Trash2,
   Eye,
   X,
+  Users,
+  TrendingUp,
+  Wallet,
+  Building2,
+  FileText,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { StatCard, StatCardGrid } from "@/components/ui/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -367,19 +374,27 @@ export default function Clients() {
     }).format(value) + " FCFA";
   };
 
+  // Calcul des statistiques
+  const stats = {
+    total: clients.length,
+    totalBalance: clients.reduce((sum, c) => sum + c.balance, 0),
+    totalInvoices: clients.reduce((sum, c) => sum + c.totalInvoices, 0),
+    cities: new Set(clients.map(c => c.city)).size,
+  };
+
   return (
     <PageTransition>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-foreground">
-              Clients
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Gérez vos clients et leurs informations
-            </p>
-          </div>
+        {/* Header Premium */}
+        <PageHeader
+          title="Clients"
+          subtitle="Gérez vos clients et leurs informations"
+          icon={Users}
+          badges={[
+            { label: "Total", value: stats.total, variant: "info" },
+            { label: "Villes", value: stats.cities, variant: "default" },
+          ]}
+        >
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="gradient">
@@ -540,7 +555,43 @@ export default function Clients() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+        </PageHeader>
+
+        {/* Stats Cards */}
+        <StatCardGrid columns={4}>
+          <StatCard
+            title="Total clients"
+            value={stats.total}
+            unit="clients actifs"
+            icon={Users}
+            variant="primary"
+            delay={0}
+          />
+          <StatCard
+            title="Encours total"
+            value={new Intl.NumberFormat("fr-GA").format(stats.totalBalance)}
+            unit="FCFA"
+            icon={Wallet}
+            variant="warning"
+            delay={0.1}
+          />
+          <StatCard
+            title="Factures émises"
+            value={stats.totalInvoices}
+            unit="factures"
+            icon={FileText}
+            variant="info"
+            delay={0.2}
+          />
+          <StatCard
+            title="Villes couvertes"
+            value={stats.cities}
+            unit="villes"
+            icon={Building2}
+            variant="success"
+            delay={0.3}
+          />
+        </StatCardGrid>
 
         {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
