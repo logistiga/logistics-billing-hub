@@ -233,7 +233,7 @@ export default function NouvelOrdreTravail() {
   const [lieuUtilisation, setLieuUtilisation] = useState("");
 
   // Check if at least one service is selected
-  const hasAnyService = transportType || hasManutention || hasStockage || hasLocation;
+  const hasAnyService = (transportType && transportType !== "none") || hasManutention || hasStockage || hasLocation;
 
   const updateLigne = (index: number, field: keyof LignePrestation, value: string | number) => {
     const newLignes = [...lignes];
@@ -268,7 +268,7 @@ export default function NouvelOrdreTravail() {
 
   // Déterminer le type principal pour le PDF
   const getPrimaryType = () => {
-    if (transportType) return "Transport";
+    if (transportType && transportType !== "none") return "Transport";
     if (hasManutention) return "Manutention";
     if (hasStockage) return "Stockage";
     if (hasLocation) return "Location";
@@ -276,7 +276,7 @@ export default function NouvelOrdreTravail() {
   };
 
   const getPrimarySubType = () => {
-    if (transportType) return transportType;
+    if (transportType && transportType !== "none") return transportType;
     if (hasManutention) return manutentionType;
     if (hasStockage) return stockageType;
     if (hasLocation) return locationType;
@@ -284,7 +284,7 @@ export default function NouvelOrdreTravail() {
   };
 
   const getPrimarySubTypeLabel = () => {
-    if (transportType) {
+    if (transportType && transportType !== "none") {
       return transportSubTypes.find(st => st.key === transportType)?.label || "";
     }
     if (hasManutention) {
@@ -362,7 +362,7 @@ export default function NouvelOrdreTravail() {
 
   // ========== RENDER TRANSPORT SECTION ==========
   const renderTransportSection = () => {
-    if (!transportType) return null;
+    if (!transportType || transportType === "none") return null;
     
     return (
       <motion.div
@@ -1015,7 +1015,7 @@ export default function NouvelOrdreTravail() {
                       <SelectValue placeholder="Aucun transport" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucun transport</SelectItem>
+                      <SelectItem value="none">Aucun transport</SelectItem>
                       {transportSubTypes.map((st) => (
                         <SelectItem key={st.key} value={st.key}>
                           {st.label}
