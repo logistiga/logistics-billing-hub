@@ -223,17 +223,26 @@ const itemVariants = {
   visible: { opacity: 1, x: 0 },
 };
 
-// Mock data for OTs with containers
+// Mock data for OTs with containers - provenant des ordres de travail transport
 const mockOrdresTravail = [
-  { id: "OT-2024-0045", containers: ["MSKU1234567", "TCLU9876543", "MSCU5544332"], compagnie: "Maersk" },
-  { id: "OT-2024-0046", containers: ["HLCU6677889", "MSKU7654321"], compagnie: "MSC" },
-  { id: "OT-2024-0042", containers: ["TCLU9876543"], compagnie: "CMA CGM" },
-  { id: "OT-2024-0038", containers: ["MSCU5544332", "HLCU6677889"], compagnie: "COSCO" },
-  { id: "OT-2024-0039", containers: ["MSKU1234567"], compagnie: "Maersk" },
-  { id: "OT-2024-0035", containers: ["HLCU6677889", "TCLU9876543", "MSKU7654321"], compagnie: "MSC" },
-  { id: "OT-2024-0030", containers: ["MSKU7654321"], compagnie: "CMA CGM" },
-  { id: "OT-2024-0031", containers: ["TCLU9876543", "MSCU5544332"], compagnie: "Maersk" },
-  { id: "OT-2024-0032", containers: ["HLCU6677889"], compagnie: "COSCO" },
+  { id: "OT-2024-0089", client: "COMILOG SA", clientKey: "comilog", date: "15/12/2024", type: "Transport", containers: [
+    { numero: "MSKU1234567", description: "Transport minerai" },
+    { numero: "TCLU9876543", description: "Transport équipements" },
+  ], compagnie: "Maersk" },
+  { id: "OT-2024-0088", client: "OLAM Gabon", clientKey: "olam", date: "14/12/2024", type: "Manutention", containers: [
+    { numero: "MSCU5544332", description: "Manutention containers" },
+  ], compagnie: "MSC" },
+  { id: "OT-2024-0087", client: "Total Energies", clientKey: "total", date: "14/12/2024", type: "Transport", containers: [
+    { numero: "HLCU6677889", description: "Équipements pétroliers" },
+    { numero: "MSKU7654321", description: "Matériel forage" },
+  ], compagnie: "CMA CGM" },
+  { id: "OT-2024-0086", client: "Assala Energy", clientKey: "assala", date: "13/12/2024", type: "Transport", containers: [
+    { numero: "TCNU4455667", description: "Convoi exceptionnel" },
+  ], compagnie: "Hapag-Lloyd" },
+  { id: "OT-2024-0085", client: "SEEG", clientKey: "seeg", date: "12/12/2024", type: "Transport", containers: [
+    { numero: "MSKU8899001", description: "Transport matériel" },
+    { numero: "HLCU2233445", description: "Transport câbles" },
+  ], compagnie: "COSCO" },
 ];
 
 export default function NotesDebut() {
@@ -247,8 +256,10 @@ export default function NotesDebut() {
 
   // Form states
   const [selectedOT, setSelectedOT] = useState<string>("");
-  const [availableContainers, setAvailableContainers] = useState<string[]>([]);
+  const [availableContainers, setAvailableContainers] = useState<{ numero: string; description: string }[]>([]);
   const [selectedCompagnie, setSelectedCompagnie] = useState<string>("");
+  const [selectedContainer, setSelectedContainer] = useState<string>("");
+  const [selectedClient, setSelectedClient] = useState<string>("");
 
   // Payment dialog states
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -262,13 +273,16 @@ export default function NotesDebut() {
   // Handle OT selection - load containers and shipping company
   const handleOTChange = (otId: string) => {
     setSelectedOT(otId);
+    setSelectedContainer("");
     const ot = mockOrdresTravail.find(o => o.id === otId);
     if (ot) {
       setAvailableContainers(ot.containers);
       setSelectedCompagnie(ot.compagnie);
+      setSelectedClient(ot.clientKey);
     } else {
       setAvailableContainers([]);
       setSelectedCompagnie("");
+      setSelectedClient("");
     }
   };
 
@@ -481,17 +495,12 @@ export default function NotesDebut() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Client *</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner un client" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="comilog">COMILOG SA</SelectItem>
-                            <SelectItem value="olam">OLAM Gabon</SelectItem>
-                            <SelectItem value="total">Total Energies</SelectItem>
-                            <SelectItem value="assala">Assala Energy</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Input 
+                          value={selectedClient ? mockOrdresTravail.find(ot => ot.clientKey === selectedClient)?.client || "" : ""} 
+                          disabled 
+                          placeholder="Sélectionnez un OT" 
+                          className="bg-muted"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>N° OT (Ordre de Travail) *</Label>
@@ -502,7 +511,7 @@ export default function NotesDebut() {
                           <SelectContent>
                             {mockOrdresTravail.map((ot) => (
                               <SelectItem key={ot.id} value={ot.id}>
-                                {ot.id} ({ot.containers.length} container{ot.containers.length > 1 ? 's' : ''})
+                                {ot.id} - {ot.client} ({ot.containers.length} conteneur{ot.containers.length > 1 ? 's' : ''})
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -510,31 +519,35 @@ export default function NotesDebut() {
                       </div>
                     </div>
 
-                    {/* Compagnie maritime et Container */}
+                    {/* Conteneur et Compagnie maritime */}
                     <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>N° Conteneur *</Label>
+                        <Select 
+                          value={selectedContainer} 
+                          onValueChange={setSelectedContainer}
+                          disabled={availableContainers.length === 0}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={availableContainers.length === 0 ? "Sélectionnez un OT d'abord" : "Sélectionner un conteneur"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableContainers.map((container) => (
+                              <SelectItem key={container.numero} value={container.numero}>
+                                {container.numero} - {container.description}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="space-y-2">
                         <Label>Compagnie maritime</Label>
                         <Input 
                           value={selectedCompagnie} 
                           disabled 
-                          placeholder="Sélectionnez un OT" 
+                          placeholder="Rempli automatiquement" 
                           className="bg-muted"
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>N° Container *</Label>
-                        <Select disabled={availableContainers.length === 0}>
-                          <SelectTrigger>
-                            <SelectValue placeholder={availableContainers.length === 0 ? "Sélectionnez un OT d'abord" : "Sélectionner un container"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableContainers.map((container) => (
-                              <SelectItem key={container} value={container}>
-                                {container}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                       </div>
                     </div>
 

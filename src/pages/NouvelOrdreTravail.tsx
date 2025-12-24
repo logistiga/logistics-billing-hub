@@ -76,11 +76,15 @@ const typeConfig = {
 };
 
 interface LignePrestation {
+  numeroConteneur: string;
   description: string;
   quantite: number;
   prixUnit: number;
   total: number;
 }
+
+// Mock des conteneurs existants pour les notes de débit
+export const mockConteneurs: { numeroConteneur: string; ordreId: string; ordreNumber: string; client: string; type: string; date: string }[] = [];
 
 type DialogStep = "type" | "subtype" | "form";
 
@@ -117,7 +121,7 @@ export default function NouvelOrdreTravail() {
   const [client, setClient] = useState("");
   const [description, setDescription] = useState("");
   const [lignes, setLignes] = useState<LignePrestation[]>([
-    { description: "", quantite: 1, prixUnit: 0, total: 0 }
+    { numeroConteneur: "", description: "", quantite: 1, prixUnit: 0, total: 0 }
   ]);
 
   // Effet pour pré-remplir depuis un devis
@@ -130,6 +134,7 @@ export default function NouvelOrdreTravail() {
       setSelectedType(devis.type);
       setDialogStep("subtype");
       setLignes([{
+        numeroConteneur: "",
         description: `Prestation ${devis.type} - Réf. Devis ${devis.number}`,
         quantite: 1,
         prixUnit: devis.amount,
@@ -209,7 +214,7 @@ export default function NouvelOrdreTravail() {
   };
 
   const addLigne = () => {
-    setLignes([...lignes, { description: "", quantite: 1, prixUnit: 0, total: 0 }]);
+    setLignes([...lignes, { numeroConteneur: "", description: "", quantite: 1, prixUnit: 0, total: 0 }]);
   };
 
   const removeLigne = (index: number) => {
@@ -952,55 +957,108 @@ export default function NouvelOrdreTravail() {
 
                 {/* Lignes de prestation */}
                 <div className="border rounded-lg p-4">
-                  <h4 className="font-medium mb-3">Lignes de prestation</h4>
-                  <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-2">
-                    <div className="col-span-5">Description</div>
-                    <div className="col-span-2">Quantité</div>
-                    <div className="col-span-2">Prix unit.</div>
-                    <div className="col-span-2">Total</div>
-                    <div className="col-span-1"></div>
-                  </div>
-                  {lignes.map((ligne, index) => (
-                    <div key={index} className="grid grid-cols-12 gap-2 mb-2">
-                      <Input 
-                        className="col-span-5" 
-                        placeholder="Description"
-                        value={ligne.description}
-                        onChange={(e) => updateLigne(index, "description", e.target.value)}
-                      />
-                      <Input 
-                        className="col-span-2" 
-                        type="number" 
-                        placeholder="1"
-                        value={ligne.quantite || ""}
-                        onChange={(e) => updateLigne(index, "quantite", parseInt(e.target.value) || 0)}
-                      />
-                      <Input 
-                        className="col-span-2" 
-                        type="number" 
-                        placeholder="0"
-                        value={ligne.prixUnit || ""}
-                        onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
-                      />
-                      <Input 
-                        className="col-span-2" 
-                        disabled 
-                        value={`${ligne.total.toLocaleString("fr-FR")} FCFA`}
-                      />
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="col-span-1"
-                        onClick={() => removeLigne(index)}
-                        disabled={lignes.length === 1}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                  <h4 className="font-medium mb-3">
+                    {selectedType === "Transport" ? "Conteneurs / Opérations" : "Lignes de prestation"}
+                  </h4>
+                  {selectedType === "Transport" ? (
+                    <>
+                      <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-2">
+                        <div className="col-span-3">N° Conteneur *</div>
+                        <div className="col-span-4">Description</div>
+                        <div className="col-span-2">Prix unit.</div>
+                        <div className="col-span-2">Total</div>
+                        <div className="col-span-1"></div>
+                      </div>
+                      {lignes.map((ligne, index) => (
+                        <div key={index} className="grid grid-cols-12 gap-2 mb-2">
+                          <Input 
+                            className="col-span-3" 
+                            placeholder="MSKU1234567"
+                            value={ligne.numeroConteneur}
+                            onChange={(e) => updateLigne(index, "numeroConteneur", e.target.value.toUpperCase())}
+                          />
+                          <Input 
+                            className="col-span-4" 
+                            placeholder="Description opération"
+                            value={ligne.description}
+                            onChange={(e) => updateLigne(index, "description", e.target.value)}
+                          />
+                          <Input 
+                            className="col-span-2" 
+                            type="number" 
+                            placeholder="0"
+                            value={ligne.prixUnit || ""}
+                            onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
+                          />
+                          <Input 
+                            className="col-span-2" 
+                            disabled 
+                            value={`${ligne.prixUnit.toLocaleString("fr-FR")} FCFA`}
+                          />
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="col-span-1"
+                            onClick={() => removeLigne(index)}
+                            disabled={lignes.length === 1}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-2">
+                        <div className="col-span-5">Description</div>
+                        <div className="col-span-2">Quantité</div>
+                        <div className="col-span-2">Prix unit.</div>
+                        <div className="col-span-2">Total</div>
+                        <div className="col-span-1"></div>
+                      </div>
+                      {lignes.map((ligne, index) => (
+                        <div key={index} className="grid grid-cols-12 gap-2 mb-2">
+                          <Input 
+                            className="col-span-5" 
+                            placeholder="Description"
+                            value={ligne.description}
+                            onChange={(e) => updateLigne(index, "description", e.target.value)}
+                          />
+                          <Input 
+                            className="col-span-2" 
+                            type="number" 
+                            placeholder="1"
+                            value={ligne.quantite || ""}
+                            onChange={(e) => updateLigne(index, "quantite", parseInt(e.target.value) || 0)}
+                          />
+                          <Input 
+                            className="col-span-2" 
+                            type="number" 
+                            placeholder="0"
+                            value={ligne.prixUnit || ""}
+                            onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
+                          />
+                          <Input 
+                            className="col-span-2" 
+                            disabled 
+                            value={`${ligne.total.toLocaleString("fr-FR")} FCFA`}
+                          />
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="col-span-1"
+                            onClick={() => removeLigne(index)}
+                            disabled={lignes.length === 1}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </>
+                  )}
                   <Button variant="ghost" size="sm" className="mt-2" onClick={addLigne}>
                     <Plus className="h-4 w-4 mr-1" />
-                    Ajouter une ligne
+                    {selectedType === "Transport" ? "Ajouter un conteneur" : "Ajouter une ligne"}
                   </Button>
                 </div>
 
