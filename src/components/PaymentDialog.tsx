@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { avoirStore } from "@/lib/avoirStore";
 
 // Types
 export interface PayableDocument {
@@ -324,8 +325,10 @@ export function PaymentDialog({
         amount: avoirAmounts[id] || 0,
       }));
       
+      const paymentId = Date.now().toString();
+      
       const payment: Payment = {
-        id: Date.now().toString(),
+        id: paymentId,
         date: new Date().toISOString(),
         amount: enteredAmount,
         method: paymentMethod as Payment["method"],
@@ -337,6 +340,35 @@ export function PaymentDialog({
         avoirIds: selectedAvoirIds.length > 0 ? selectedAvoirIds : undefined,
         avoirAmount: totalAvoirAmount > 0 ? totalAvoirAmount : undefined,
       };
+
+      // Appliquer les compensations d'avoirs via le store
+      if (appliedCredits.length > 0 && selectedDocs.length > 0) {
+        const firstDoc = selectedDocs[0];
+        const paymentMethodLabel = totalAvoirAmount === enteredAmount 
+          ? "Avoir uniquement" 
+          : `Mixte (Avoir + ${paymentMethod === "especes" ? "Espèces" : paymentMethod === "virement" ? "Virement" : "Chèque"})`;
+        
+        // Transformer appliedCredits pour correspondre au format attendu
+        const compensationsToApply = appliedCredits.map((c) => ({
+          avoirId: c.id,
+          amount: c.amount,
+        }));
+        
+        const result = avoirStore.applyMultipleCompensations(
+          compensationsToApply,
+          firstDoc.id,
+          firstDoc.number,
+          firstDoc.type,
+          paymentId,
+          paymentMethodLabel,
+          "Utilisateur", // TODO: récupérer le nom de l'utilisateur connecté
+          notes
+        );
+
+        if (!result.success && result.errors.length > 0) {
+          console.warn("Erreurs lors de l'application des avoirs:", result.errors);
+        }
+      }
 
       // Update documents with payment
       let remainingPayment = enteredAmount;
