@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,36 +6,39 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
-import Dashboard from "./pages/Dashboard";
-import Clients from "./pages/Clients";
-import ClientDashboard from "./pages/ClientDashboard";
-import Factures from "./pages/Factures";
-import Devis from "./pages/Devis";
-import Avoirs from "./pages/Avoirs";
-import OrdresTravail from "./pages/OrdresTravail";
-import NouvelOrdreTravail from "./pages/NouvelOrdreTravail";
-import OrdresEnAttente from "./pages/OrdresEnAttente";
-import NotesDebut from "./pages/NotesDebut";
-import NouvelleNoteDebut from "./pages/NouvelleNoteDebut";
-import NouvelleNoteOuverturePort from "./pages/NouvelleNoteOuverturePort";
-import NouvelleNoteDetention from "./pages/NouvelleNoteDetention";
-import NouvelleNoteReparation from "./pages/NouvelleNoteReparation";
-import Entreprise from "./pages/Entreprise";
-import Banques from "./pages/Banques";
-import Taxes from "./pages/Taxes";
-import Roles from "./pages/Roles";
-import Utilisateurs from "./pages/Utilisateurs";
-import Partenaires from "./pages/Partenaires";
-import Caisse from "./pages/Caisse";
-import SuiviBanque from "./pages/SuiviBanque";
-import TableauFlux from "./pages/TableauFlux";
-import ComptabiliteGenerale from "./pages/ComptabiliteGenerale";
-import Rapports from "./pages/Rapports";
-import CreditBancaire from "./pages/CreditBancaire";
-import TresoreriePrev from "./pages/TresoreriePrev";
-import Emails from "./pages/Emails";
-import Profil from "./pages/Profil";
-import NotFound from "./pages/NotFound";
+import { PageLoader } from "@/components/ui/page-loader";
+
+// Lazy loaded pages
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Clients = lazy(() => import("./pages/Clients"));
+const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
+const Factures = lazy(() => import("./pages/Factures"));
+const Devis = lazy(() => import("./pages/Devis"));
+const Avoirs = lazy(() => import("./pages/Avoirs"));
+const OrdresTravail = lazy(() => import("./pages/OrdresTravail"));
+const NouvelOrdreTravail = lazy(() => import("./pages/NouvelOrdreTravail"));
+const OrdresEnAttente = lazy(() => import("./pages/OrdresEnAttente"));
+const NotesDebut = lazy(() => import("./pages/NotesDebut"));
+const NouvelleNoteDebut = lazy(() => import("./pages/NouvelleNoteDebut"));
+const NouvelleNoteOuverturePort = lazy(() => import("./pages/NouvelleNoteOuverturePort"));
+const NouvelleNoteDetention = lazy(() => import("./pages/NouvelleNoteDetention"));
+const NouvelleNoteReparation = lazy(() => import("./pages/NouvelleNoteReparation"));
+const Entreprise = lazy(() => import("./pages/Entreprise"));
+const Banques = lazy(() => import("./pages/Banques"));
+const Taxes = lazy(() => import("./pages/Taxes"));
+const Roles = lazy(() => import("./pages/Roles"));
+const Utilisateurs = lazy(() => import("./pages/Utilisateurs"));
+const Partenaires = lazy(() => import("./pages/Partenaires"));
+const Caisse = lazy(() => import("./pages/Caisse"));
+const SuiviBanque = lazy(() => import("./pages/SuiviBanque"));
+const TableauFlux = lazy(() => import("./pages/TableauFlux"));
+const ComptabiliteGenerale = lazy(() => import("./pages/ComptabiliteGenerale"));
+const Rapports = lazy(() => import("./pages/Rapports"));
+const CreditBancaire = lazy(() => import("./pages/CreditBancaire"));
+const TresoreriePrev = lazy(() => import("./pages/TresoreriePrev"));
+const Emails = lazy(() => import("./pages/Emails"));
+const Profil = lazy(() => import("./pages/Profil"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -50,40 +54,42 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/clients" element={<Clients />} />
-              <Route path="/clients/:id" element={<ClientDashboard />} />
-              <Route path="/factures" element={<Factures />} />
-              <Route path="/devis" element={<Devis />} />
-              <Route path="/avoirs" element={<Avoirs />} />
-              <Route path="/ordres-travail" element={<OrdresTravail />} />
-              <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
-              <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
-              <Route path="/notes-debut" element={<NotesDebut />} />
-              <Route path="/notes-debut/nouvelle" element={<NouvelleNoteDebut />} />
-              <Route path="/notes-debut/ouverture-port" element={<NouvelleNoteOuverturePort />} />
-              <Route path="/notes-debut/detention" element={<NouvelleNoteDetention />} />
-              <Route path="/notes-debut/reparation" element={<NouvelleNoteReparation />} />
-              <Route path="/entreprise" element={<Entreprise />} />
-              <Route path="/banques" element={<Banques />} />
-              <Route path="/taxes" element={<Taxes />} />
-              <Route path="/roles" element={<Roles />} />
-              <Route path="/utilisateurs" element={<Utilisateurs />} />
-              <Route path="/partenaires" element={<Partenaires />} />
-              <Route path="/caisse" element={<Caisse />} />
-              <Route path="/suivi-banque" element={<SuiviBanque />} />
-              <Route path="/tableau-flux" element={<TableauFlux />} />
-              <Route path="/comptabilite" element={<ComptabiliteGenerale />} />
-              <Route path="/rapports" element={<Rapports />} />
-              <Route path="/credit-bancaire" element={<CreditBancaire />} />
-              <Route path="/tresorerie-prev" element={<TresoreriePrev />} />
-              <Route path="/emails" element={<Emails />} />
-              <Route path="/profil" element={<Profil />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/clients" element={<Clients />} />
+                <Route path="/clients/:id" element={<ClientDashboard />} />
+                <Route path="/factures" element={<Factures />} />
+                <Route path="/devis" element={<Devis />} />
+                <Route path="/avoirs" element={<Avoirs />} />
+                <Route path="/ordres-travail" element={<OrdresTravail />} />
+                <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
+                <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
+                <Route path="/notes-debut" element={<NotesDebut />} />
+                <Route path="/notes-debut/nouvelle" element={<NouvelleNoteDebut />} />
+                <Route path="/notes-debut/ouverture-port" element={<NouvelleNoteOuverturePort />} />
+                <Route path="/notes-debut/detention" element={<NouvelleNoteDetention />} />
+                <Route path="/notes-debut/reparation" element={<NouvelleNoteReparation />} />
+                <Route path="/entreprise" element={<Entreprise />} />
+                <Route path="/banques" element={<Banques />} />
+                <Route path="/taxes" element={<Taxes />} />
+                <Route path="/roles" element={<Roles />} />
+                <Route path="/utilisateurs" element={<Utilisateurs />} />
+                <Route path="/partenaires" element={<Partenaires />} />
+                <Route path="/caisse" element={<Caisse />} />
+                <Route path="/suivi-banque" element={<SuiviBanque />} />
+                <Route path="/tableau-flux" element={<TableauFlux />} />
+                <Route path="/comptabilite" element={<ComptabiliteGenerale />} />
+                <Route path="/rapports" element={<Rapports />} />
+                <Route path="/credit-bancaire" element={<CreditBancaire />} />
+                <Route path="/tresorerie-prev" element={<TresoreriePrev />} />
+                <Route path="/emails" element={<Emails />} />
+                <Route path="/profil" element={<Profil />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
