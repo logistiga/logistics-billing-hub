@@ -229,6 +229,19 @@ const itemVariants = {
   visible: { opacity: 1, x: 0 },
 };
 
+// Mock data for OTs with containers
+const mockOrdresTravail = [
+  { id: "OT-2024-0045", containers: ["MSKU1234567", "TCLU9876543", "MSCU5544332"], compagnie: "Maersk" },
+  { id: "OT-2024-0046", containers: ["HLCU6677889", "MSKU7654321"], compagnie: "MSC" },
+  { id: "OT-2024-0042", containers: ["TCLU9876543"], compagnie: "CMA CGM" },
+  { id: "OT-2024-0038", containers: ["MSCU5544332", "HLCU6677889"], compagnie: "COSCO" },
+  { id: "OT-2024-0039", containers: ["MSKU1234567"], compagnie: "Maersk" },
+  { id: "OT-2024-0035", containers: ["HLCU6677889", "TCLU9876543", "MSKU7654321"], compagnie: "MSC" },
+  { id: "OT-2024-0030", containers: ["MSKU7654321"], compagnie: "CMA CGM" },
+  { id: "OT-2024-0031", containers: ["TCLU9876543", "MSCU5544332"], compagnie: "Maersk" },
+  { id: "OT-2024-0032", containers: ["HLCU6677889"], compagnie: "COSCO" },
+];
+
 export default function NotesDebut() {
   const [notes, setNotes] = useState<NoteDebut[]>(initialNotes);
   const [searchTerm, setSearchTerm] = useState("");
@@ -238,6 +251,11 @@ export default function NotesDebut() {
   const [selectedType, setSelectedType] = useState<string>("");
   const [formStep, setFormStep] = useState<"type" | "form">("type");
 
+  // Form states
+  const [selectedOT, setSelectedOT] = useState<string>("");
+  const [availableContainers, setAvailableContainers] = useState<string[]>([]);
+  const [selectedCompagnie, setSelectedCompagnie] = useState<string>("");
+
   // Payment dialog states
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentMode, setPaymentMode] = useState<"single" | "group" | "advance">("single");
@@ -246,6 +264,19 @@ export default function NotesDebut() {
   // Payment history states
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedNoteForHistory, setSelectedNoteForHistory] = useState<NoteDebut | null>(null);
+
+  // Handle OT selection - load containers and shipping company
+  const handleOTChange = (otId: string) => {
+    setSelectedOT(otId);
+    const ot = mockOrdresTravail.find(o => o.id === otId);
+    if (ot) {
+      setAvailableContainers(ot.containers);
+      setSelectedCompagnie(ot.compagnie);
+    } else {
+      setAvailableContainers([]);
+      setSelectedCompagnie("");
+    }
+  };
 
   const filteredNotes = notes.filter((note) => {
     const matchesSearch =
@@ -284,6 +315,9 @@ export default function NotesDebut() {
   const resetDialog = () => {
     setSelectedType("");
     setFormStep("type");
+    setSelectedOT("");
+    setAvailableContainers([]);
+    setSelectedCompagnie("");
   };
 
   // Payment handlers
@@ -466,22 +500,54 @@ export default function NotesDebut() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>N° OT (Ordres de Travail)</Label>
-                        <Input placeholder="OT-2024-001, OT-2024-002..." />
-                        <p className="text-xs text-muted-foreground">Séparez les numéros par des virgules</p>
+                        <Label>N° OT (Ordre de Travail) *</Label>
+                        <Select value={selectedOT} onValueChange={handleOTChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner un OT" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mockOrdresTravail.map((ot) => (
+                              <SelectItem key={ot.id} value={ot.id}>
+                                {ot.id} ({ot.containers.length} container{ot.containers.length > 1 ? 's' : ''})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
-                    {/* Références container/BL */}
+                    {/* Compagnie maritime et Container */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>N° Connaissement (BL) *</Label>
-                        <Input placeholder="BL-2024-XXXX" />
+                        <Label>Compagnie maritime</Label>
+                        <Input 
+                          value={selectedCompagnie} 
+                          disabled 
+                          placeholder="Sélectionnez un OT" 
+                          className="bg-muted"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>N° Container *</Label>
-                        <Input placeholder="MSKU1234567" />
+                        <Select disabled={availableContainers.length === 0}>
+                          <SelectTrigger>
+                            <SelectValue placeholder={availableContainers.length === 0 ? "Sélectionnez un OT d'abord" : "Sélectionner un container"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableContainers.map((container) => (
+                              <SelectItem key={container} value={container}>
+                                {container}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
+                    </div>
+
+                    {/* N° BL */}
+                    <div className="space-y-2">
+                      <Label>N° Connaissement (BL) *</Label>
+                      <Input placeholder="BL-2024-XXXX" />
                     </div>
 
                     {/* Période */}
