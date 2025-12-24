@@ -177,6 +177,16 @@ export default function NouvelOrdreTravail() {
   const [entrepot, setEntrepot] = useState("");
   const [surface, setSurface] = useState("");
   const [tarifJournalier, setTarifJournalier] = useState("");
+  const [numeroConteneurStockage, setNumeroConteneurStockage] = useState("");
+  const [typeConteneur, setTypeConteneur] = useState("");
+
+  // Calcul durée de stockage
+  const dureeStockage = dateEntree && dateSortie 
+    ? Math.max(0, Math.ceil((new Date(dateSortie).getTime() - new Date(dateEntree).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+  
+  // Calcul total estimé stockage
+  const totalStockageEstime = dureeStockage * parseFloat(surface || "0") * parseFloat(tarifJournalier || "0");
 
   // Location fields
   const [dateDebut, setDateDebut] = useState("");
@@ -543,8 +553,39 @@ export default function NouvelOrdreTravail() {
 
   const renderStockageForm = () => (
     <div className="space-y-4">
+      {/* Informations conteneur */}
       <div className="border rounded-lg p-4 border-purple-200 bg-purple-50">
-        <h4 className="font-medium mb-3 text-purple-700">Période de stockage</h4>
+        <h4 className="font-medium mb-3 text-purple-700">Informations Conteneur</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Numéro de conteneur *</Label>
+            <Input 
+              placeholder="Ex: MSKU1234567"
+              value={numeroConteneurStockage}
+              onChange={(e) => setNumeroConteneurStockage(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Type de conteneur *</Label>
+            <Select value={typeConteneur} onValueChange={setTypeConteneur}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="20 pieds">20 pieds (6m)</SelectItem>
+                <SelectItem value="40 pieds">40 pieds (12m)</SelectItem>
+                <SelectItem value="40 pieds HC">40 pieds High Cube</SelectItem>
+                <SelectItem value="20 pieds réfrigéré">20 pieds réfrigéré</SelectItem>
+                <SelectItem value="40 pieds réfrigéré">40 pieds réfrigéré</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Période de stockage */}
+      <div className="border rounded-lg p-4 border-purple-200 bg-purple-50">
+        <h4 className="font-medium mb-3 text-purple-700">Durée de stockage</h4>
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Date d'entrée *</Label>
@@ -564,7 +605,13 @@ export default function NouvelOrdreTravail() {
           </div>
           <div className="space-y-2">
             <Label>Durée (jours)</Label>
-            <Input type="number" disabled placeholder="Calculé automatiquement" className="bg-muted" />
+            <Input 
+              type="number" 
+              disabled 
+              value={dureeStockage || ""} 
+              placeholder="0" 
+              className="bg-muted font-semibold text-purple-700" 
+            />
           </div>
         </div>
       </div>
@@ -585,16 +632,16 @@ export default function NouvelOrdreTravail() {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Entrepôt *</Label>
+          <Label>Emplacement *</Label>
           <Select value={entrepot} onValueChange={setEntrepot}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Owendo - Entrepôt A">Owendo - Entrepôt A</SelectItem>
-              <SelectItem value="Owendo - Entrepôt B">Owendo - Entrepôt B</SelectItem>
-              <SelectItem value="Libreville Central">Libreville Central</SelectItem>
-              <SelectItem value="Port-Gentil">Port-Gentil</SelectItem>
+              <SelectItem value="Zone A - Owendo">Zone A - Owendo</SelectItem>
+              <SelectItem value="Zone B - Owendo">Zone B - Owendo</SelectItem>
+              <SelectItem value="Zone C - Port-Gentil">Zone C - Port-Gentil</SelectItem>
+              <SelectItem value="Zone D - Libreville">Zone D - Libreville</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -602,33 +649,7 @@ export default function NouvelOrdreTravail() {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Type de marchandise</Label>
-          <Select value={typeMarchandise} onValueChange={setTypeMarchandise}>
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionner" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Marchandises générales">Marchandises générales</SelectItem>
-              <SelectItem value="Marchandises dangereuses">Marchandises dangereuses</SelectItem>
-              <SelectItem value="Produits réfrigérés">Produits réfrigérés</SelectItem>
-              <SelectItem value="Vrac">Vrac</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Surface (m²)</Label>
-          <Input 
-            type="number" 
-            placeholder="0"
-            value={surface}
-            onChange={(e) => setSurface(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Tarif journalier/m² (FCFA)</Label>
+          <Label>Tarif journalier (FCFA) *</Label>
           <Input 
             type="number" 
             placeholder="0"
@@ -637,9 +658,23 @@ export default function NouvelOrdreTravail() {
           />
         </div>
         <div className="space-y-2">
-          <Label>Total estimé (FCFA)</Label>
-          <Input type="number" disabled placeholder="Calculé automatiquement" className="bg-muted" />
+          <Label>Montant total estimé (FCFA)</Label>
+          <Input 
+            type="text" 
+            disabled 
+            value={totalStockageEstime > 0 ? new Intl.NumberFormat("fr-GA").format(totalStockageEstime) + " FCFA" : "0 FCFA"} 
+            className="bg-muted font-semibold text-primary" 
+          />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Conditions particulières</Label>
+        <Textarea 
+          placeholder="Ex: Marchandises fragiles, surveillance 24h, accès restreint..."
+          value={typeMarchandise}
+          onChange={(e) => setTypeMarchandise(e.target.value)}
+        />
       </div>
     </div>
   );
