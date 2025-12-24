@@ -19,6 +19,7 @@ import {
   Building2,
   FileText,
 } from "lucide-react";
+import { SEO } from "@/components/SEO";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard, StatCardGrid } from "@/components/ui/stat-card";
@@ -384,6 +385,11 @@ export default function Clients() {
 
   return (
     <PageTransition>
+      <SEO 
+        title="Clients" 
+        description="Gestion des clients - Consultez, ajoutez et modifiez vos clients et leurs contacts."
+        keywords="clients, gestion clients, contacts, entreprises, partenaires"
+      />
       <div className="space-y-6">
         {/* Header Premium */}
         <PageHeader

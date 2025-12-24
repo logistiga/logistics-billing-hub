@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -43,57 +44,59 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider
-    attribute="class"
-    defaultTheme="system"
-    enableSystem
-    disableTransitionOnChange
-  >
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/clients" element={<Clients />} />
-                <Route path="/clients/:id" element={<ClientDashboard />} />
-                <Route path="/factures" element={<Factures />} />
-                <Route path="/devis" element={<Devis />} />
-                <Route path="/avoirs" element={<Avoirs />} />
-                <Route path="/ordres-travail" element={<OrdresTravail />} />
-                <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
-                <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
-                <Route path="/notes-debut" element={<NotesDebut />} />
-                <Route path="/notes-debut/nouvelle" element={<NouvelleNoteDebut />} />
-                <Route path="/notes-debut/ouverture-port" element={<NouvelleNoteOuverturePort />} />
-                <Route path="/notes-debut/detention" element={<NouvelleNoteDetention />} />
-                <Route path="/notes-debut/reparation" element={<NouvelleNoteReparation />} />
-                <Route path="/entreprise" element={<Entreprise />} />
-                <Route path="/banques" element={<Banques />} />
-                <Route path="/taxes" element={<Taxes />} />
-                <Route path="/roles" element={<Roles />} />
-                <Route path="/utilisateurs" element={<Utilisateurs />} />
-                <Route path="/partenaires" element={<Partenaires />} />
-                <Route path="/caisse" element={<Caisse />} />
-                <Route path="/suivi-banque" element={<SuiviBanque />} />
-                <Route path="/tableau-flux" element={<TableauFlux />} />
-                <Route path="/comptabilite" element={<ComptabiliteGenerale />} />
-                <Route path="/rapports" element={<Rapports />} />
-                <Route path="/credit-bancaire" element={<CreditBancaire />} />
-                <Route path="/tresorerie-prev" element={<TresoreriePrev />} />
-                <Route path="/emails" element={<Emails />} />
-                <Route path="/profil" element={<Profil />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
+  <HelmetProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/clients" element={<Clients />} />
+                  <Route path="/clients/:id" element={<ClientDashboard />} />
+                  <Route path="/factures" element={<Factures />} />
+                  <Route path="/devis" element={<Devis />} />
+                  <Route path="/avoirs" element={<Avoirs />} />
+                  <Route path="/ordres-travail" element={<OrdresTravail />} />
+                  <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
+                  <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
+                  <Route path="/notes-debut" element={<NotesDebut />} />
+                  <Route path="/notes-debut/nouvelle" element={<NouvelleNoteDebut />} />
+                  <Route path="/notes-debut/ouverture-port" element={<NouvelleNoteOuverturePort />} />
+                  <Route path="/notes-debut/detention" element={<NouvelleNoteDetention />} />
+                  <Route path="/notes-debut/reparation" element={<NouvelleNoteReparation />} />
+                  <Route path="/entreprise" element={<Entreprise />} />
+                  <Route path="/banques" element={<Banques />} />
+                  <Route path="/taxes" element={<Taxes />} />
+                  <Route path="/roles" element={<Roles />} />
+                  <Route path="/utilisateurs" element={<Utilisateurs />} />
+                  <Route path="/partenaires" element={<Partenaires />} />
+                  <Route path="/caisse" element={<Caisse />} />
+                  <Route path="/suivi-banque" element={<SuiviBanque />} />
+                  <Route path="/tableau-flux" element={<TableauFlux />} />
+                  <Route path="/comptabilite" element={<ComptabiliteGenerale />} />
+                  <Route path="/rapports" element={<Rapports />} />
+                  <Route path="/credit-bancaire" element={<CreditBancaire />} />
+                  <Route path="/tresorerie-prev" element={<TresoreriePrev />} />
+                  <Route path="/emails" element={<Emails />} />
+                  <Route path="/profil" element={<Profil />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  </HelmetProvider>
 );
 
 export default App;
