@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Info,
+  Loader2,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,7 +58,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { taxesService, type TaxAPI } from "@/services/api/taxes.service";
 
 export interface Tax {
   id: string;
@@ -71,8 +73,18 @@ export interface Tax {
   createdAt: string;
 }
 
-// Données vides - à remplacer par les données de la base de données
-const initialTaxes: Tax[] = [];
+// Mapper API -> Local
+const mapApiTaxToLocal = (tax: TaxAPI): Tax => ({
+  id: String(tax.id),
+  name: tax.name,
+  code: tax.code,
+  rate: tax.rate,
+  isActive: tax.is_active,
+  isDefault: tax.is_default,
+  description: tax.description || "",
+  applicableOn: (tax.applicable_on || []) as ("devis" | "ordres" | "factures")[],
+  createdAt: tax.created_at,
+});
 
 const itemVariants = {
   hidden: { opacity: 0, x: -10 },
@@ -80,7 +92,9 @@ const itemVariants = {
 };
 
 export default function Taxes() {
-  const [taxes, setTaxes] = useState<Tax[]>(initialTaxes);
+  const [taxes, setTaxes] = useState<Tax[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingTax, setEditingTax] = useState<Tax | null>(null);
@@ -98,6 +112,24 @@ export default function Taxes() {
     applicableOrdres: true,
     applicableFactures: true,
   });
+
+  // Charger les taxes depuis l'API
+  const loadTaxes = async () => {
+    try {
+      setIsLoading(true);
+      const data = await taxesService.getAll();
+      setTaxes(data.map(mapApiTaxToLocal));
+    } catch (error) {
+      console.error("Erreur chargement taxes:", error);
+      toast.error("Erreur lors du chargement des taxes");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTaxes();
+  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -135,110 +167,97 @@ export default function Taxes() {
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name || !formData.code || !formData.rate) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs obligatoires",
-        variant: "destructive",
-      });
+      toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
 
-    const applicableOn: ("devis" | "ordres" | "factures")[] = [];
+    const applicableOn: string[] = [];
     if (formData.applicableDevis) applicableOn.push("devis");
     if (formData.applicableOrdres) applicableOn.push("ordres");
     if (formData.applicableFactures) applicableOn.push("factures");
 
     if (applicableOn.length === 0) {
-      toast({
-        title: "Erreur",
-        description: "La taxe doit être applicable sur au moins un type de document",
-        variant: "destructive",
-      });
+      toast.error("La taxe doit être applicable sur au moins un type de document");
       return;
     }
 
-    if (editingTax) {
-      // Update existing tax
-      setTaxes((prev) =>
-        prev.map((t) =>
-          t.id === editingTax.id
-            ? {
-                ...t,
-                name: formData.name,
-                code: formData.code.toUpperCase(),
-                rate: parseFloat(formData.rate),
-                description: formData.description,
-                isActive: formData.isActive,
-                isDefault: formData.isDefault,
-                applicableOn,
-              }
-            : t
-        )
-      );
-      toast({
-        title: "Taxe modifiée",
-        description: `La taxe "${formData.name}" a été mise à jour`,
-      });
-    } else {
-      // Create new tax
-      const newTax: Tax = {
-        id: Date.now().toString(),
-        name: formData.name,
-        code: formData.code.toUpperCase(),
-        rate: parseFloat(formData.rate),
-        description: formData.description,
-        isActive: formData.isActive,
-        isDefault: formData.isDefault,
-        applicableOn,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setTaxes((prev) => [...prev, newTax]);
-      toast({
-        title: "Taxe créée",
-        description: `La taxe "${formData.name}" a été ajoutée`,
-      });
-    }
+    try {
+      setIsSubmitting(true);
+      
+      if (editingTax) {
+        // Update existing tax
+        await taxesService.update(Number(editingTax.id), {
+          name: formData.name,
+          code: formData.code.toUpperCase(),
+          rate: parseFloat(formData.rate),
+          description: formData.description,
+          is_active: formData.isActive,
+          is_default: formData.isDefault,
+          applicable_on: applicableOn,
+        });
+        toast.success(`La taxe "${formData.name}" a été mise à jour`);
+      } else {
+        // Create new tax
+        await taxesService.create({
+          name: formData.name,
+          code: formData.code.toUpperCase(),
+          rate: parseFloat(formData.rate),
+          description: formData.description,
+          is_active: formData.isActive,
+          is_default: formData.isDefault,
+          applicable_on: applicableOn,
+        });
+        toast.success(`La taxe "${formData.name}" a été créée`);
+      }
 
-    setIsDialogOpen(false);
-    resetForm();
+      setIsDialogOpen(false);
+      resetForm();
+      loadTaxes();
+    } catch (error) {
+      console.error("Erreur sauvegarde taxe:", error);
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deletingTax) {
-      setTaxes((prev) => prev.filter((t) => t.id !== deletingTax.id));
-      toast({
-        title: "Taxe supprimée",
-        description: `La taxe "${deletingTax.name}" a été supprimée`,
-      });
-      setIsDeleteDialogOpen(false);
-      setDeletingTax(null);
+      try {
+        await taxesService.delete(Number(deletingTax.id));
+        toast.success(`La taxe "${deletingTax.name}" a été supprimée`);
+        setIsDeleteDialogOpen(false);
+        setDeletingTax(null);
+        loadTaxes();
+      } catch (error) {
+        console.error("Erreur suppression taxe:", error);
+        toast.error("Erreur lors de la suppression");
+      }
     }
   };
 
-  const toggleActive = (tax: Tax) => {
-    setTaxes((prev) =>
-      prev.map((t) =>
-        t.id === tax.id ? { ...t, isActive: !t.isActive } : t
-      )
-    );
-    toast({
-      title: tax.isActive ? "Taxe désactivée" : "Taxe activée",
-      description: `La taxe "${tax.name}" a été ${tax.isActive ? "désactivée" : "activée"}`,
-    });
+  const toggleActive = async (tax: Tax) => {
+    try {
+      await taxesService.update(Number(tax.id), { is_active: !tax.isActive });
+      toast.success(`La taxe "${tax.name}" a été ${tax.isActive ? "désactivée" : "activée"}`);
+      loadTaxes();
+    } catch (error) {
+      console.error("Erreur toggle active:", error);
+      toast.error("Erreur lors de la mise à jour");
+    }
   };
 
-  const toggleDefault = (tax: Tax) => {
-    setTaxes((prev) =>
-      prev.map((t) =>
-        t.id === tax.id ? { ...t, isDefault: !t.isDefault } : t
-      )
-    );
-    toast({
-      title: tax.isDefault ? "Taxe retirée des défauts" : "Taxe définie par défaut",
-      description: `La taxe "${tax.name}" ${tax.isDefault ? "n'est plus appliquée par défaut" : "sera appliquée par défaut"}`,
-    });
+  const toggleDefault = async (tax: Tax) => {
+    try {
+      await taxesService.update(Number(tax.id), { is_default: !tax.isDefault });
+      toast.success(`La taxe "${tax.name}" ${tax.isDefault ? "n'est plus appliquée par défaut" : "sera appliquée par défaut"}`);
+      loadTaxes();
+    } catch (error) {
+      console.error("Erreur toggle default:", error);
+      toast.error("Erreur lors de la mise à jour");
+    }
   };
 
   const activeTaxes = taxes.filter((t) => t.isActive);
@@ -375,6 +394,17 @@ export default function Taxes() {
             <CardTitle className="text-lg">Liste des taxes</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : taxes.length === 0 ? (
+              <div className="text-center py-12">
+                <Percent className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">Aucune taxe configurée</h3>
+                <p className="text-muted-foreground mt-1">Ajoutez votre première taxe</p>
+              </div>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -490,6 +520,7 @@ export default function Taxes() {
                 ))}
               </TableBody>
             </Table>
+            )}
           </CardContent>
         </Card>
 
