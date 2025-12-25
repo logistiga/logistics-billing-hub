@@ -39,6 +39,7 @@ import {
   transportSubTypes,
 } from "@/components/ordre-travail/types";
 import { clientsService, ordresTravailService, devisService, type Client, type Devis } from "@/services/api";
+import { taxesService, type TaxAPI } from "@/services/api/taxes.service";
 
 interface DraftData {
   clientId: string;
@@ -62,12 +63,15 @@ export default function NouvelOrdreTravail() {
 
   // API data
   const [clients, setClients] = useState<Client[]>([]);
+  const [taxes, setTaxes] = useState<TaxAPI[]>([]);
   const [isLoadingClients, setIsLoadingClients] = useState(true);
+  const [isLoadingTaxes, setIsLoadingTaxes] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Client & Description
   const [clientId, setClientId] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedTaxId, setSelectedTaxId] = useState<string>("");
 
   // Transport
   const [hasTransport, setHasTransport] = useState(false);
@@ -91,6 +95,27 @@ export default function NouvelOrdreTravail() {
       }
     };
     fetchClients();
+  }, []);
+
+  // Charger les taxes depuis l'API
+  useEffect(() => {
+    const fetchTaxes = async () => {
+      try {
+        setIsLoadingTaxes(true);
+        const taxesList = await taxesService.getAll();
+        setTaxes(taxesList.filter(t => t.is_active));
+        // Sélectionner la taxe par défaut
+        const defaultTax = taxesList.find(t => t.is_default && t.is_active);
+        if (defaultTax) {
+          setSelectedTaxId(String(defaultTax.id));
+        }
+      } catch (error) {
+        console.error("Erreur chargement taxes:", error);
+      } finally {
+        setIsLoadingTaxes(false);
+      }
+    };
+    fetchTaxes();
   }, []);
 
   // Charger le devis depuis l'API si fromDevisId
@@ -442,6 +467,51 @@ export default function NouvelOrdreTravail() {
               </h3>
               
               <LignesPrestationSection lignes={lignes} onChange={setLignes} isTransport={hasTransport} />
+
+              {/* Sélection de la taxe et totaux */}
+              <div className="border rounded-lg p-4 bg-muted/30 mt-4">
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                  <div className="space-y-2 max-w-xs">
+                    <Label>Taxe applicable</Label>
+                    <Select value={selectedTaxId} onValueChange={setSelectedTaxId} disabled={isLoadingTaxes}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder={isLoadingTaxes ? "Chargement..." : "Sélectionner une taxe"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucune taxe</SelectItem>
+                        {taxes.map((tax) => (
+                          <SelectItem key={tax.id} value={String(tax.id)}>
+                            {tax.name} ({tax.rate}%)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <div className="text-muted-foreground">
+                      Sous-total HT: <span className="font-medium text-foreground">{lignes.reduce((sum, l) => sum + l.total, 0).toLocaleString("fr-FR")} FCFA</span>
+                    </div>
+                    {selectedTaxId && selectedTaxId !== "none" && (() => {
+                      const selectedTax = taxes.find(t => String(t.id) === selectedTaxId);
+                      const subtotal = lignes.reduce((sum, l) => sum + l.total, 0);
+                      const taxAmount = selectedTax ? Math.round(subtotal * selectedTax.rate / 100) : 0;
+                      return (
+                        <div className="text-muted-foreground">
+                          {selectedTax?.name} ({selectedTax?.rate}%): <span className="font-medium text-foreground">{taxAmount.toLocaleString("fr-FR")} FCFA</span>
+                        </div>
+                      );
+                    })()}
+                    <div className="text-lg font-bold">
+                      Total TTC: {(() => {
+                        const selectedTax = taxes.find(t => String(t.id) === selectedTaxId);
+                        const subtotal = lignes.reduce((sum, l) => sum + l.total, 0);
+                        const taxAmount = selectedTax && selectedTaxId !== "none" ? Math.round(subtotal * selectedTax.rate / 100) : 0;
+                        return (subtotal + taxAmount).toLocaleString("fr-FR");
+                      })()} FCFA
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Actions */}
