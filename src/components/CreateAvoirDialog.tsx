@@ -249,12 +249,7 @@ export function CreateAvoirDialog({
                   <SelectContent>
                     {invoices.map((inv) => (
                       <SelectItem key={inv.id} value={inv.id}>
-                        <span className="flex items-center justify-between gap-4">
-                          <span>{inv.number}</span>
-                          <span className="text-muted-foreground text-sm">
-                            {inv.client} - {formatCurrency(inv.amount)}
-                          </span>
-                        </span>
+                        {inv.number} - {inv.client} ({formatCurrency(inv.amount)})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -290,10 +285,7 @@ export function CreateAvoirDialog({
                 <SelectContent>
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
-                      <span className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        {client.name}
-                      </span>
+                      {client.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
