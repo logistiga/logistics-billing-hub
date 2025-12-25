@@ -13,6 +13,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->statefulApi();
+
+        // Laravel 11: les aliases de middleware se déclarent ici (pas dans Kernel.php)
+        $middleware->alias([
+            'role' => \App\Http\Middleware\CheckRole::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
+            'admin' => \App\Http\Middleware\CheckAdmin::class,
+            'active' => \App\Http\Middleware\CheckActiveUser::class,
+            'log.api' => \App\Http\Middleware\LogApiRequests::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
