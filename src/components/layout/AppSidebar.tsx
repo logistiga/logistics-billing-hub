@@ -29,7 +29,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/logo.png";
+import shipLoaderGif from "@/assets/ship-loader.gif";
 
 interface NavItem {
   title: string;
@@ -159,8 +159,8 @@ export function AppSidebar({
       {/* Logo */}
       <div
         className={cn(
-          "flex items-center justify-center border-b border-sidebar-border transition-all duration-300 relative",
-          collapsed && !isMobile ? "h-20 px-2" : "h-28 px-4"
+          "flex items-center justify-center border-b border-sidebar-border transition-all duration-300 relative bg-background",
+          collapsed && !isMobile ? "h-20 px-2" : "h-24 px-4"
         )}
       >
         <AnimatePresence mode="wait">
@@ -170,16 +170,13 @@ export function AppSidebar({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.2 }}
-              className="flex flex-col items-center justify-center gap-2"
+              className="flex flex-col items-center justify-center"
             >
-              <div className="relative">
-                {/* Glow effect */}
-                <div className="absolute -inset-3 bg-gradient-to-br from-primary/30 via-primary/10 to-transparent rounded-2xl blur-2xl" />
-                <div className="absolute -inset-1 bg-gradient-to-br from-primary/20 to-transparent rounded-xl blur-lg" />
+              <div className="relative bg-background">
                 <motion.img
-                  src={logo}
-                  alt="Logistiga"
-                  className="relative h-16 w-auto object-contain drop-shadow-2xl"
+                  src={shipLoaderGif}
+                  alt="LogistiGa"
+                  className="h-20 w-20 object-contain mix-blend-multiply"
                   whileHover={{ scale: 1.05 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 />
@@ -192,12 +189,11 @@ export function AppSidebar({
               exit={{ opacity: 0 }}
               className="flex items-center justify-center"
             >
-              <div className="relative">
-                <div className="absolute -inset-2 bg-gradient-to-br from-primary/30 to-transparent rounded-xl blur-lg" />
+              <div className="relative bg-background">
                 <motion.img
-                  src={logo}
-                  alt="Logistiga"
-                  className="relative h-12 w-auto object-contain drop-shadow-xl"
+                  src={shipLoaderGif}
+                  alt="LogistiGa"
+                  className="h-14 w-14 object-contain mix-blend-multiply"
                   whileHover={{ scale: 1.1 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 />
