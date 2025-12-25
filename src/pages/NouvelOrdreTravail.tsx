@@ -293,6 +293,8 @@ export default function NouvelOrdreTravail() {
             type: l.operationType,
             description: l.description,
           })),
+        // Ajouter les taxes sélectionnées
+        tax_ids: selectedTaxIds,
       };
 
       const ordre = await ordresTravailService.create(ordreData);
