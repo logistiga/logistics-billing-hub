@@ -259,17 +259,23 @@ export default function EditerOrdreTravail() {
 
       // Transport si activé
       if (hasTransport) {
+        const transportNotes = [
+          transportData.numeroConnaissement && `Connaissement: ${transportData.numeroConnaissement}`,
+          transportData.compagnieMaritime && `Compagnie: ${transportData.compagnieMaritime}`,
+          transportData.navire && `Navire: ${transportData.navire}`,
+          transportData.transitaire && `Transitaire: ${transportData.transitaire}`,
+          transportData.representant && `Représentant: ${transportData.representant}`,
+        ]
+          .filter(Boolean)
+          .join(" | ");
+
         ordreData.transport = {
-          type_transport: transportData.transportType,
-          point_depart: transportData.pointDepart,
-          point_arrivee: transportData.pointArrivee,
-          date_enlevement: transportData.dateEnlevement || null,
-          date_livraison: transportData.dateLivraison || null,
-          numero_connaissement: transportData.numeroConnaissement,
-          compagnie_maritime: transportData.compagnieMaritime,
-          navire: transportData.navire,
-          transitaire: transportData.transitaire,
-          representant: transportData.representant,
+          type: transportData.transportType,
+          depart: transportData.pointDepart,
+          arrivee: transportData.pointArrivee,
+          date_depart: transportData.dateEnlevement || null,
+          date_arrivee: transportData.dateLivraison || null,
+          notes: transportNotes || null,
         };
       }
 
