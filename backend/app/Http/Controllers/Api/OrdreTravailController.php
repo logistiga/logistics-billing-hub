@@ -254,8 +254,57 @@ class OrdreTravailController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $ordreTravail->fresh(),
+            'data' => $ordreTravail->fresh()->load(['client', 'lignesPrestations', 'containers', 'transport', 'taxes']),
             'message' => 'Ordre de travail validé',
+        ]);
+    }
+
+    /**
+     * Démarrer un ordre de travail
+     */
+    public function start(OrdreTravail $ordreTravail)
+    {
+        $ordreTravail->update([
+            'status' => 'in_progress',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $ordreTravail->fresh()->load(['client', 'lignesPrestations', 'containers', 'transport', 'taxes']),
+            'message' => 'Ordre de travail démarré',
+        ]);
+    }
+
+    /**
+     * Terminer un ordre de travail
+     */
+    public function complete(OrdreTravail $ordreTravail)
+    {
+        $ordreTravail->update([
+            'status' => 'completed',
+            'validated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $ordreTravail->fresh()->load(['client', 'lignesPrestations', 'containers', 'transport', 'taxes']),
+            'message' => 'Ordre de travail terminé',
+        ]);
+    }
+
+    /**
+     * Annuler un ordre de travail
+     */
+    public function cancel(OrdreTravail $ordreTravail)
+    {
+        $ordreTravail->update([
+            'status' => 'cancelled',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $ordreTravail->fresh()->load(['client', 'lignesPrestations', 'containers', 'transport', 'taxes']),
+            'message' => 'Ordre de travail annulé',
         ]);
     }
 
