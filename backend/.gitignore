@@ -1,0 +1,50 @@
+# Fichiers d'environnement
+.env
+.env.backup
+.env.production
+
+# Dépendances
+/vendor
+/node_modules
+
+# Cache et logs
+/storage/*.key
+/storage/logs/*
+!/storage/logs/.gitkeep
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+
+# IDE
+/.idea
+/.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Tests
+/coverage
+.phpunit.result.cache
+
+# Build
+/public/build
+/public/hot
+/public/storage
+npm-debug.log
+yarn-error.log
+
+# Composer
+composer.phar
+
+# PHPUnit
+.phpunit.cache
+
+# Homestead
+Homestead.json
+Homestead.yaml
+
+# Debugbar
+/storage/debugbar
+
+# Laravel Pint
+.php-cs-fixer.cache
