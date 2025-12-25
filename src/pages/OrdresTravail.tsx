@@ -312,16 +312,23 @@ export default function OrdresTravail() {
     navigate(`/ordres-travail/${order.id}/editer`);
   };
 
-  const handleDownloadPDF = (order: WorkOrder) => {
-    toast.success(`PDF généré pour ${order.number}`, {
-      description: "Le téléchargement va commencer..."
-    });
-    setTimeout(() => {
-      const element = document.createElement("a");
-      element.setAttribute("href", "data:application/pdf;charset=utf-8,");
-      element.setAttribute("download", `${order.number}.pdf`);
-      element.click();
-    }, 500);
+  const handleDownloadPDF = async (order: WorkOrder) => {
+    try {
+      toast.info(`Génération du PDF pour ${order.number}...`);
+      const blob = await ordresTravailService.downloadPdf(parseInt(order.id));
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${order.number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success(`PDF téléchargé pour ${order.number}`);
+    } catch (error) {
+      console.error("Erreur téléchargement PDF:", error);
+      toast.error("Erreur lors du téléchargement du PDF");
+    }
   };
 
   const handleSendEmail = (order: WorkOrder) => {
@@ -346,29 +353,32 @@ export default function OrdresTravail() {
     setConvertDialogOpen(true);
   };
 
-  const confirmConvertToInvoice = () => {
+  const confirmConvertToInvoice = async () => {
     if (!orderToConvert) return;
 
-    // Generate invoice number
-    const year = new Date().getFullYear();
-    const invoiceNumber = `FAC-${year}-${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")}`;
+    try {
+      const result = await ordresTravailService.convertToInvoice(parseInt(orderToConvert.id));
 
-    // Update order status to converted and store invoice reference
-    setOrders(orders.map(o => 
-      o.id === orderToConvert.id 
-        ? { ...o, status: "converted" as const, invoiceNumber } 
-        : o
-    ));
+      // Mettre à jour l'ordre localement
+      setOrders(orders.map(o => 
+        o.id === orderToConvert.id 
+          ? { ...o, status: "converted" as const, invoiceNumber: result.invoice_number } 
+          : o
+      ));
 
-    toast.success(`Facture ${invoiceNumber} créée`, {
-      description: `L'ordre ${orderToConvert.number} a été converti en facture`,
-    });
+      toast.success(`Facture ${result.invoice_number} créée`, {
+        description: `L'ordre ${orderToConvert.number} a été converti en facture`,
+      });
 
-    setConvertDialogOpen(false);
-    setOrderToConvert(null);
-    
-    // Redirect to invoices page
-    navigate("/factures");
+      setConvertDialogOpen(false);
+      setOrderToConvert(null);
+      
+      // Redirect to invoices page
+      navigate("/factures");
+    } catch (error: any) {
+      console.error("Erreur conversion:", error);
+      toast.error(error?.message || "Erreur lors de la conversion en facture");
+    }
   };
 
   const toPayableDocument = (order: WorkOrder): PayableDocument => ({
@@ -438,14 +448,20 @@ export default function OrdresTravail() {
     setCancelDialogOpen(true);
   };
 
-  const confirmCancel = () => {
+  const confirmCancel = async () => {
     if (selectedOrder) {
-      setOrders(orders.map(o => 
-        o.id === selectedOrder.id ? { ...o, status: "cancelled" as const } : o
-      ));
-      toast.success(`Ordre annulé`, {
-        description: `${selectedOrder.number} a été annulé`
-      });
+      try {
+        await ordresTravailService.cancel(parseInt(selectedOrder.id));
+        setOrders(orders.map(o => 
+          o.id === selectedOrder.id ? { ...o, status: "cancelled" as const } : o
+        ));
+        toast.success(`Ordre annulé`, {
+          description: `${selectedOrder.number} a été annulé`
+        });
+      } catch (error: any) {
+        console.error("Erreur annulation:", error);
+        toast.error(error?.message || "Erreur lors de l'annulation");
+      }
     }
     setCancelDialogOpen(false);
   };
@@ -455,12 +471,18 @@ export default function OrdresTravail() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedOrder) {
-      setOrders(orders.filter(o => o.id !== selectedOrder.id));
-      toast.success(`Ordre supprimé`, {
-        description: `${selectedOrder.number} a été supprimé définitivement`
-      });
+      try {
+        await ordresTravailService.delete(parseInt(selectedOrder.id));
+        setOrders(orders.filter(o => o.id !== selectedOrder.id));
+        toast.success(`Ordre supprimé`, {
+          description: `${selectedOrder.number} a été supprimé définitivement`
+        });
+      } catch (error: any) {
+        console.error("Erreur suppression:", error);
+        toast.error(error?.message || "Erreur lors de la suppression");
+      }
     }
     setDeleteDialogOpen(false);
   };

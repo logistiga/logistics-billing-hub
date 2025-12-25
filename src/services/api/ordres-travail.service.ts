@@ -11,16 +11,10 @@ import type {
 interface CreateOrdreData {
   client_id: number;
   date: string;
-  reference?: string;
-  navire?: string;
-  voyage?: string;
-  type_operation?: string;
-  marchandise?: string;
-  poids?: number;
-  nombre_colis?: number;
-  lieu_operation?: string;
-  observations?: string;
+  type?: "Transport" | "Manutention" | "Stockage" | "Location";
+  description?: string;
   lignes_prestations?: Omit<LignePrestation, "id" | "ordre_travail_id">[];
+  containers?: { numero: string; type?: string; description?: string }[];
   transport?: Omit<Transport, "id" | "ordre_travail_id">;
   tax_ids?: number[];
 }
@@ -75,12 +69,41 @@ class OrdresTravailService {
   }
 
   /**
-   * Changer le statut d'un ordre
+   * Valider un ordre (marque completed)
    */
-  async updateStatus(id: number, status: OrdreTravail["status"]): Promise<OrdreTravail> {
-    const response = await apiClient.patch<ApiResponse<OrdreTravail>>(
-      `${this.endpoint}/${id}/status`,
-      { status }
+  async validate(id: number): Promise<OrdreTravail> {
+    const response = await apiClient.post<ApiResponse<OrdreTravail>>(
+      `${this.endpoint}/${id}/validate`
+    );
+    return response.data;
+  }
+
+  /**
+   * Démarrer un ordre (marque in_progress)
+   */
+  async start(id: number): Promise<OrdreTravail> {
+    const response = await apiClient.post<ApiResponse<OrdreTravail>>(
+      `${this.endpoint}/${id}/start`
+    );
+    return response.data;
+  }
+
+  /**
+   * Terminer un ordre (marque completed)
+   */
+  async complete(id: number): Promise<OrdreTravail> {
+    const response = await apiClient.post<ApiResponse<OrdreTravail>>(
+      `${this.endpoint}/${id}/complete`
+    );
+    return response.data;
+  }
+
+  /**
+   * Annuler un ordre
+   */
+  async cancel(id: number): Promise<OrdreTravail> {
+    const response = await apiClient.post<ApiResponse<OrdreTravail>>(
+      `${this.endpoint}/${id}/cancel`
     );
     return response.data;
   }
@@ -106,13 +129,20 @@ class OrdresTravailService {
   }
 
   /**
-   * Générer une facture à partir d'un ordre
+   * Convertir en facture
+   */
+  async convertToInvoice(id: number): Promise<{ invoice_id: number; invoice_number: string }> {
+    const response = await apiClient.post<ApiResponse<{ id: number; number: string }>>(
+      `${this.endpoint}/${id}/convert-to-invoice`
+    );
+    return { invoice_id: response.data.id, invoice_number: response.data.number };
+  }
+
+  /**
+   * Générer une facture (alias pour compatibilité)
    */
   async generateInvoice(id: number): Promise<{ invoice_id: number; invoice_number: string }> {
-    const response = await apiClient.post<ApiResponse<{ invoice_id: number; invoice_number: string }>>(
-      `${this.endpoint}/${id}/generate-invoice`
-    );
-    return response.data;
+    return this.convertToInvoice(id);
   }
 
   /**
