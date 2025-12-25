@@ -16,19 +16,29 @@ import { LignePrestation, operationTypes, createEmptyLigne } from "./types";
 interface LignesPrestationSectionProps {
   lignes: LignePrestation[];
   onChange: (lignes: LignePrestation[]) => void;
+  isTransport?: boolean;
 }
 
 // Helper pour déterminer les champs à afficher selon le type d'opération
-const getFieldsForOperationType = (opType: string) => {
-  // Toujours afficher le conteneur pour les transports import
-  if (opType === "none") return { showConteneur: true, showLot: false, showOperation: false, showDates: false };
+const getFieldsForOperationType = (opType: string, isTransport: boolean) => {
+  // Toujours afficher le conteneur pour les transports
+  if (isTransport) {
+    if (opType === "none") return { showConteneur: true, showLot: false, showOperation: false, showDates: false };
+    if (opType.startsWith("manutention")) return { showConteneur: true, showLot: true, showOperation: false, showDates: false };
+    if (opType.startsWith("stockage")) return { showConteneur: true, showLot: true, showOperation: false, showDates: true };
+    if (opType.startsWith("location")) return { showConteneur: true, showLot: false, showOperation: true, showDates: true };
+    return { showConteneur: true, showLot: false, showOperation: false, showDates: false };
+  }
+  
+  // Sans transport, afficher conteneur seulement pour certains types
+  if (opType === "none") return { showConteneur: false, showLot: false, showOperation: false, showDates: false };
   if (opType.startsWith("manutention")) return { showConteneur: true, showLot: true, showOperation: false, showDates: false };
   if (opType.startsWith("stockage")) return { showConteneur: true, showLot: true, showOperation: false, showDates: true };
-  if (opType.startsWith("location")) return { showConteneur: true, showLot: false, showOperation: true, showDates: true };
-  return { showConteneur: true, showLot: false, showOperation: false, showDates: false };
+  if (opType.startsWith("location")) return { showConteneur: false, showLot: false, showOperation: true, showDates: true };
+  return { showConteneur: false, showLot: false, showOperation: false, showDates: false };
 };
 
-export function LignesPrestationSection({ lignes, onChange }: LignesPrestationSectionProps) {
+export function LignesPrestationSection({ lignes, onChange, isTransport = false }: LignesPrestationSectionProps) {
   const updateLigne = (index: number, field: keyof LignePrestation, value: string | number) => {
     const newLignes = [...lignes];
     newLignes[index] = { ...newLignes[index], [field]: value };
@@ -53,7 +63,7 @@ export function LignesPrestationSection({ lignes, onChange }: LignesPrestationSe
       <h4 className="font-medium mb-3">Lignes de prestation</h4>
       
       {lignes.map((ligne, index) => {
-        const fields = getFieldsForOperationType(ligne.operationType);
+        const fields = getFieldsForOperationType(ligne.operationType, isTransport);
         const hasAnyField = fields.showConteneur || fields.showLot || fields.showOperation || fields.showDates;
         
         return (
