@@ -117,9 +117,23 @@ export function getFieldErrors(data: {
   }
   
   // Au moins une prestation ou transport
-  const hasOperations = data.lignes.some(l => l.operationType !== "none");
+  const lignesAvecOperation = data.lignes.filter(l => l.operationType !== "none");
+  const hasOperations = lignesAvecOperation.length > 0;
+  
   if (!data.hasTransport && !hasOperations) {
     errors.hasAnyService = "Veuillez activer le transport ou ajouter au moins une prestation";
+  }
+  
+  // Validation des lignes de prestation avec opération
+  const lignesSansPrix = lignesAvecOperation.filter(l => !l.prixUnit || l.prixUnit <= 0);
+  if (lignesSansPrix.length > 0) {
+    errors.lignesPrix = `${lignesSansPrix.length} ligne(s) de prestation sans prix unitaire`;
+  }
+  
+  // Validation des quantités
+  const lignesSansQuantite = lignesAvecOperation.filter(l => !l.quantite || l.quantite <= 0);
+  if (lignesSansQuantite.length > 0) {
+    errors.lignesQuantite = `${lignesSansQuantite.length} ligne(s) de prestation sans quantité`;
   }
   
   return errors;

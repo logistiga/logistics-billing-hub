@@ -17,6 +17,7 @@ interface LignesPrestationSectionProps {
   lignes: LignePrestation[];
   onChange: (lignes: LignePrestation[]) => void;
   isTransport?: boolean;
+  showValidationErrors?: boolean;
 }
 
 // Helper pour déterminer les champs à afficher selon le type d'opération
@@ -38,7 +39,7 @@ const getFieldsForOperationType = (opType: string, isTransport: boolean) => {
   return { showConteneur: false, showLot: false, showOperation: false, showDates: false };
 };
 
-export function LignesPrestationSection({ lignes, onChange, isTransport = false }: LignesPrestationSectionProps) {
+export function LignesPrestationSection({ lignes, onChange, isTransport = false, showValidationErrors = false }: LignesPrestationSectionProps) {
   const updateLigne = (index: number, field: keyof LignePrestation, value: string | number) => {
     const newLignes = [...lignes];
     newLignes[index] = { ...newLignes[index], [field]: value };
@@ -177,42 +178,58 @@ export function LignesPrestationSection({ lignes, onChange, isTransport = false 
             )}
             
             {/* Row 3: Description, Quantité, Prix, Total */}
-            <div className="grid grid-cols-12 gap-3">
-              <div className="col-span-5">
-                <Label className="text-xs text-muted-foreground mb-1 block">Description</Label>
-                <Input 
-                  placeholder="Description de la prestation"
-                  value={ligne.description}
-                  onChange={(e) => updateLigne(index, "description", e.target.value)}
-                />
+            {ligne.operationType !== "none" && (
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-5">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Description</Label>
+                  <Input 
+                    placeholder="Description de la prestation"
+                    value={ligne.description}
+                    onChange={(e) => updateLigne(index, "description", e.target.value)}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label className={`text-xs mb-1 block ${showValidationErrors && (!ligne.quantite || ligne.quantite <= 0) ? "text-destructive" : "text-muted-foreground"}`}>
+                    Quantité *
+                  </Label>
+                  <Input 
+                    type="number" 
+                    placeholder="1"
+                    min="1"
+                    value={ligne.quantite || ""}
+                    onChange={(e) => updateLigne(index, "quantite", parseInt(e.target.value) || 0)}
+                    className={showValidationErrors && (!ligne.quantite || ligne.quantite <= 0) ? "border-destructive" : ""}
+                  />
+                  {showValidationErrors && (!ligne.quantite || ligne.quantite <= 0) && (
+                    <p className="text-xs text-destructive mt-1">Requis</p>
+                  )}
+                </div>
+                <div className="col-span-3">
+                  <Label className={`text-xs mb-1 block ${showValidationErrors && (!ligne.prixUnit || ligne.prixUnit <= 0) ? "text-destructive" : "text-muted-foreground"}`}>
+                    Prix unitaire *
+                  </Label>
+                  <Input 
+                    type="number" 
+                    placeholder="0"
+                    min="1"
+                    value={ligne.prixUnit || ""}
+                    onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
+                    className={showValidationErrors && (!ligne.prixUnit || ligne.prixUnit <= 0) ? "border-destructive" : ""}
+                  />
+                  {showValidationErrors && (!ligne.prixUnit || ligne.prixUnit <= 0) && (
+                    <p className="text-xs text-destructive mt-1">Requis</p>
+                  )}
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Total</Label>
+                  <Input 
+                    disabled 
+                    className="bg-muted font-medium"
+                    value={ligne.total.toLocaleString("fr-FR") + " FCFA"}
+                  />
+                </div>
               </div>
-              <div className="col-span-2">
-                <Label className="text-xs text-muted-foreground mb-1 block">Quantité</Label>
-                <Input 
-                  type="number" 
-                  placeholder="1"
-                  value={ligne.quantite || ""}
-                  onChange={(e) => updateLigne(index, "quantite", parseInt(e.target.value) || 0)}
-                />
-              </div>
-              <div className="col-span-3">
-                <Label className="text-xs text-muted-foreground mb-1 block">Prix unitaire</Label>
-                <Input 
-                  type="number" 
-                  placeholder="0"
-                  value={ligne.prixUnit || ""}
-                  onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label className="text-xs text-muted-foreground mb-1 block">Total</Label>
-                <Input 
-                  disabled 
-                  className="bg-muted font-medium"
-                  value={ligne.total.toLocaleString("fr-FR") + " FCFA"}
-                />
-              </div>
-            </div>
+            )}
           </div>
         );
       })}
