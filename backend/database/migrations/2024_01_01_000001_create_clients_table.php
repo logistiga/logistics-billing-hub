@@ -20,20 +20,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
-
-        Schema::create('client_contacts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('client_id')->constrained()->onDelete('cascade');
-            $table->string('name');
-            $table->string('email')->nullable();
-            $table->string('phone')->nullable();
-            $table->timestamps();
-        });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('client_contacts');
         Schema::dropIfExists('clients');
     }
 };

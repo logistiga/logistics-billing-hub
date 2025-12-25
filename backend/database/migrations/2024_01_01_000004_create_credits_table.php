@@ -25,30 +25,13 @@ return new class extends Migration
             $table->string('objet_credit');
             $table->timestamps();
             $table->softDeletes();
-            
-            $table->index(['status', 'prochain_paiement']);
-        });
 
-        Schema::create('credit_payments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('credit_id')->constrained()->onDelete('cascade');
-            $table->string('credit_ref');
-            $table->string('bank');
-            $table->date('date');
-            $table->decimal('montant', 15, 2);
-            $table->decimal('capital', 15, 2);
-            $table->decimal('interet', 15, 2);
-            $table->enum('status', ['paid', 'pending', 'overdue'])->default('pending');
-            $table->integer('echeance');
-            $table->timestamps();
-            
-            $table->index(['credit_id', 'echeance']);
+            $table->index(['status', 'prochain_paiement']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('credit_payments');
         Schema::dropIfExists('credits');
     }
 };

@@ -21,39 +21,14 @@ return new class extends Migration
             $table->enum('type', ['Manutention', 'Transport', 'Stockage', 'Location'])->default('Transport');
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['status', 'due_date']);
             $table->index('client_id');
-        });
-
-        Schema::create('invoice_items', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('invoice_id')->constrained()->onDelete('cascade');
-            $table->string('description');
-            $table->integer('quantity')->default(1);
-            $table->decimal('unit_price', 15, 2);
-            $table->decimal('total', 15, 2);
-            $table->timestamps();
-        });
-
-        Schema::create('payments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('invoice_id')->constrained()->onDelete('cascade');
-            $table->decimal('amount', 15, 2);
-            $table->string('payment_method');
-            $table->string('reference')->nullable();
-            $table->date('date');
-            $table->boolean('is_advance')->default(false);
-            $table->timestamps();
-            
-            $table->index('invoice_id');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('payments');
-        Schema::dropIfExists('invoice_items');
         Schema::dropIfExists('invoices');
     }
 };
