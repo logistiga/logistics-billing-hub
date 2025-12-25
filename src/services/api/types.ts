@@ -211,6 +211,7 @@ export interface Banque {
   swift: string;
   balance: number;
   currency: string;
+  is_default?: boolean;
   created_at: string;
   updated_at: string;
 }
