@@ -13,34 +13,42 @@ class AuthService {
    * Connexion utilisateur (Laravel Sanctum)
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await apiClient.post<ApiResponse<AuthResponse>>(
-      "/auth/login",
-      credentials
-    );
+    const response = await apiClient.post<
+      ApiResponse<AuthResponse> | (AuthResponse & { success?: boolean; message?: string })
+    >("/auth/login", credentials);
 
-    if (response.data.token) {
-      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.token);
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data.user));
+    const data: AuthResponse =
+      response && typeof response === "object" && "data" in response
+        ? (response as ApiResponse<AuthResponse>).data
+        : (response as AuthResponse);
+
+    if (data?.token) {
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.token);
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user));
     }
 
-    return response.data;
+    return data;
   }
 
   /**
    * Inscription utilisateur
    */
   async register(data: RegisterData): Promise<AuthResponse> {
-    const response = await apiClient.post<ApiResponse<AuthResponse>>(
-      "/auth/register",
-      data
-    );
+    const response = await apiClient.post<
+      ApiResponse<AuthResponse> | (AuthResponse & { success?: boolean; message?: string })
+    >("/auth/register", data);
 
-    if (response.data.token) {
-      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.token);
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data.user));
+    const payload: AuthResponse =
+      response && typeof response === "object" && "data" in response
+        ? (response as ApiResponse<AuthResponse>).data
+        : (response as AuthResponse);
+
+    if (payload?.token) {
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, payload.token);
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(payload.user));
     }
 
-    return response.data;
+    return payload;
   }
 
   /**
@@ -59,8 +67,16 @@ class AuthService {
    * Récupérer l'utilisateur courant
    */
   async getCurrentUser(): Promise<AuthUser> {
-    const response = await apiClient.get<ApiResponse<AuthUser>>("/auth/user");
-    return response.data;
+    const response = await apiClient.get<
+      ApiResponse<AuthUser> | AuthUser | { user: AuthUser } | { success: boolean; user: AuthUser }
+    >("/auth/user");
+
+    if (response && typeof response === "object") {
+      if ("data" in response) return (response as ApiResponse<AuthUser>).data;
+      if ("user" in response) return (response as { user: AuthUser }).user;
+    }
+
+    return response as AuthUser;
   }
 
   /**

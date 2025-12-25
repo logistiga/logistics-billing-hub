@@ -43,9 +43,13 @@ export default function Login() {
       await login({ email: data.email, password: data.password });
       navigate("/", { replace: true });
     } catch (err: any) {
-      if (err.response?.data?.message) {
+      if (err?.errors?.email?.[0]) {
+        setError(err.errors.email[0]);
+      } else if (err?.message) {
+        setError(err.message);
+      } else if (err?.response?.data?.message) {
         setError(err.response.data.message);
-      } else if (err.response?.data?.errors?.email) {
+      } else if (err?.response?.data?.errors?.email) {
         setError(err.response.data.errors.email[0]);
       } else {
         setError("Une erreur est survenue. Veuillez réessayer.");
