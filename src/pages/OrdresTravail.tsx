@@ -93,78 +93,8 @@ interface WorkOrder {
   invoiceNumber?: string;
 }
 
-const mockOrders: WorkOrder[] = [
-  {
-    id: "1",
-    number: "OT-2024-0089",
-    client: "COMILOG SA",
-    clientId: "c1",
-    type: "Transport",
-    subType: "Hors Libreville",
-    date: "15/12/2024",
-    status: "in_progress",
-    amount: 2500000,
-    paid: 0,
-    advance: 750000,
-    description: "Transport de minerai vers Port-Gentil",
-  },
-  {
-    id: "2",
-    number: "OT-2024-0088",
-    client: "OLAM Gabon",
-    clientId: "c2",
-    type: "Manutention",
-    subType: "Chargement/Déchargement",
-    date: "14/12/2024",
-    status: "completed",
-    amount: 850000,
-    paid: 850000,
-    advance: 0,
-    description: "Manutention containers au port",
-  },
-  {
-    id: "3",
-    number: "OT-2024-0087",
-    client: "Total Energies",
-    clientId: "c3",
-    type: "Stockage",
-    subType: "Entrepôt sécurisé",
-    date: "14/12/2024",
-    status: "pending",
-    amount: 1200000,
-    paid: 0,
-    advance: 0,
-    description: "Stockage équipements pétroliers",
-  },
-  {
-    id: "4",
-    number: "OT-2024-0086",
-    client: "Assala Energy",
-    clientId: "c4",
-    type: "Transport",
-    subType: "Exceptionnel",
-    date: "13/12/2024",
-    status: "completed",
-    amount: 4500000,
-    paid: 4500000,
-    advance: 0,
-    description: "Convoi exceptionnel équipement lourd",
-  },
-  {
-    id: "5",
-    number: "OT-2024-0085",
-    client: "SEEG",
-    clientId: "c5",
-    type: "Location",
-    subType: "Location engin",
-    date: "12/12/2024",
-    status: "cancelled",
-    amount: 750000,
-    paid: 0,
-    advance: 0,
-    description: "Location grue - Annulé",
-  },
-];
+// Données vides - à remplacer par les données de la base de données
+const mockOrders: WorkOrder[] = [];
 
 const typeConfig = {
   Manutention: {

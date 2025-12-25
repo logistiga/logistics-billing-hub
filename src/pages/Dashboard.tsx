@@ -42,85 +42,54 @@ import {
   Legend,
 } from "recharts";
 
-// Données pour le graphique de chiffre d'affaires mensuel
-const revenueData = [
-  { month: "Jan", revenue: 18500000, expenses: 12000000 },
-  { month: "Fév", revenue: 21200000, expenses: 13500000 },
-  { month: "Mar", revenue: 19800000, expenses: 11800000 },
-  { month: "Avr", revenue: 23500000, expenses: 14200000 },
-  { month: "Mai", revenue: 22100000, expenses: 13800000 },
-  { month: "Juin", revenue: 25800000, expenses: 15200000 },
-  { month: "Juil", revenue: 24200000, expenses: 14800000 },
-  { month: "Août", revenue: 20500000, expenses: 12500000 },
-  { month: "Sep", revenue: 26800000, expenses: 16000000 },
-  { month: "Oct", revenue: 28500000, expenses: 17200000 },
-  { month: "Nov", revenue: 27200000, expenses: 16500000 },
-  { month: "Déc", revenue: 24580000, expenses: 15000000 },
-];
-
-// Données pour la répartition par type de service
-const serviceData = [
-  { name: "Transport", value: 45, color: "hsl(var(--primary))" },
-  { name: "Manutention", value: 28, color: "hsl(var(--success))" },
-  { name: "Stockage", value: 18, color: "hsl(var(--warning))" },
-  { name: "Autres", value: 9, color: "hsl(var(--muted-foreground))" },
-];
-
-// Données pour les ordres par jour (7 derniers jours)
-const ordersPerDay = [
-  { day: "Lun", orders: 12 },
-  { day: "Mar", orders: 18 },
-  { day: "Mer", orders: 15 },
-  { day: "Jeu", orders: 22 },
-  { day: "Ven", orders: 19 },
-  { day: "Sam", orders: 8 },
-  { day: "Dim", orders: 3 },
-];
+// Données vides - à remplacer par les données de la base de données
+const revenueData: { month: string; revenue: number; expenses: number }[] = [];
+const serviceData: { name: string; value: number; color: string }[] = [];
+const ordersPerDay: { day: string; orders: number }[] = [];
 
 const stats = [
   {
     title: "Chiffre d'affaires",
-    value: "24 580 000",
+    value: "0",
     unit: "FCFA",
-    change: "+12.5%",
+    change: "0%",
     trend: "up",
     icon: TrendingUp,
     color: "bg-primary/10 text-primary",
   },
   {
     title: "Clients actifs",
-    value: "156",
+    value: "0",
     unit: "clients",
-    change: "+8",
+    change: "0",
     trend: "up",
     icon: Users,
     color: "bg-success/10 text-success",
   },
   {
     title: "Factures en cours",
-    value: "42",
+    value: "0",
     unit: "factures",
-    change: "-3",
-    trend: "down",
+    change: "0",
+    trend: "up",
     icon: FileText,
     color: "bg-warning/10 text-warning",
   },
   {
     title: "Paiements reçus",
-    value: "18 450 000",
+    value: "0",
     unit: "FCFA",
-    change: "+22.3%",
+    change: "0%",
     trend: "up",
     icon: Wallet,
     color: "bg-primary/10 text-primary",
   },
 ];
 
-// KPIs supplémentaires
 const additionalKPIs = [
   {
     title: "Taux de recouvrement",
-    value: 87,
+    value: 0,
     target: 95,
     unit: "%",
     icon: Target,
@@ -128,7 +97,7 @@ const additionalKPIs = [
   },
   {
     title: "Ordres complétés",
-    value: 234,
+    value: 0,
     target: 250,
     unit: "ce mois",
     icon: Clipboard,
@@ -136,7 +105,7 @@ const additionalKPIs = [
   },
   {
     title: "Nouveaux clients",
-    value: 12,
+    value: 0,
     target: 15,
     unit: "ce mois",
     icon: Users,
@@ -144,35 +113,17 @@ const additionalKPIs = [
   },
   {
     title: "Créances clients",
-    value: 6130000,
-    formatted: "6.13M",
+    value: 0,
+    formatted: "0",
     unit: "FCFA",
     icon: CreditCard,
     color: "destructive",
   },
 ];
 
-const recentInvoices = [
-  { id: "FAC-2024-0142", client: "COMILOG SA", amount: "3 250 000 FCFA", status: "paid", date: "14 Déc 2024" },
-  { id: "FAC-2024-0141", client: "OLAM Gabon", amount: "1 875 000 FCFA", status: "pending", date: "13 Déc 2024" },
-  { id: "FAC-2024-0140", client: "Total Energies", amount: "5 420 000 FCFA", status: "paid", date: "12 Déc 2024" },
-  { id: "FAC-2024-0139", client: "Assala Energy", amount: "2 100 000 FCFA", status: "overdue", date: "10 Déc 2024" },
-];
-
-const recentOrders = [
-  { id: "OT-2024-0089", type: "Transport", client: "COMILOG SA", status: "in_progress", date: "15 Déc 2024" },
-  { id: "OT-2024-0088", type: "Manutention", client: "OLAM Gabon", status: "completed", date: "14 Déc 2024" },
-  { id: "OT-2024-0087", type: "Stockage", client: "Total Energies", status: "pending", date: "14 Déc 2024" },
-];
-
-// Top clients
-const topClients = [
-  { name: "COMILOG SA", revenue: 8500000, orders: 45, growth: 15 },
-  { name: "Total Energies", revenue: 6200000, orders: 32, growth: 8 },
-  { name: "OLAM Gabon", revenue: 4800000, orders: 28, growth: -3 },
-  { name: "Assala Energy", revenue: 3200000, orders: 18, growth: 22 },
-  { name: "SEEG", revenue: 1880000, orders: 12, growth: 5 },
-];
+const recentInvoices: { id: string; client: string; amount: string; status: string; date: string }[] = [];
+const recentOrders: { id: string; type: string; client: string; status: string; date: string }[] = [];
+const topClients: { name: string; revenue: number; orders: number; growth: number }[] = [];
 
 const statusConfig = {
   paid: { label: "Payée", icon: CheckCircle2, class: "text-success bg-success/10" },

@@ -54,25 +54,9 @@ import { DocumentPDFGenerator, type DocumentData } from "@/lib/generateDocumentP
 import { CreateAvoirDialog, type InvoiceForAvoir, type ClientForAvoir } from "@/components/CreateAvoirDialog";
 import { avoirStore, type Avoir } from "@/lib/avoirStore";
 
-// Mock invoices for creating new credit notes
-const mockInvoices: InvoiceForAvoir[] = [
-  { id: "1", number: "FAC-2024-0142", client: "COMILOG SA", clientId: "c1", amount: 3250000 },
-  { id: "2", number: "FAC-2024-0141", client: "OLAM Gabon", clientId: "c2", amount: 1875000 },
-  { id: "3", number: "FAC-2024-0140", client: "Total Energies", clientId: "c3", amount: 5420000 },
-  { id: "4", number: "FAC-2024-0139", client: "Assala Energy", clientId: "c4", amount: 2100000 },
-  { id: "5", number: "FAC-2024-0138", client: "SEEG", clientId: "c5", amount: 890000 },
-];
-
-// Mock clients pour les avoirs libres
-const mockClients: ClientForAvoir[] = [
-  { id: "c1", name: "COMILOG SA" },
-  { id: "c2", name: "OLAM Gabon" },
-  { id: "c3", name: "Total Energies" },
-  { id: "c4", name: "Assala Energy" },
-  { id: "c5", name: "SEEG" },
-  { id: "c6", name: "Perenco Gabon" },
-  { id: "c7", name: "Gabon Telecom" },
-];
+// Données vides - à remplacer par les données de la base de données
+const mockInvoices: InvoiceForAvoir[] = [];
+const mockClients: ClientForAvoir[] = [];
 
 const statusConfig = {
   disponible: {

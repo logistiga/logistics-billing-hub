@@ -46,51 +46,18 @@ import { Progress } from "@/components/ui/progress";
 import { ExportDialog } from "@/components/ExportDialog";
 import { generateExportPDF, generateExportExcel } from "@/lib/exportComptabilite";
 
-// Mock data combined
-const caisseData = {
-  solde: 4940000,
-  entrees: 5590000,
-  sorties: 650000,
-  transactions: 8,
-};
-
+// Données vides - à remplacer par les données de la base de données
+const caisseData = { solde: 0, entrees: 0, sorties: 0, transactions: 0 };
 const banqueData = {
-  solde: 11450000,
-  entrees: 11450000,
-  sorties: 12000000,
-  transactions: 7,
-  banques: [
-    { nom: "BGFI Bank", solde: 6500000, compte: "40003 04140 4104165087118" },
-    { nom: "UGB", solde: 4950000, compte: "40002 00043 9000330B81 84" },
-  ],
+  solde: 0,
+  entrees: 0,
+  sorties: 0,
+  transactions: 0,
+  banques: [] as { nom: string; solde: number; compte: string }[],
 };
-
-const recentTransactions = [
-  { id: "1", date: "2024-01-15", type: "entree", source: "banque", description: "Virement reçu - Total Gabon", montant: 5500000, mode: "virement" },
-  { id: "2", date: "2024-01-15", type: "entree", source: "caisse", description: "Paiement espèces FAC-2024-001", montant: 2500000, mode: "especes" },
-  { id: "3", date: "2024-01-14", type: "sortie", source: "banque", description: "Virement salaires", montant: 8500000, mode: "virement" },
-  { id: "4", date: "2024-01-14", type: "sortie", source: "caisse", description: "Carburant véhicules", montant: 450000, mode: "especes" },
-  { id: "5", date: "2024-01-13", type: "entree", source: "banque", description: "Chèque Comilog", montant: 3200000, mode: "cheque" },
-  { id: "6", date: "2024-01-13", type: "entree", source: "caisse", description: "Acompte CMD-2024-015", montant: 1200000, mode: "especes" },
-  { id: "7", date: "2024-01-12", type: "sortie", source: "banque", description: "Paiement fournisseur", montant: 1850000, mode: "virement" },
-  { id: "8", date: "2024-01-11", type: "sortie", source: "banque", description: "Prélèvement assurance", montant: 450000, mode: "prelevement" },
-];
-
-const monthlyData = [
-  { mois: "Janvier", entrees: 22140000, sorties: 12650000 },
-  { mois: "Décembre", entrees: 18500000, sorties: 15200000 },
-  { mois: "Novembre", entrees: 25000000, sorties: 18000000 },
-  { mois: "Octobre", entrees: 21000000, sorties: 16500000 },
-];
-
-const categoriesDepenses = [
-  { nom: "Salaires", montant: 8500000, pourcentage: 67 },
-  { nom: "Fournisseurs", montant: 1850000, pourcentage: 15 },
-  { nom: "Carburant", montant: 450000, pourcentage: 4 },
-  { nom: "Charges", montant: 450000, pourcentage: 4 },
-  { nom: "Impôts", montant: 1200000, pourcentage: 9 },
-  { nom: "Autres", montant: 200000, pourcentage: 1 },
-];
+const recentTransactions: { id: string; date: string; type: string; source: string; description: string; montant: number; mode: string }[] = [];
+const monthlyData: { mois: string; entrees: number; sorties: number }[] = [];
+const categoriesDepenses: { nom: string; montant: number; pourcentage: number }[] = [];
 
 export default function ComptabiliteGenerale() {
   const [periode, setPeriode] = useState("mois");

@@ -55,68 +55,8 @@ interface Quote {
   type: "Manutention" | "Transport" | "Stockage" | "Location";
 }
 
-const mockQuotes: Quote[] = [
-  {
-    id: "1",
-    number: "DEV-2024-0089",
-    client: "COMILOG SA",
-    date: "14/12/2024",
-    validUntil: "14/01/2025",
-    amount: 4500000,
-    status: "sent",
-    type: "Transport",
-  },
-  {
-    id: "2",
-    number: "DEV-2024-0088",
-    client: "OLAM Gabon",
-    date: "13/12/2024",
-    validUntil: "13/01/2025",
-    amount: 2350000,
-    status: "accepted",
-    type: "Manutention",
-  },
-  {
-    id: "3",
-    number: "DEV-2024-0087",
-    client: "Total Energies",
-    date: "12/12/2024",
-    validUntil: "12/01/2025",
-    amount: 6800000,
-    status: "converted",
-    type: "Transport",
-  },
-  {
-    id: "4",
-    number: "DEV-2024-0086",
-    client: "Assala Energy",
-    date: "10/12/2024",
-    validUntil: "10/01/2025",
-    amount: 1890000,
-    status: "rejected",
-    type: "Stockage",
-  },
-  {
-    id: "5",
-    number: "DEV-2024-0085",
-    client: "SEEG",
-    date: "05/12/2024",
-    validUntil: "05/01/2025",
-    amount: 750000,
-    status: "expired",
-    type: "Location",
-  },
-  {
-    id: "6",
-    number: "DEV-2024-0084",
-    client: "Perenco Oil",
-    date: "14/12/2024",
-    validUntil: "14/01/2025",
-    amount: 3200000,
-    status: "draft",
-    type: "Manutention",
-  },
-];
+// Données vides - à remplacer par les données de la base de données
+const mockQuotes: Quote[] = [];
 
 const statusConfig = {
   draft: {
