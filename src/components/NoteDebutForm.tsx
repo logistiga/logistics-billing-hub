@@ -57,33 +57,11 @@ export const typeConfig = {
   },
 };
 
-// Mock data for OTs with containers
-export const mockOrdresTravail = [
-  { id: "OT-2024-0089", client: "COMILOG SA", clientKey: "comilog", date: "15/12/2024", type: "Transport", containers: [
-    { numero: "MSKU1234567", description: "Transport minerai" },
-    { numero: "TCLU9876543", description: "Transport équipements" },
-  ], compagnie: "Maersk" },
-  { id: "OT-2024-0088", client: "OLAM Gabon", clientKey: "olam", date: "14/12/2024", type: "Manutention", containers: [
-    { numero: "MSCU5544332", description: "Manutention containers" },
-  ], compagnie: "MSC" },
-  { id: "OT-2024-0087", client: "Total Energies", clientKey: "total", date: "14/12/2024", type: "Transport", containers: [
-    { numero: "HLCU6677889", description: "Équipements pétroliers" },
-    { numero: "MSKU7654321", description: "Matériel forage" },
-  ], compagnie: "CMA CGM" },
-  { id: "OT-2024-0086", client: "Assala Energy", clientKey: "assala", date: "13/12/2024", type: "Transport", containers: [
-    { numero: "TCNU4455667", description: "Convoi exceptionnel" },
-  ], compagnie: "Hapag-Lloyd" },
-  { id: "OT-2024-0085", client: "SEEG", clientKey: "seeg", date: "12/12/2024", type: "Transport", containers: [
-    { numero: "MSKU8899001", description: "Transport matériel" },
-    { numero: "HLCU2233445", description: "Transport câbles" },
-  ], compagnie: "COSCO" },
-];
+// OT data will come from backend
+export const mockOrdresTravail: { id: string; client: string; clientKey: string; date: string; type: string; containers: { numero: string; description: string }[]; compagnie: string }[] = [];
 
-// Extract unique clients from OTs
-export const mockClients = Array.from(new Set(mockOrdresTravail.map(ot => ot.clientKey))).map(key => {
-  const ot = mockOrdresTravail.find(o => o.clientKey === key);
-  return { key, name: ot?.client || "" };
-});
+// Clients will come from backend
+export const mockClients: { key: string; name: string }[] = [];
 
 interface ContainerLine {
   id: string;

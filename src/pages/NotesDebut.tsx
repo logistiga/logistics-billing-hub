@@ -68,103 +68,7 @@ interface NoteDebut {
   description: string;
 }
 
-const initialNotes: NoteDebut[] = [
-  {
-    id: "1",
-    number: "ND-2024-0015",
-    client: "COMILOG SA",
-    clientId: "c1",
-    type: "ouverture_port",
-    ordresTravail: ["OT-2024-0045", "OT-2024-0046"],
-    blNumber: "BL-2024-5678",
-    containerNumber: "MSKU1234567",
-    dateDebut: "01/12/2024",
-    dateFin: "15/12/2024",
-    nombreJours: 15,
-    tarifJournalier: 50000,
-    montantTotal: 750000,
-    paid: 0,
-    advance: 0,
-    status: "pending",
-    description: "Ouverture de port pour container MSKU1234567",
-  },
-  {
-    id: "2",
-    number: "ND-2024-0014",
-    client: "OLAM Gabon",
-    clientId: "c2",
-    type: "detention",
-    ordresTravail: ["OT-2024-0042"],
-    blNumber: "BL-2024-4321",
-    containerNumber: "TCLU9876543",
-    dateDebut: "05/12/2024",
-    dateFin: "12/12/2024",
-    nombreJours: 7,
-    tarifJournalier: 75000,
-    montantTotal: 525000,
-    paid: 0,
-    advance: 200000,
-    status: "pending",
-    description: "Détention container 7 jours",
-  },
-  {
-    id: "3",
-    number: "ND-2024-0013",
-    client: "Total Energies",
-    clientId: "c3",
-    type: "reparation",
-    ordresTravail: ["OT-2024-0038", "OT-2024-0039"],
-    blNumber: "BL-2024-8899",
-    containerNumber: "MSCU5544332",
-    dateDebut: "28/11/2024",
-    dateFin: "10/12/2024",
-    nombreJours: 12,
-    tarifJournalier: 100000,
-    montantTotal: 1200000,
-    paid: 1200000,
-    advance: 0,
-    status: "paid",
-    description: "Réparation structurelle container",
-  },
-  {
-    id: "4",
-    number: "ND-2024-0012",
-    client: "Assala Energy",
-    clientId: "c4",
-    type: "detention",
-    ordresTravail: ["OT-2024-0035"],
-    blNumber: "BL-2024-7766",
-    containerNumber: "HLCU6677889",
-    dateDebut: "01/12/2024",
-    dateFin: "14/12/2024",
-    nombreJours: 14,
-    tarifJournalier: 35000,
-    montantTotal: 490000,
-    paid: 0,
-    advance: 0,
-    status: "pending",
-    description: "Détention container 14 jours",
-  },
-  {
-    id: "5",
-    number: "ND-2024-0011",
-    client: "COMILOG SA",
-    clientId: "c1",
-    type: "detention",
-    ordresTravail: ["OT-2024-0030", "OT-2024-0031", "OT-2024-0032"],
-    blNumber: "BL-2024-1234",
-    containerNumber: "MSKU7654321",
-    dateDebut: "01/12/2024",
-    dateFin: "08/12/2024",
-    nombreJours: 7,
-    tarifJournalier: 75000,
-    montantTotal: 525000,
-    paid: 0,
-    advance: 0,
-    status: "pending",
-    description: "Détention container COMILOG",
-  },
-];
+const initialNotes: NoteDebut[] = [];
 
 const typeConfig = {
   ouverture_port: {
@@ -212,27 +116,8 @@ const itemVariants = {
   visible: { opacity: 1, x: 0 },
 };
 
-// Mock data for OTs with containers - provenant des ordres de travail transport
-const mockOrdresTravail = [
-  { id: "OT-2024-0089", client: "COMILOG SA", clientKey: "comilog", date: "15/12/2024", type: "Transport", containers: [
-    { numero: "MSKU1234567", description: "Transport minerai" },
-    { numero: "TCLU9876543", description: "Transport équipements" },
-  ], compagnie: "Maersk" },
-  { id: "OT-2024-0088", client: "OLAM Gabon", clientKey: "olam", date: "14/12/2024", type: "Manutention", containers: [
-    { numero: "MSCU5544332", description: "Manutention containers" },
-  ], compagnie: "MSC" },
-  { id: "OT-2024-0087", client: "Total Energies", clientKey: "total", date: "14/12/2024", type: "Transport", containers: [
-    { numero: "HLCU6677889", description: "Équipements pétroliers" },
-    { numero: "MSKU7654321", description: "Matériel forage" },
-  ], compagnie: "CMA CGM" },
-  { id: "OT-2024-0086", client: "Assala Energy", clientKey: "assala", date: "13/12/2024", type: "Transport", containers: [
-    { numero: "TCNU4455667", description: "Convoi exceptionnel" },
-  ], compagnie: "Hapag-Lloyd" },
-  { id: "OT-2024-0085", client: "SEEG", clientKey: "seeg", date: "12/12/2024", type: "Transport", containers: [
-    { numero: "MSKU8899001", description: "Transport matériel" },
-    { numero: "HLCU2233445", description: "Transport câbles" },
-  ], compagnie: "COSCO" },
-];
+// OT data will come from backend
+const mockOrdresTravail: { id: string; client: string; clientKey: string; date: string; type: string; containers: { numero: string; description: string }[]; compagnie: string }[] = [];
 
 export default function NotesDebut() {
   const navigate = useNavigate();
