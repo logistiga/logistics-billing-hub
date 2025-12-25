@@ -54,7 +54,13 @@ export default function EditerOrdreTravail() {
 
   // Transport
   const [hasTransport, setHasTransport] = useState(false);
+  const [hadTransportInitially, setHadTransportInitially] = useState(false);
   const [transportData, setTransportData] = useState<TransportData>(createEmptyTransportData());
+
+  // Conteneurs (persistés en base séparément des lignes)
+  const [existingContainers, setExistingContainers] = useState<
+    Array<{ numero: string; type?: string | null; description?: string | null }>
+  >([]);
 
   // Lignes de prestation
   const [lignes, setLignes] = useState<LignePrestation[]>([createEmptyLigne()]);
@@ -111,29 +117,60 @@ export default function EditerOrdreTravail() {
         setClientId(String(ordre.client_id));
         setDescription(ordre.description || "");
         
-        // Type de transport
-        if (ordre.type === "Transport") {
-          setHasTransport(true);
+        // Transport
+        const hasTransportFromApi = !!ordre.transport || ordre.type === "Transport";
+        setHasTransport(hasTransportFromApi);
+        setHadTransportInitially(!!ordre.transport);
+
+        if (ordre.transport) {
+          const parsedFromNotes = parseTransportNotes(ordre.transport.notes);
+          setTransportData({
+            ...createEmptyTransportData(),
+            transportType: ordre.transport.type || "import",
+            pointDepart: ordre.transport.depart || "",
+            pointArrivee: ordre.transport.arrivee || "",
+            dateEnlevement: toDateInput(ordre.transport.date_depart),
+            dateLivraison: toDateInput(ordre.transport.date_arrivee),
+            ...parsedFromNotes,
+          });
         }
 
-        // Lignes de prestation (si disponibles via lignes_prestations)
-        if (ordre.lignes_prestations && ordre.lignes_prestations.length > 0) {
-          const mappedLignes: LignePrestation[] = ordre.lignes_prestations.map((l: any) => ({
-            numeroConteneur: l.numero_conteneur || "",
-            numeroLot: l.numero_lot || "",
-            numeroOperation: l.numero_operation || "",
-            dateDebut: l.date_debut || "",
-            dateFin: l.date_fin || "",
-            operationType: l.type_operation || "none",
-            description: l.description || "",
-            quantite: l.quantite || 1,
-            prixUnit: l.prix_unitaire || 0,
-            total: l.total || (l.quantite * l.prix_unitaire) || 0,
-          }));
-          setLignes(mappedLignes);
-        }
+        // Conteneurs (on les garde en mémoire pour éviter de les écraser à la sauvegarde)
+        const containersFromApi = Array.isArray(ordre.containers) ? ordre.containers : [];
+        setExistingContainers(
+          containersFromApi.map((c: any) => ({
+            numero: String(c.numero || "").toUpperCase(),
+            type: c.type ?? null,
+            description: c.description ?? null,
+          }))
+        );
 
-        // Taxes sélectionnées (à partir des taxes liées)
+        // Lignes de prestation (API -> UI)
+        const prestationLines: LignePrestation[] = Array.isArray(ordre.lignes_prestations)
+          ? ordre.lignes_prestations.map((l: any) => {
+              const quantite = Number(l.quantite ?? 1) || 1;
+              const prixUnit = Number(l.prix_unitaire ?? 0) || 0;
+              return {
+                ...createEmptyLigne(),
+                // Le backend ne stocke pas operationType: on met un défaut cohérent pour ne pas perdre les lignes
+                operationType: defaultOperationTypeForOrdreType(ordre.type),
+                description: l.description || "",
+                quantite,
+                prixUnit,
+                total: quantite * prixUnit,
+              };
+            })
+          : [];
+
+        // Pour afficher les conteneurs existants dans le formulaire (sans les transformer en prestations)
+        const containerLines: LignePrestation[] = containersFromApi.map((c: any) => ({
+          ...createEmptyLigne(),
+          operationType: "none",
+          numeroConteneur: String(c.numero || "").toUpperCase(),
+        }));
+
+        const nextLignes = [...containerLines, ...prestationLines];
+        setLignes(nextLignes.length > 0 ? nextLignes : [createEmptyLigne()]);
         if (ordre.taxes && ordre.taxes.length > 0) {
           const taxIds = ordre.taxes.map((t: any) => t.id);
           setSelectedTaxIds(taxIds);
@@ -153,7 +190,51 @@ export default function EditerOrdreTravail() {
   }, [ordreId, navigate]);
 
   const handleTransportChange = (field: keyof TransportData, value: string | number) => {
-    setTransportData(prev => ({ ...prev, [field]: value }));
+    setTransportData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const toDateInput = (value?: string | null): string => {
+    if (!value) return "";
+    // Accepte ISO "2025-12-25T..." ou "2025-12-25"
+    return String(value).slice(0, 10);
+  };
+
+  const parseTransportNotes = (notes?: string | null) => {
+    const result: Partial<TransportData> = {};
+    if (!notes) return result;
+
+    // Format attendu: "Connaissement: X | Compagnie: Y | Navire: Z | Transitaire: ... | Représentant: ..."
+    const parts = String(notes)
+      .split("|")
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    for (const part of parts) {
+      const [rawKey, ...rest] = part.split(":");
+      const key = (rawKey || "").trim().toLowerCase();
+      const value = rest.join(":").trim();
+      if (!value) continue;
+
+      if (key.includes("connaissement")) result.numeroConnaissement = value;
+      else if (key.includes("compagnie")) result.compagnieMaritime = value;
+      else if (key.includes("navire")) result.navire = value;
+      else if (key.includes("transitaire")) result.transitaire = value;
+      else if (key.includes("représentant") || key.includes("representant")) result.representant = value;
+    }
+
+    return result;
+  };
+
+  const defaultOperationTypeForOrdreType = (ordreType?: string): string => {
+    switch (ordreType) {
+      case "Stockage":
+        return "stockage-entrepot";
+      case "Location":
+        return "location-engin";
+      case "Manutention":
+      default:
+        return "manutention-chargement";
+    }
   };
 
   // Validation
@@ -239,35 +320,49 @@ export default function EditerOrdreTravail() {
 
     setIsSubmitting(true);
     try {
+      const containersFromLignes = lignes
+        .filter((l) => !!l.numeroConteneur)
+        .map((l) => ({
+          numero: l.numeroConteneur,
+          type: l.operationType || null,
+          description: l.description || null,
+        }));
+
+      const containersFromTransport =
+        hasTransport && transportData.numeroConteneur
+          ? [
+              {
+                numero: transportData.numeroConteneur,
+                type: `transport-${transportData.transportType}`,
+                description: "Conteneur transport",
+              },
+            ]
+          : [];
+
+      const mergedContainers = [
+        ...existingContainers,
+        ...containersFromLignes,
+        ...containersFromTransport,
+      ].filter((c) => !!c.numero && String(c.numero).trim().length > 0);
+
+      const uniqueContainers = Array.from(
+        new Map(
+          mergedContainers.map((c) => {
+            const numero = String(c.numero).trim().toUpperCase();
+            return [numero, { ...c, numero }];
+          })
+        ).values()
+      );
+
       const ordreData: Record<string, any> = {
         client_id: parseInt(clientId, 10),
         type: getPrimaryType(),
         description: description || "",
 
-        // Conteneurs
-        containers: [
-          ...lignes
-            .filter((l) => !!l.numeroConteneur)
-            .map((l) => ({
-              numero: l.numeroConteneur,
-              type: l.operationType,
-              description: l.description || null,
-            })),
-          ...(hasTransport && transportData.numeroConteneur
-            ? [
-                {
-                  numero: transportData.numeroConteneur,
-                  type: `transport-${transportData.transportType}`,
-                  description: "Conteneur transport",
-                },
-              ]
-            : []),
-        ],
-
         // Lignes de prestations
         lignes_prestations: lignes
-          .filter(l => l.operationType !== "none")
-          .map(l => ({
+          .filter((l) => l.operationType !== "none")
+          .map((l) => ({
             description: l.description || `Prestation ${l.operationType}`,
             quantite: l.quantite,
             prix_unitaire: l.prixUnit,
@@ -275,6 +370,15 @@ export default function EditerOrdreTravail() {
 
         tax_ids: selectedTaxIds,
       };
+
+      if (uniqueContainers.length > 0) {
+        ordreData.containers = uniqueContainers;
+      }
+
+      // Si transport désactivé, on envoie null pour supprimer côté backend
+      if (!hasTransport) {
+        ordreData.transport = null;
+      }
 
       // Transport si activé
       if (hasTransport) {

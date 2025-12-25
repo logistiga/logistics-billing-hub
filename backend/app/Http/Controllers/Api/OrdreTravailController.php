@@ -193,10 +193,15 @@ class OrdreTravailController extends Controller
             }
         }
 
-        // Mettre à jour le transport si fourni
-        if ($transport !== null) {
-            $ordreTravail->transport()->delete();
-            $ordreTravail->transport()->create($transport);
+        // Mettre à jour / supprimer le transport si fourni
+        if ($request->has('transport')) {
+            // null ou tableau vide => suppression
+            if (empty($transport)) {
+                $ordreTravail->transport()->delete();
+            } else {
+                $ordreTravail->transport()->delete();
+                $ordreTravail->transport()->create($transport);
+            }
         }
 
         // Mettre à jour les conteneurs si fournis
