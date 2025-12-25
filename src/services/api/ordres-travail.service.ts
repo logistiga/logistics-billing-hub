@@ -3,16 +3,26 @@ import type {
   ApiResponse,
   PaginatedResponse,
   OrdreTravail,
-  Container,
+  LignePrestation,
+  Transport,
   ListParams,
 } from "./types";
 
 interface CreateOrdreData {
   client_id: number;
   date: string;
-  type: OrdreTravail["type"];
-  description: string;
-  containers?: Omit<Container, "id">[];
+  reference?: string;
+  navire?: string;
+  voyage?: string;
+  type_operation?: string;
+  marchandise?: string;
+  poids?: number;
+  nombre_colis?: number;
+  lieu_operation?: string;
+  observations?: string;
+  lignes_prestations?: Omit<LignePrestation, "id" | "ordre_travail_id">[];
+  transport?: Omit<Transport, "id" | "ordre_travail_id">;
+  tax_ids?: number[];
 }
 
 class OrdresTravailService {
@@ -76,22 +86,22 @@ class OrdresTravailService {
   }
 
   /**
-   * Ajouter un conteneur à un ordre
+   * Ajouter une ligne de prestation
    */
-  async addContainer(ordreId: number, container: Omit<Container, "id">): Promise<Container> {
-    const response = await apiClient.post<ApiResponse<Container>>(
-      `${this.endpoint}/${ordreId}/containers`,
-      container
+  async addLignePrestation(ordreId: number, ligne: Omit<LignePrestation, "id" | "ordre_travail_id">): Promise<LignePrestation> {
+    const response = await apiClient.post<ApiResponse<LignePrestation>>(
+      `${this.endpoint}/${ordreId}/lignes-prestations`,
+      ligne
     );
     return response.data;
   }
 
   /**
-   * Supprimer un conteneur d'un ordre
+   * Supprimer une ligne de prestation
    */
-  async removeContainer(ordreId: number, containerId: number): Promise<void> {
+  async removeLignePrestation(ordreId: number, ligneId: number): Promise<void> {
     await apiClient.delete(
-      `${this.endpoint}/${ordreId}/containers/${containerId}`
+      `${this.endpoint}/${ordreId}/lignes-prestations/${ligneId}`
     );
   }
 

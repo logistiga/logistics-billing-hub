@@ -114,17 +114,65 @@ export interface InvoiceItem {
 
 export interface OrdreTravail {
   id: number;
-  number: string;
+  numero: string;
   client_id: number;
   client?: Client;
+  invoice_id?: number;
   date: string;
-  type: "Transport" | "Manutention" | "Stockage" | "Location";
+  reference?: string;
+  navire?: string;
+  voyage?: string;
+  type_operation?: string;
+  marchandise?: string;
+  poids?: number;
+  nombre_colis?: number;
+  lieu_operation?: string;
+  observations?: string;
   status: "pending" | "in_progress" | "completed" | "cancelled";
-  description: string;
-  containers: Container[];
-  amount: number;
+  validated_at?: string;
+  total: number;
+  lignes_prestations?: LignePrestation[];
+  transport?: Transport;
+  taxes?: TaxPivot[];
   created_at: string;
   updated_at: string;
+}
+
+export interface LignePrestation {
+  id?: number;
+  ordre_travail_id?: number;
+  description: string;
+  quantite: number;
+  prix_unitaire: number;
+  total?: number;
+}
+
+export interface Transport {
+  id?: number;
+  ordre_travail_id?: number;
+  type_transport?: string;
+  point_depart?: string;
+  point_arrivee?: string;
+  date_enlevement?: string;
+  date_livraison?: string;
+  numero_connaissement?: string;
+  compagnie_maritime?: string;
+  navire?: string;
+  transitaire?: string;
+  representant?: string;
+}
+
+export interface TaxPivot {
+  id: number;
+  name: string;
+  code: string;
+  rate: string;
+  pivot?: {
+    ordre_travail_id: number;
+    tax_id: number;
+    rate: string;
+    amount: string;
+  };
 }
 
 export interface Container {

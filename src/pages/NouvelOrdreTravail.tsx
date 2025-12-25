@@ -283,27 +283,40 @@ export default function NouvelOrdreTravail() {
       const ordreData = {
         client_id: parseInt(clientId, 10),
         date: new Date().toISOString().split("T")[0],
-        type: getPrimaryType(),
-        description: description || `Ordre de travail - ${getPrimaryType()}`,
-        // Ajouter les données de transport et lignes selon la structure backend
-        containers: lignes
-          .filter(l => l.numeroConteneur)
+        observations: description || `Ordre de travail - ${getPrimaryType()}`,
+        type_operation: getPrimaryType(),
+        // Ajouter les lignes de prestations selon la structure backend
+        lignes_prestations: lignes
+          .filter(l => l.operationType !== "none")
           .map(l => ({
-            numero: l.numeroConteneur,
-            type: l.operationType,
-            description: l.description,
+            description: l.description || `Prestation ${l.operationType}`,
+            quantite: l.quantite,
+            prix_unitaire: l.prixUnit,
           })),
+        // Ajouter le transport si activé
+        transport: hasTransport ? {
+          type_transport: transportData.transportType,
+          point_depart: transportData.pointDepart,
+          point_arrivee: transportData.pointArrivee,
+          date_enlevement: transportData.dateEnlevement || null,
+          date_livraison: transportData.dateLivraison || null,
+          numero_connaissement: transportData.numeroConnaissement,
+          compagnie_maritime: transportData.compagnieMaritime,
+          navire: transportData.navire,
+          transitaire: transportData.transitaire,
+          representant: transportData.representant,
+        } : undefined,
         // Ajouter les taxes sélectionnées
         tax_ids: selectedTaxIds,
       };
 
-      const ordre = await ordresTravailService.create(ordreData);
+      const ordre = await ordresTravailService.create(ordreData as any);
       
       // Générer le PDF localement
       handleGeneratePDF();
       
       clearDraft(); // Supprimer le brouillon après création
-      toast.success(`Ordre de travail ${ordre.number || ""} créé avec succès`);
+      toast.success(`Ordre de travail ${ordre.numero || ""} créé avec succès`);
       navigate("/ordres-travail");
     } catch (error: any) {
       console.error("Erreur création ordre:", error);
