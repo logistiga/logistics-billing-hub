@@ -73,10 +73,10 @@ export function CreateAvoirDialog({
   onAvoirCreated,
 }: CreateAvoirDialogProps) {
   const [mode, setMode] = useState<"invoice" | "free">("invoice");
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>("");
-  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | undefined>(undefined);
+  const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined);
   const [amount, setAmount] = useState("");
-  const [reasonType, setReasonType] = useState("");
+  const [reasonType, setReasonType] = useState<string | undefined>(undefined);
   const [customReason, setCustomReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -87,11 +87,11 @@ export function CreateAvoirDialog({
         setMode("invoice");
         setSelectedInvoiceId(invoice.id);
       } else {
-        setSelectedInvoiceId("");
+        setSelectedInvoiceId(undefined);
       }
-      setSelectedClientId("");
+      setSelectedClientId(undefined);
       setAmount("");
-      setReasonType("");
+      setReasonType(undefined);
       setCustomReason("");
     }
   }, [open, invoice]);

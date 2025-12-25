@@ -147,14 +147,24 @@ let compensationsHistory: AvoirCompensation[] = [
 let avoirs: Avoir[] = [...initialAvoirs];
 let listeners: (() => void)[] = [];
 
+// Snapshots stables pour useSyncExternalStore (doivent garder la même référence tant que rien ne change)
+let avoirsSnapshot: Avoir[] = [...avoirs];
+let compensationsSnapshot: AvoirCompensation[] = [...compensationsHistory];
+
+const updateSnapshots = () => {
+  avoirsSnapshot = [...avoirs];
+  compensationsSnapshot = [...compensationsHistory];
+};
+
 const notifyListeners = () => {
+  updateSnapshots();
   listeners.forEach((listener) => listener());
 };
 
 export const avoirStore = {
-  // Récupérer tous les avoirs
+  // Récupérer tous les avoirs (snapshot stable pour useSyncExternalStore)
   getAll(): Avoir[] {
-    return [...avoirs];
+    return avoirsSnapshot;
   },
 
   // Récupérer les avoirs d'un client
@@ -294,7 +304,7 @@ export const avoirStore = {
 
   // Récupérer l'historique des compensations
   getCompensationsHistory(): AvoirCompensation[] {
-    return [...compensationsHistory];
+    return compensationsSnapshot;
   },
 
   // Récupérer l'historique des compensations d'un client
