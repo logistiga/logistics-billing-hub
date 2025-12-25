@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { clientsService } from "@/services/api";
+import type { Client as ClientAPI } from "@/services/api/types";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -77,8 +79,24 @@ interface Client {
   balance: number;
 }
 
-// Données vides - à remplacer par les données de la base de données
-const initialClients: Client[] = [];
+// Mapper API vers format local
+const mapApiClientToLocal = (client: ClientAPI): Client => ({
+  id: String(client.id),
+  name: client.name,
+  nif: client.nif || "",
+  rccm: client.rccm || "",
+  address: client.address || "",
+  city: client.city || "",
+  phone: client.phone || "",
+  email: client.email || "",
+  contacts: (client.contacts || []).map(c => ({
+    name: c.name,
+    email: c.email,
+    phone: c.phone,
+  })),
+  totalInvoices: client.total_invoices || 0,
+  balance: client.balance || 0,
+});
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -95,13 +113,35 @@ const itemVariants = {
 
 export default function Clients() {
   const navigate = useNavigate();
-  const [clients, setClients] = useState<Client[]>(initialClients);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([
     { id: "1", name: "", email: "", phone: "" }
   ]);
 
+  // Charger les clients depuis l'API
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setIsLoading(true);
+        const response = await clientsService.getAll({ per_page: 100 });
+        const mappedClients = (response.data || []).map(mapApiClientToLocal);
+        setClients(mappedClients);
+      } catch (error) {
+        console.error("Erreur chargement clients:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les clients",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchClients();
+  }, []);
   // New client form state
   const [newForm, setNewForm] = useState({
     name: "",
