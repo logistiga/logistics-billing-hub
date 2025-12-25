@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Truck, FileText, Save, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowLeft, Truck, FileText, Save, RotateCcw, Trash2, Loader2 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,13 +36,12 @@ import {
   TransportData,
   createEmptyLigne,
   createEmptyTransportData,
-  clients,
-  getClientName,
   transportSubTypes,
 } from "@/components/ordre-travail/types";
+import { clientsService, ordresTravailService, devisService, type Client, type Devis } from "@/services/api";
 
 interface DraftData {
-  client: string;
+  clientId: string;
   description: string;
   hasTransport: boolean;
   transportData: TransportData;
@@ -51,24 +50,6 @@ interface DraftData {
 
 // Mock des conteneurs existants pour les notes de débit
 export const mockConteneurs: { numeroConteneur: string; ordreId: string; ordreNumber: string; client: string; type: string; date: string }[] = [];
-
-// Mock devis data
-const mockDevisData: Record<string, {
-  id: string;
-  number: string;
-  client: string;
-  clientKey: string;
-  type: string;
-  amount: number;
-  description: string;
-}> = {
-  "1": { id: "1", number: "DEV-2024-0089", client: "COMILOG SA", clientKey: "comilog", type: "Transport", amount: 4500000, description: "Transport de marchandises vers Port-Gentil" },
-  "2": { id: "2", number: "DEV-2024-0088", client: "OLAM Gabon", clientKey: "olam", type: "Manutention", amount: 2350000, description: "Chargement/déchargement au port d'Owendo" },
-  "3": { id: "3", number: "DEV-2024-0087", client: "Total Energies", clientKey: "total", type: "Transport", amount: 6800000, description: "Transport exceptionnel de matériel pétrolier" },
-  "4": { id: "4", number: "DEV-2024-0086", client: "Assala Energy", clientKey: "assala", type: "Stockage", amount: 1890000, description: "Stockage longue durée de matériaux" },
-  "5": { id: "5", number: "DEV-2024-0085", client: "SEEG", clientKey: "seeg", type: "Location", amount: 750000, description: "Location d'engins de chantier" },
-  "6": { id: "6", number: "DEV-2024-0084", client: "Perenco Oil", clientKey: "perenco", type: "Manutention", amount: 3200000, description: "Empotage de conteneurs" },
-};
 
 export default function NouvelOrdreTravail() {
   const navigate = useNavigate();
@@ -79,8 +60,13 @@ export default function NouvelOrdreTravail() {
   const [fromDevisNumber, setFromDevisNumber] = useState<string | null>(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
 
+  // API data
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoadingClients, setIsLoadingClients] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Client & Description
-  const [client, setClient] = useState("");
+  const [clientId, setClientId] = useState("");
   const [description, setDescription] = useState("");
 
   // Transport
@@ -90,18 +76,73 @@ export default function NouvelOrdreTravail() {
   // Lignes de prestation
   const [lignes, setLignes] = useState<LignePrestation[]>([createEmptyLigne()]);
 
+  // Charger les clients depuis l'API
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setIsLoadingClients(true);
+        const response = await clientsService.getAll({ per_page: 100 });
+        setClients(response.data || []);
+      } catch (error) {
+        console.error("Erreur chargement clients:", error);
+        toast.error("Erreur lors du chargement des clients");
+      } finally {
+        setIsLoadingClients(false);
+      }
+    };
+    fetchClients();
+  }, []);
+
+  // Charger le devis depuis l'API si fromDevisId
+  useEffect(() => {
+    const fetchDevis = async () => {
+      if (!fromDevisId) return;
+      
+      try {
+        const devis: Devis = await devisService.getById(parseInt(fromDevisId, 10));
+        setFromDevisNumber(devis.number);
+        setClientId(String(devis.client_id));
+        setDescription(devis.description || "");
+        
+        if (devis.type === "Transport") {
+          setHasTransport(true);
+        }
+        
+        let opType = "none";
+        if (devis.type === "Manutention") opType = "manutention-chargement";
+        else if (devis.type === "Stockage") opType = "stockage-entrepot";
+        else if (devis.type === "Location") opType = "location-engin";
+        
+        setLignes([{
+          ...createEmptyLigne(),
+          operationType: opType,
+          description: `Prestation ${devis.type} - Réf. Devis ${devis.number}`,
+          prixUnit: devis.amount || 0,
+          total: devis.amount || 0
+        }]);
+        
+        toast.success(`Données récupérées du devis ${devis.number}`);
+      } catch (error) {
+        console.error("Erreur chargement devis:", error);
+        toast.error("Impossible de charger le devis");
+      }
+    };
+    
+    fetchDevis();
+  }, [fromDevisId]);
+
   // Données pour l'autosave
   const draftData = useMemo<DraftData>(() => ({
-    client,
+    clientId,
     description,
     hasTransport,
     transportData,
     lignes,
-  }), [client, description, hasTransport, transportData, lignes]);
+  }), [clientId, description, hasTransport, transportData, lignes]);
 
   // Callback pour restaurer le brouillon
   const handleRestore = useCallback((data: DraftData) => {
-    setClient(data.client);
+    setClientId(data.clientId);
     setDescription(data.description);
     setHasTransport(data.hasTransport);
     setTransportData(data.transportData);
@@ -120,40 +161,11 @@ export default function NouvelOrdreTravail() {
   useEffect(() => {
     if (!fromDevisId) {
       const draft = checkForDraft();
-      if (draft && (draft.client || draft.description || draft.lignes.some(l => l.operationType !== "none"))) {
+      if (draft && (draft.clientId || draft.description || draft.lignes.some(l => l.operationType !== "none"))) {
         setShowDraftDialog(true);
       }
     }
   }, [fromDevisId, checkForDraft]);
-
-  // Pré-remplir depuis un devis
-  useEffect(() => {
-    if (fromDevisId && mockDevisData[fromDevisId]) {
-      const devis = mockDevisData[fromDevisId];
-      setFromDevisNumber(devis.number);
-      setClient(devis.clientKey);
-      setDescription(devis.description);
-      
-      if (devis.type === "Transport") {
-        setHasTransport(true);
-      }
-      
-      let opType = "none";
-      if (devis.type === "Manutention") opType = "manutention-chargement";
-      else if (devis.type === "Stockage") opType = "stockage-entrepot";
-      else if (devis.type === "Location") opType = "location-engin";
-      
-      setLignes([{
-        ...createEmptyLigne(),
-        operationType: opType,
-        description: `Prestation ${devis.type} - Réf. Devis ${devis.number}`,
-        prixUnit: devis.amount,
-        total: devis.amount
-      }]);
-      
-      toast.success(`Données récupérées du devis ${devis.number}`);
-    }
-  }, [fromDevisId]);
 
   const handleTransportChange = (field: keyof TransportData, value: string | number) => {
     setTransportData(prev => ({ ...prev, [field]: value }));
@@ -163,14 +175,20 @@ export default function NouvelOrdreTravail() {
   const hasOperations = lignes.some(l => l.operationType !== "none");
   const hasAnyService = hasTransport || hasOperations;
 
+  // Helper pour obtenir le nom du client
+  const getClientName = (id: string): string => {
+    const client = clients.find(c => String(c.id) === id);
+    return client?.name || id;
+  };
+
   // Type principal pour le PDF
-  const getPrimaryType = () => {
+  const getPrimaryType = (): "Transport" | "Manutention" | "Stockage" | "Location" => {
     if (hasTransport) return "Transport";
     const ops = lignes.map(l => l.operationType).filter(o => o !== "none");
     if (ops.some(o => o.startsWith("manutention"))) return "Manutention";
     if (ops.some(o => o.startsWith("stockage"))) return "Stockage";
     if (ops.some(o => o.startsWith("location"))) return "Location";
-    return "Multi-services";
+    return "Manutention"; // Default
   };
 
   const handleGeneratePDF = () => {
@@ -178,7 +196,7 @@ export default function NouvelOrdreTravail() {
       type: getPrimaryType(),
       subType: hasTransport ? transportData.transportType : "",
       subTypeLabel: hasTransport ? transportSubTypes.find(st => st.key === transportData.transportType)?.label || "" : "",
-      client: getClientName(client),
+      client: getClientName(clientId),
       description,
       lignes: lignes.map(l => ({
         ...l,
@@ -224,8 +242,8 @@ export default function NouvelOrdreTravail() {
     toast.success("PDF généré avec succès");
   };
 
-  const handleCreate = () => {
-    if (!client) {
+  const handleCreate = async () => {
+    if (!clientId) {
       toast.error("Veuillez sélectionner un client");
       return;
     }
@@ -233,14 +251,43 @@ export default function NouvelOrdreTravail() {
       toast.error("Veuillez activer le transport ou ajouter une opération aux lignes");
       return;
     }
-    handleGeneratePDF();
-    clearDraft(); // Supprimer le brouillon après création
-    toast.success("Ordre de travail créé avec succès");
-    navigate("/ordres-travail");
+
+    setIsSubmitting(true);
+    try {
+      // Appeler l'API pour créer l'ordre de travail
+      const ordreData = {
+        client_id: parseInt(clientId, 10),
+        date: new Date().toISOString().split("T")[0],
+        type: getPrimaryType(),
+        description: description || `Ordre de travail - ${getPrimaryType()}`,
+        // Ajouter les données de transport et lignes selon la structure backend
+        containers: lignes
+          .filter(l => l.numeroConteneur)
+          .map(l => ({
+            numero: l.numeroConteneur,
+            type: l.operationType,
+            description: l.description,
+          })),
+      };
+
+      const ordre = await ordresTravailService.create(ordreData);
+      
+      // Générer le PDF localement
+      handleGeneratePDF();
+      
+      clearDraft(); // Supprimer le brouillon après création
+      toast.success(`Ordre de travail ${ordre.number || ""} créé avec succès`);
+      navigate("/ordres-travail");
+    } catch (error: any) {
+      console.error("Erreur création ordre:", error);
+      toast.error(error?.message || "Erreur lors de la création de l'ordre de travail");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClearForm = () => {
-    setClient("");
+    setClientId("");
     setDescription("");
     setHasTransport(false);
     setTransportData(createEmptyTransportData());
@@ -323,13 +370,13 @@ export default function NouvelOrdreTravail() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Client *</Label>
-                  <Select value={client} onValueChange={setClient}>
+                  <Select value={clientId} onValueChange={setClientId} disabled={isLoadingClients}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un client" />
+                      <SelectValue placeholder={isLoadingClients ? "Chargement..." : "Sélectionner un client"} />
                     </SelectTrigger>
                     <SelectContent>
                       {clients.map(c => (
-                        <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -403,20 +450,28 @@ export default function NouvelOrdreTravail() {
                 variant="ghost" 
                 onClick={handleClearForm}
                 className="text-muted-foreground hover:text-destructive"
+                disabled={isSubmitting}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Réinitialiser
               </Button>
               <div className="flex gap-4">
-                <Button variant="outline" onClick={() => navigate("/ordres-travail")}>
+                <Button variant="outline" onClick={() => navigate("/ordres-travail")} disabled={isSubmitting}>
                   Annuler
                 </Button>
-                <Button variant="outline" onClick={handleGeneratePDF} disabled={!client}>
+                <Button variant="outline" onClick={handleGeneratePDF} disabled={!clientId || isSubmitting}>
                   <FileText className="h-4 w-4 mr-2" />
                   Aperçu PDF
                 </Button>
-                <Button variant="gradient" onClick={handleCreate} disabled={!client}>
-                  Créer l'ordre
+                <Button variant="gradient" onClick={handleCreate} disabled={!clientId || isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Création...
+                    </>
+                  ) : (
+                    "Créer l'ordre"
+                  )}
                 </Button>
               </div>
             </div>

@@ -11,6 +11,7 @@ export { creditsService } from "./credits.service";
 export { notesDebutService } from "./notes-debut.service";
 export { banquesService } from "./banques.service";
 export { avoirsService } from "./avoirs.service";
+export { devisService, type Devis, type DevisItem } from "./devis.service";
 
 // Types
 export type {
