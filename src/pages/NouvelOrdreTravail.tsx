@@ -294,6 +294,11 @@ export default function NouvelOrdreTravail() {
 
     setIsSubmitting(true);
     try {
+      // DEBUG: Afficher les lignes avant envoi
+      console.log("=== DEBUG: Données lignes ===");
+      console.log("Lignes brutes:", lignes);
+      console.log("Lignes avec opération ou prix:", lignes.filter(l => l.operationType !== "none" || (l.prixUnit > 0 && l.quantite > 0)));
+      
       // Appeler l'API pour créer l'ordre de travail
       const ordreData: Record<string, any> = {
         client_id: parseInt(clientId, 10),
@@ -321,13 +326,13 @@ export default function NouvelOrdreTravail() {
             : []),
         ],
 
-        // Lignes de prestations (montants)
+        // Lignes de prestations (montants) - inclure si operationType !== "none" OU si prixUnit > 0
         lignes_prestations: lignes
-          .filter(l => l.operationType !== "none")
+          .filter(l => l.operationType !== "none" || (l.prixUnit > 0 && l.quantite > 0))
           .map(l => ({
-            description: l.description || `Prestation ${l.operationType}`,
-            quantite: l.quantite,
-            prix_unitaire: l.prixUnit,
+            description: l.description || (l.operationType !== "none" ? `Prestation ${l.operationType}` : "Prestation"),
+            quantite: l.quantite || 1,
+            prix_unitaire: l.prixUnit || 0,
           })),
 
         // Taxes
