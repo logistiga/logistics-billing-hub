@@ -124,8 +124,11 @@ export default function Avoirs() {
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [selectedAvoir, setSelectedAvoir] = useState<Avoir | null>(null);
 
-  const [refundForm, setRefundForm] = useState({
-    method: "" as "virement" | "especes" | "cheque" | "",
+  const [refundForm, setRefundForm] = useState<{
+    method: "virement" | "especes" | "cheque" | undefined;
+    reference: string;
+  }>({
+    method: undefined,
     reference: "",
   });
 
@@ -181,7 +184,7 @@ export default function Avoirs() {
       });
       setRefundDialogOpen(false);
       setSelectedAvoir(null);
-      setRefundForm({ method: "", reference: "" });
+      setRefundForm({ method: undefined, reference: "" });
     } else {
       toast({
         title: "Erreur",
