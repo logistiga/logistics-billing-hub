@@ -542,7 +542,7 @@ export default function NouvelOrdreTravail() {
                 </span>
               </h3>
               
-              <LignesPrestationSection lignes={lignes} onChange={setLignes} isTransport={hasTransport} />
+              <LignesPrestationSection lignes={lignes} onChange={setLignes} isTransport={hasTransport} showValidationErrors={Object.keys(formErrors).length > 0} />
 
               {/* Sélection des taxes et totaux */}
               <div className="border rounded-lg p-4 bg-muted/30 mt-4">
