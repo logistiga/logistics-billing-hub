@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\CaisseController;
 use App\Http\Controllers\Api\ExportController;
+use App\Http\Controllers\Api\TaxController;
 
 /*
 |--------------------------------------------------------------------------
@@ -326,6 +327,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     });
 
     // ==========================================
+    // TAXES
+    // ==========================================
+    Route::prefix('taxes')->group(function () {
+        Route::get('/defaults', [TaxController::class, 'defaults']);
+    });
+    Route::apiResource('taxes', TaxController::class);
     // EXPORTS EXCEL
     // ==========================================
     Route::prefix('exports')->group(function () {
