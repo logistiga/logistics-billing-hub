@@ -122,9 +122,13 @@ export default function Banques() {
       setIsDialogOpen(false);
       setFormData({ bankName: "", accountNumber: "", iban: "", swift: "", isDefault: false });
       loadBanks();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur création banque:", error);
-      toast.error("Erreur lors de la création du compte");
+      if (error?.errors?.account_number) {
+        toast.error("Ce numéro de compte existe déjà");
+      } else {
+        toast.error("Erreur lors de la création du compte");
+      }
     } finally {
       setIsSubmitting(false);
     }
