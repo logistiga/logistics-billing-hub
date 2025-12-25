@@ -275,9 +275,10 @@ export default function OrdresTravail() {
   };
 
   const filteredOrders = orders.filter((order) => {
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
-      order.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.client.toLowerCase().includes(searchTerm.toLowerCase());
+      (order.number || "").toLowerCase().includes(searchLower) ||
+      (order.client || "").toLowerCase().includes(searchLower);
     const matchesType = typeFilter === "all" || order.type === typeFilter;
     return matchesSearch && matchesType;
   });
