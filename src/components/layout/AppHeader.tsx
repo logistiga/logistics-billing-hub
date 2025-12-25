@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Command,
   Menu,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,7 @@ import {
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 interface AppHeaderProps {
   sidebarCollapsed: boolean;
@@ -34,7 +36,19 @@ export function AppHeader({
   onMenuToggle,
 }: AppHeaderProps) {
   const navigate = useNavigate();
+  const { user, logout } = useAuthContext();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      navigate("/login", { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <>
@@ -100,23 +114,36 @@ export function AppHeader({
                   <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success border-2 border-card" />
                 </div>
                 <div className="hidden lg:block text-left">
-                  <p className="text-sm font-semibold">Admin</p>
-                  <p className="text-xs text-muted-foreground">admin@logistica.ga</p>
+                  <p className="text-sm font-semibold">{user?.name || "Utilisateur"}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email || ""}</p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="font-heading">Mon Compte</DropdownMenuLabel>
+              <DropdownMenuLabel className="font-heading">
+                <div>
+                  <p className="font-medium">{user?.name}</p>
+                  <p className="text-xs text-muted-foreground font-normal">{user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => navigate("/profil")} className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
-                Profil
+                Mon Profil
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/entreprise")} className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Paramètres
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
+              <DropdownMenuItem 
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="text-destructive focus:text-destructive cursor-pointer"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
-                Déconnexion
+                {isLoggingOut ? "Déconnexion..." : "Déconnexion"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

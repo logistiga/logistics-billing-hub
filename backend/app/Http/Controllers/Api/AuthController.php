@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,6 +22,23 @@ class AuthController extends Controller
     {
         $credentials = $request->validated();
 
+        // Vérifier si l'utilisateur existe
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (!$user) {
+            throw ValidationException::withMessages([
+                'email' => ['Aucun compte n\'existe avec cette adresse email.'],
+            ]);
+        }
+
+        // Vérifier si l'utilisateur est actif
+        if (!$user->is_active) {
+            throw ValidationException::withMessages([
+                'email' => ['Votre compte a été désactivé. Contactez l\'administrateur.'],
+            ]);
+        }
+
+        // Vérifier les identifiants
         if (!Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
                 'email' => ['Les identifiants sont incorrects.'],
@@ -28,14 +46,20 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
+        
+        // Mettre à jour la date de dernière connexion
+        $user->update(['last_login_at' => now()]);
+        
+        // Créer le token
         $token = $user->createToken('auth-token')->plainTextToken;
+
+        // Charger les relations
+        $user->load('roles.permissions');
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-            ],
+            'user' => new UserResource($user),
+            'token' => $token,
             'message' => 'Connexion réussie',
         ]);
     }
@@ -83,9 +107,12 @@ class AuthController extends Controller
      */
     public function user(Request $request)
     {
+        $user = $request->user();
+        $user->load('roles.permissions');
+
         return response()->json([
             'success' => true,
-            'data' => $request->user(),
+            'data' => new UserResource($user),
         ]);
     }
 

@@ -5,10 +5,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PageLoader } from "@/components/ui/page-loader";
 
 // Lazy loaded pages
+const Login = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Clients = lazy(() => import("./pages/Clients"));
 const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
@@ -54,42 +57,55 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/clients" element={<Clients />} />
-                <Route path="/clients/:id" element={<ClientDashboard />} />
-                <Route path="/factures" element={<Factures />} />
-                <Route path="/devis" element={<Devis />} />
-                <Route path="/avoirs" element={<Avoirs />} />
-                <Route path="/ordres-travail" element={<OrdresTravail />} />
-                <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
-                <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
-                <Route path="/notes-debut" element={<NotesDebut />} />
-                <Route path="/notes-debut/nouvelle" element={<NouvelleNoteDebut />} />
-                <Route path="/notes-debut/ouverture-port" element={<NouvelleNoteOuverturePort />} />
-                <Route path="/notes-debut/detention" element={<NouvelleNoteDetention />} />
-                <Route path="/notes-debut/reparation" element={<NouvelleNoteReparation />} />
-                <Route path="/entreprise" element={<Entreprise />} />
-                <Route path="/banques" element={<Banques />} />
-                <Route path="/taxes" element={<Taxes />} />
-                <Route path="/roles" element={<Roles />} />
-                <Route path="/utilisateurs" element={<Utilisateurs />} />
-                <Route path="/partenaires" element={<Partenaires />} />
-                <Route path="/caisse" element={<Caisse />} />
-                <Route path="/suivi-banque" element={<SuiviBanque />} />
-                <Route path="/tableau-flux" element={<TableauFlux />} />
-                <Route path="/comptabilite" element={<ComptabiliteGenerale />} />
-                <Route path="/rapports" element={<Rapports />} />
-                <Route path="/credit-bancaire" element={<CreditBancaire />} />
-                <Route path="/tresorerie-prev" element={<TresoreriePrev />} />
-                <Route path="/emails" element={<Emails />} />
-                <Route path="/profil" element={<Profil />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+          <AuthProvider>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Public route */}
+                <Route path="/login" element={<Login />} />
+
+                {/* Protected routes */}
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/clients" element={<Clients />} />
+                  <Route path="/clients/:id" element={<ClientDashboard />} />
+                  <Route path="/factures" element={<Factures />} />
+                  <Route path="/devis" element={<Devis />} />
+                  <Route path="/avoirs" element={<Avoirs />} />
+                  <Route path="/ordres-travail" element={<OrdresTravail />} />
+                  <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
+                  <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
+                  <Route path="/notes-debut" element={<NotesDebut />} />
+                  <Route path="/notes-debut/nouvelle" element={<NouvelleNoteDebut />} />
+                  <Route path="/notes-debut/ouverture-port" element={<NouvelleNoteOuverturePort />} />
+                  <Route path="/notes-debut/detention" element={<NouvelleNoteDetention />} />
+                  <Route path="/notes-debut/reparation" element={<NouvelleNoteReparation />} />
+                  <Route path="/entreprise" element={<Entreprise />} />
+                  <Route path="/banques" element={<Banques />} />
+                  <Route path="/taxes" element={<Taxes />} />
+                  <Route path="/roles" element={<Roles />} />
+                  <Route path="/utilisateurs" element={<Utilisateurs />} />
+                  <Route path="/partenaires" element={<Partenaires />} />
+                  <Route path="/caisse" element={<Caisse />} />
+                  <Route path="/suivi-banque" element={<SuiviBanque />} />
+                  <Route path="/tableau-flux" element={<TableauFlux />} />
+                  <Route path="/comptabilite" element={<ComptabiliteGenerale />} />
+                  <Route path="/rapports" element={<Rapports />} />
+                  <Route path="/credit-bancaire" element={<CreditBancaire />} />
+                  <Route path="/tresorerie-prev" element={<TresoreriePrev />} />
+                  <Route path="/emails" element={<Emails />} />
+                  <Route path="/profil" element={<Profil />} />
+                </Route>
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
