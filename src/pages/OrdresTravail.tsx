@@ -309,8 +309,7 @@ export default function OrdresTravail() {
   };
 
   const handleEdit = (order: WorkOrder) => {
-    setSelectedOrder(order);
-    setEditDialogOpen(true);
+    navigate(`/ordres-travail/${order.id}/editer`);
   };
 
   const handleDownloadPDF = (order: WorkOrder) => {
