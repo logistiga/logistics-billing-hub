@@ -96,16 +96,16 @@ interface WorkOrder {
 }
 
 // Fonction pour mapper les ordres API vers le format local
-const mapApiOrderToWorkOrder = (ordre: OrdreTravailAPI): WorkOrder => ({
+const mapApiOrderToWorkOrder = (ordre: any): WorkOrder => ({
   id: String(ordre.id),
-  number: ordre.number,
+  number: ordre.numero || ordre.number || `OT-${ordre.id}`,
   client: ordre.client?.name || `Client ${ordre.client_id}`,
   clientId: String(ordre.client_id),
   type: ordre.type,
   subType: "",
   date: ordre.date,
   status: ordre.status as WorkOrder["status"],
-  amount: ordre.amount || 0,
+  amount: ordre.amount || ordre.total || 0,
   paid: 0,
   advance: 0,
   description: ordre.description || "",

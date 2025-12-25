@@ -104,10 +104,10 @@ export default function EditerOrdreTravail() {
 
       try {
         setIsLoadingOrdre(true);
-        const ordre = await ordresTravailService.getById(ordreId);
+        const ordre: any = await ordresTravailService.getById(ordreId);
         
         // Remplir le formulaire avec les données existantes
-        setOrdreNumero(ordre.number || `OT-${ordre.id}`);
+        setOrdreNumero(ordre.numero || ordre.number || `OT-${ordre.id}`);
         setClientId(String(ordre.client_id));
         setDescription(ordre.description || "");
         
@@ -116,27 +116,30 @@ export default function EditerOrdreTravail() {
           setHasTransport(true);
         }
 
-        // Lignes de prestation (si disponibles)
-        if (ordre.containers && ordre.containers.length > 0) {
-          const mappedLignes: LignePrestation[] = ordre.containers.map((c: any) => ({
-            numeroConteneur: c.numero || "",
-            numeroLot: "",
-            numeroOperation: "",
-            dateDebut: "",
-            dateFin: "",
-            operationType: c.type || "none",
-            description: c.description || "",
-            quantite: 1,
-            prixUnit: 0,
-            total: 0,
+        // Lignes de prestation (si disponibles via lignes_prestations)
+        if (ordre.lignes_prestations && ordre.lignes_prestations.length > 0) {
+          const mappedLignes: LignePrestation[] = ordre.lignes_prestations.map((l: any) => ({
+            numeroConteneur: l.numero_conteneur || "",
+            numeroLot: l.numero_lot || "",
+            numeroOperation: l.numero_operation || "",
+            dateDebut: l.date_debut || "",
+            dateFin: l.date_fin || "",
+            operationType: l.type_operation || "none",
+            description: l.description || "",
+            quantite: l.quantite || 1,
+            prixUnit: l.prix_unitaire || 0,
+            total: l.total || (l.quantite * l.prix_unitaire) || 0,
           }));
           setLignes(mappedLignes);
         }
 
         // Taxes sélectionnées (à partir des taxes liées)
-        // Note: adapter selon la structure de réponse API
+        if (ordre.taxes && ordre.taxes.length > 0) {
+          const taxIds = ordre.taxes.map((t: any) => t.id);
+          setSelectedTaxIds(taxIds);
+        }
         
-        toast.success(`Ordre ${ordre.number || ordre.id} chargé`);
+        toast.success(`Ordre ${ordre.numero || ordre.id} chargé`);
       } catch (error: any) {
         console.error("Erreur chargement ordre:", error);
         toast.error("Impossible de charger l'ordre de travail");
