@@ -21,6 +21,7 @@ export interface TransportData {
   dateLivraison: string;
   // Import
   numeroConnaissement: string;
+  numeroConteneur: string;
   compagnieMaritime: string;
   navire: string;
   transitaire: string;
@@ -75,6 +76,7 @@ export const createEmptyTransportData = (): TransportData => ({
   dateEnlevement: "",
   dateLivraison: "",
   numeroConnaissement: "",
+  numeroConteneur: "",
   compagnieMaritime: "",
   navire: "",
   transitaire: "",
