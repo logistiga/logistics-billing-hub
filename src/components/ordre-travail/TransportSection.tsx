@@ -133,7 +133,7 @@ export function TransportSection({ data, onChange }: TransportSectionProps) {
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-4 gap-4 mt-4">
             <div className="space-y-2">
               <Label>Représentant</Label>
               <Select value={data.representant} onValueChange={(v) => onChange("representant", v)}>
@@ -156,6 +156,15 @@ export function TransportSection({ data, onChange }: TransportSectionProps) {
                 placeholder="0"
                 value={data.primeTransitaire || ""}
                 onChange={(e) => onChange("primeTransitaire", parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Prime Représentant (FCFA)</Label>
+              <Input 
+                type="number" 
+                placeholder="0"
+                value={data.primeRepresentant || ""}
+                onChange={(e) => onChange("primeRepresentant", parseInt(e.target.value) || 0)}
               />
             </div>
           </div>

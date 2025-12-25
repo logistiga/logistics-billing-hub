@@ -20,11 +20,12 @@ interface LignesPrestationSectionProps {
 
 // Helper pour déterminer les champs à afficher selon le type d'opération
 const getFieldsForOperationType = (opType: string) => {
-  if (opType === "none") return { showConteneur: false, showLot: false, showOperation: false, showDates: false };
+  // Toujours afficher le conteneur pour les transports import
+  if (opType === "none") return { showConteneur: true, showLot: false, showOperation: false, showDates: false };
   if (opType.startsWith("manutention")) return { showConteneur: true, showLot: true, showOperation: false, showDates: false };
   if (opType.startsWith("stockage")) return { showConteneur: true, showLot: true, showOperation: false, showDates: true };
-  if (opType.startsWith("location")) return { showConteneur: false, showLot: false, showOperation: true, showDates: true };
-  return { showConteneur: false, showLot: false, showOperation: false, showDates: false };
+  if (opType.startsWith("location")) return { showConteneur: true, showLot: false, showOperation: true, showDates: true };
+  return { showConteneur: true, showLot: false, showOperation: false, showDates: false };
 };
 
 export function LignesPrestationSection({ lignes, onChange }: LignesPrestationSectionProps) {
