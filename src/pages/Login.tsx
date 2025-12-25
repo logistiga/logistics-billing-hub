@@ -78,26 +78,22 @@ export default function Login() {
         className="relative z-10 w-full max-w-md"
       >
         {/* Logo Section - Large & Prominent */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1, type: "spring", stiffness: 150, damping: 15 }}
-            className="relative inline-block mb-6"
+            className="relative inline-block mb-4"
           >
-            {/* Glow ring */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-blue-400/20 to-primary/20 rounded-full blur-2xl scale-125 animate-pulse" />
+            {/* Subtle glow effect */}
+            <div className="absolute inset-0 bg-primary/10 rounded-full blur-3xl scale-150" />
             
-            {/* Logo container */}
-            <div className="relative w-40 h-40 mx-auto flex items-center justify-center">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-blue-500/10 rounded-full" />
-              <div className="absolute inset-2 bg-white rounded-full shadow-xl" />
-              <img 
-                src={shipLoaderGif} 
-                alt="LogistiGa" 
-                className="relative w-32 h-32 object-contain z-10"
-              />
-            </div>
+            {/* Logo - Large without container */}
+            <img 
+              src={shipLoaderGif} 
+              alt="LogistiGa" 
+              className="relative w-52 h-52 object-contain z-10"
+            />
           </motion.div>
 
           <motion.div
