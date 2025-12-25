@@ -21,13 +21,17 @@ return [
         'http://localhost:3000',
         'https://*.lovable.app',
         'https://*.lovableproject.com',
-        // Ajoutez votre domaine de production ici
-        // 'https://votre-app.lovable.app',
+        'https://d16b9f7b-d97a-41e1-b5d0-a72f0873dc6d.lovableproject.com',
+        // Ngrok URLs
+        'https://*.ngrok-free.app',
+        'https://*.ngrok.io',
     ],
 
     'allowed_origins_patterns' => [
         '#^https://[a-z0-9-]+\.lovable\.app$#',
         '#^https://[a-z0-9-]+\.lovableproject\.com$#',
+        '#^https://[a-z0-9-]+\.ngrok-free\.app$#',
+        '#^https://[a-z0-9-]+\.ngrok\.io$#',
     ],
 
     'allowed_headers' => ['*'],
