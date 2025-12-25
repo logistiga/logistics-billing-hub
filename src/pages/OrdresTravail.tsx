@@ -105,7 +105,7 @@ const mapApiOrderToWorkOrder = (ordre: any): WorkOrder => ({
   subType: "",
   date: ordre.date,
   status: ordre.status as WorkOrder["status"],
-  amount: ordre.amount || ordre.total || 0,
+  amount: Number(ordre.total) || Number(ordre.amount) || 0,
   paid: 0,
   advance: 0,
   description: ordre.description || "",
