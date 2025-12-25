@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\EntrepriseController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\CaisseController;
+use App\Http\Controllers\Api\ExportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -322,6 +323,30 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post('/{role}/sync-permissions', [RoleController::class, 'syncPermissions']);
         });
         Route::apiResource('roles', RoleController::class);
+    });
+
+    // ==========================================
+    // EXPORTS EXCEL
+    // ==========================================
+    Route::prefix('exports')->group(function () {
+        Route::get('/clients', [ExportController::class, 'clients']);
+        Route::get('/invoices', [ExportController::class, 'invoices']);
+        Route::get('/devis', [ExportController::class, 'devis']);
+        Route::get('/ordres-travail', [ExportController::class, 'ordresTravail']);
+        Route::get('/transactions', [ExportController::class, 'transactions']);
+        Route::get('/mouvements-caisse', [ExportController::class, 'mouvementsCaisse']);
+        Route::get('/payments', [ExportController::class, 'payments']);
+        Route::get('/partenaires', [ExportController::class, 'partenaires']);
+        Route::get('/credits', [ExportController::class, 'credits']);
+        Route::get('/avoirs', [ExportController::class, 'avoirs']);
+        Route::get('/notes-debut', [ExportController::class, 'notesDebut']);
+        Route::get('/banques', [ExportController::class, 'banques']);
+        Route::get('/comptabilite', [ExportController::class, 'comptabilite']);
+        
+        // Admin only
+        Route::middleware('role:admin')->group(function () {
+            Route::get('/users', [ExportController::class, 'users']);
+        });
     });
 
     // ==========================================
