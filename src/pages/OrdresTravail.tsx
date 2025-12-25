@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ordresTravailService, clientsService } from "@/services/api";
+import type { OrdreTravail as OrdreTravailAPI, Client } from "@/services/api/types";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -93,8 +95,21 @@ interface WorkOrder {
   invoiceNumber?: string;
 }
 
-// Données vides - à remplacer par les données de la base de données
-const mockOrders: WorkOrder[] = [];
+// Fonction pour mapper les ordres API vers le format local
+const mapApiOrderToWorkOrder = (ordre: OrdreTravailAPI): WorkOrder => ({
+  id: String(ordre.id),
+  number: ordre.number,
+  client: ordre.client?.name || `Client ${ordre.client_id}`,
+  clientId: String(ordre.client_id),
+  type: ordre.type,
+  subType: "",
+  date: ordre.date,
+  status: ordre.status as WorkOrder["status"],
+  amount: ordre.amount || 0,
+  paid: 0,
+  advance: 0,
+  description: ordre.description || "",
+});
 
 const typeConfig = {
   Manutention: {
@@ -153,8 +168,11 @@ export default function OrdresTravail() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   
+  // Loading state
+  const [isLoading, setIsLoading] = useState(true);
+  
   // Action states
-  const [orders, setOrders] = useState<WorkOrder[]>(mockOrders);
+  const [orders, setOrders] = useState<WorkOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -182,6 +200,24 @@ export default function OrdresTravail() {
   // Convert to invoice dialog state
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [orderToConvert, setOrderToConvert] = useState<WorkOrder | null>(null);
+
+  // Charger les ordres depuis l'API
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setIsLoading(true);
+        const response = await ordresTravailService.getAll({ per_page: 100 });
+        const mappedOrders = (response.data || []).map(mapApiOrderToWorkOrder);
+        setOrders(mappedOrders);
+      } catch (error) {
+        console.error("Erreur chargement ordres:", error);
+        toast.error("Erreur lors du chargement des ordres de travail");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
 
   const handleViewHistory = (order: WorkOrder) => {
     setSelectedOrderForHistory(order);
