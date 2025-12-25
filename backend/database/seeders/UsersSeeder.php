@@ -11,7 +11,20 @@ class UsersSeeder extends Seeder
 {
     public function run(): void
     {
-        // Super Admin
+        // Super Admin - Omar
+        $omar = User::firstOrCreate(
+            ['email' => 'omar@logistiga.com'],
+            [
+                'name' => 'Omar Amraoui',
+                'password' => Hash::make('Amraoui@1'),
+                'phone' => '+212 600 000 000',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+        $omar->assignRole('super-admin');
+
+        // Super Admin - Default
         $superAdmin = User::firstOrCreate(
             ['email' => 'superadmin@example.com'],
             [
