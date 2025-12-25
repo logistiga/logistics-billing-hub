@@ -147,31 +147,39 @@ export default function EditerOrdreTravail() {
           }))
         );
 
-        // Lignes de prestation (API -> UI)
+        // Lignes de prestation (API -> UI) - avec prix
         const prestationLines: LignePrestation[] = Array.isArray(ordre.lignes_prestations)
-          ? ordre.lignes_prestations.map((l: any) => {
+          ? ordre.lignes_prestations.map((l: any, idx: number) => {
               const quantite = Number(l.quantite ?? 1) || 1;
               const prixUnit = Number(l.prix_unitaire ?? 0) || 0;
+              // Essayer de matcher un conteneur par index ou description
+              const matchingContainer = containersFromApi[idx];
               return {
                 ...createEmptyLigne(),
-                // Le backend ne stocke pas operationType: on met un défaut cohérent pour ne pas perdre les lignes
                 operationType: defaultOperationTypeForOrdreType(ordre.type),
                 description: l.description || "",
                 quantite,
                 prixUnit,
                 total: quantite * prixUnit,
+                // Associer le conteneur s'il existe
+                numeroConteneur: matchingContainer ? String(matchingContainer.numero || "").toUpperCase() : "",
               };
             })
           : [];
 
-        // Pour afficher les conteneurs existants dans le formulaire (sans les transformer en prestations)
-        const containerLines: LignePrestation[] = containersFromApi.map((c: any) => ({
-          ...createEmptyLigne(),
-          operationType: "none",
-          numeroConteneur: String(c.numero || "").toUpperCase(),
-        }));
+        // Conteneurs sans prestation associée (conteneurs supplémentaires)
+        const usedContainerIndices = new Set(prestationLines.map((_, idx) => idx));
+        const extraContainerLines: LignePrestation[] = containersFromApi
+          .filter((_, idx) => !usedContainerIndices.has(idx) && idx >= prestationLines.length)
+          .map((c: any) => ({
+            ...createEmptyLigne(),
+            operationType: "none",
+            numeroConteneur: String(c.numero || "").toUpperCase(),
+            description: c.description || "",
+          }));
 
-        const nextLignes = [...containerLines, ...prestationLines];
+        // Combiner: prestations d'abord (avec conteneurs), puis conteneurs supplémentaires
+        const nextLignes = [...prestationLines, ...extraContainerLines];
         setLignes(nextLignes.length > 0 ? nextLignes : [createEmptyLigne()]);
         if (ordre.taxes && ordre.taxes.length > 0) {
           const taxIds = ordre.taxes.map((t: any) => t.id);
