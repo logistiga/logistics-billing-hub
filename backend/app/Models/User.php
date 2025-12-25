@@ -73,7 +73,14 @@ class User extends Authenticatable
     {
         $roleModel = Role::where('name', $role)->first();
         if ($roleModel) {
-            $this->roles()->syncWithoutDetaching([$roleModel->id]);
+            // Utiliser attach avec model_type pour éviter l'erreur "Field 'model_type' doesn't have a default value"
+            if (!$this->roles()->where('role_id', $roleModel->id)->exists()) {
+                \DB::table('model_has_roles')->insert([
+                    'role_id' => $roleModel->id,
+                    'model_id' => $this->id,
+                    'model_type' => self::class,
+                ]);
+            }
         }
     }
 
