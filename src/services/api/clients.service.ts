@@ -30,7 +30,16 @@ class ClientsService {
   /**
    * Créer un nouveau client
    */
-  async create(data: Omit<Client, "id" | "created_at" | "updated_at" | "total_invoices" | "balance">): Promise<Client> {
+  async create(data: {
+    name: string;
+    nif?: string;
+    rccm?: string;
+    address?: string;
+    city?: string;
+    phone?: string;
+    email?: string;
+    contacts?: { name: string; email: string; phone: string }[];
+  }): Promise<Client> {
     const response = await apiClient.post<ApiResponse<Client>>(
       this.endpoint,
       data

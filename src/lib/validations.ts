@@ -30,12 +30,14 @@ export const clientSchema = z.object({
   name: z.string().min(1, messages.required).max(100, messages.max(100)),
   nif: z
     .string()
-    .min(1, messages.required)
-    .regex(/^[0-9]{9}[A-Z]{2}$/, messages.nif),
+    .max(20, messages.max(20))
+    .optional()
+    .or(z.literal("")),
   rccm: z
     .string()
-    .min(1, messages.required)
-    .regex(/^[A-Z]{2,3}\/\d{4}\/[A-Z]\/\d{4,5}$/, messages.rccm),
+    .max(30, messages.max(30))
+    .optional()
+    .or(z.literal("")),
   address: z.string().max(255, messages.max(255)).default(""),
   city: z.string().max(50, messages.max(50)).default(""),
   phone: z.string().max(20, messages.max(20)).default(""),

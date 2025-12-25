@@ -194,7 +194,7 @@ export default function Clients() {
     setIsDialogOpen(false);
   };
 
-  const handleCreateClient = () => {
+  const handleCreateClient = async () => {
     const formData = {
       ...newForm,
       contacts: contacts.map(({ name, email, phone }) => ({ name, email, phone })),
@@ -213,30 +213,40 @@ export default function Clients() {
     }
 
     const validData = result.data;
-    const newClient: Client = {
-      id: Date.now().toString(),
-      name: validData.name,
-      nif: validData.nif,
-      rccm: validData.rccm,
-      address: validData.address,
-      city: validData.city,
-      phone: validData.phone,
-      email: validData.email,
-      contacts: validData.contacts.map(c => ({
-        name: c.name,
-        email: c.email,
-        phone: c.phone,
-      })),
-      totalInvoices: 0,
-      balance: 0,
-    };
-
-    setClients([...clients, newClient]);
-    toast({
-      title: "Client créé",
-      description: `${newClient.name} a été ajouté à la liste`,
-    });
-    resetForm();
+    
+    try {
+      // Appeler l'API pour créer le client
+      const createdClient = await clientsService.create({
+        name: validData.name,
+        nif: validData.nif || "",
+        rccm: validData.rccm || "",
+        address: validData.address || "",
+        city: validData.city || "",
+        phone: validData.phone || "",
+        email: validData.email || "",
+        contacts: (validData.contacts || []).map(c => ({
+          name: c.name || "",
+          email: c.email || "",
+          phone: c.phone || "",
+        })),
+      });
+      
+      // Ajouter le client créé à la liste locale
+      setClients([...clients, mapApiClientToLocal(createdClient)]);
+      
+      toast({
+        title: "Client créé",
+        description: `${createdClient.name} a été ajouté avec succès`,
+      });
+      resetForm();
+    } catch (error: any) {
+      console.error("Erreur création client:", error);
+      toast({
+        title: "Erreur",
+        description: error?.message || "Impossible de créer le client",
+        variant: "destructive",
+      });
+    }
   };
 
   // Edit handlers
