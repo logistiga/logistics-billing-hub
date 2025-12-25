@@ -20,6 +20,7 @@ const Devis = lazy(() => import("./pages/Devis"));
 const Avoirs = lazy(() => import("./pages/Avoirs"));
 const OrdresTravail = lazy(() => import("./pages/OrdresTravail"));
 const NouvelOrdreTravail = lazy(() => import("./pages/NouvelOrdreTravail"));
+const EditerOrdreTravail = lazy(() => import("./pages/EditerOrdreTravail"));
 const OrdresEnAttente = lazy(() => import("./pages/OrdresEnAttente"));
 const NotesDebut = lazy(() => import("./pages/NotesDebut"));
 const NouvelleNoteDebut = lazy(() => import("./pages/NouvelleNoteDebut"));
@@ -79,6 +80,7 @@ const App = () => (
                   <Route path="/avoirs" element={<Avoirs />} />
                   <Route path="/ordres-travail" element={<OrdresTravail />} />
                   <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
+                  <Route path="/ordres-travail/:id/editer" element={<EditerOrdreTravail />} />
                   <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
                   <Route path="/notes-debut" element={<NotesDebut />} />
                   <Route path="/notes-debut/nouvelle" element={<NouvelleNoteDebut />} />
