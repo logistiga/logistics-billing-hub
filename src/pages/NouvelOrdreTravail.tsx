@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Truck, FileText } from "lucide-react";
+import { ArrowLeft, Truck, FileText, Save, RotateCcw, Trash2 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { generateOrdrePDF } from "@/lib/generateOrdrePDF";
 import { TransportSection } from "@/components/ordre-travail/TransportSection";
 import { LignesPrestationSection } from "@/components/ordre-travail/LignesPrestationSection";
+import { useAutosave } from "@/hooks/useAutosave";
 import {
   LignePrestation,
   TransportData,
@@ -29,6 +40,14 @@ import {
   getClientName,
   transportSubTypes,
 } from "@/components/ordre-travail/types";
+
+interface DraftData {
+  client: string;
+  description: string;
+  hasTransport: boolean;
+  transportData: TransportData;
+  lignes: LignePrestation[];
+}
 
 // Mock des conteneurs existants pour les notes de débit
 export const mockConteneurs: { numeroConteneur: string; ordreId: string; ordreNumber: string; client: string; type: string; date: string }[] = [];
@@ -58,6 +77,7 @@ export default function NouvelOrdreTravail() {
   const isDevisMode = searchParams.get("mode") === "devis";
   
   const [fromDevisNumber, setFromDevisNumber] = useState<string | null>(null);
+  const [showDraftDialog, setShowDraftDialog] = useState(false);
 
   // Client & Description
   const [client, setClient] = useState("");
@@ -69,6 +89,42 @@ export default function NouvelOrdreTravail() {
 
   // Lignes de prestation
   const [lignes, setLignes] = useState<LignePrestation[]>([createEmptyLigne()]);
+
+  // Données pour l'autosave
+  const draftData = useMemo<DraftData>(() => ({
+    client,
+    description,
+    hasTransport,
+    transportData,
+    lignes,
+  }), [client, description, hasTransport, transportData, lignes]);
+
+  // Callback pour restaurer le brouillon
+  const handleRestore = useCallback((data: DraftData) => {
+    setClient(data.client);
+    setDescription(data.description);
+    setHasTransport(data.hasTransport);
+    setTransportData(data.transportData);
+    setLignes(data.lignes);
+  }, []);
+
+  // Hook d'autosave
+  const { hasDraft, lastSaved, clearDraft, checkForDraft, restoreDraft } = useAutosave<DraftData>({
+    key: "ordre-travail-draft",
+    data: draftData,
+    debounceMs: 1500,
+    onRestore: handleRestore,
+  });
+
+  // Vérifier s'il y a un brouillon au chargement (seulement si pas de devis)
+  useEffect(() => {
+    if (!fromDevisId) {
+      const draft = checkForDraft();
+      if (draft && (draft.client || draft.description || draft.lignes.some(l => l.operationType !== "none"))) {
+        setShowDraftDialog(true);
+      }
+    }
+  }, [fromDevisId, checkForDraft]);
 
   // Pré-remplir depuis un devis
   useEffect(() => {
@@ -178,12 +234,54 @@ export default function NouvelOrdreTravail() {
       return;
     }
     handleGeneratePDF();
+    clearDraft(); // Supprimer le brouillon après création
     toast.success("Ordre de travail créé avec succès");
     navigate("/ordres-travail");
   };
 
+  const handleClearForm = () => {
+    setClient("");
+    setDescription("");
+    setHasTransport(false);
+    setTransportData(createEmptyTransportData());
+    setLignes([createEmptyLigne()]);
+    clearDraft();
+    toast.success("Formulaire réinitialisé");
+  };
+
   return (
     <PageTransition>
+      {/* Dialog pour restaurer le brouillon */}
+      <AlertDialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Save className="h-5 w-5 text-primary" />
+              Brouillon trouvé
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Un brouillon d'ordre de travail a été trouvé. Voulez-vous le restaurer ou commencer un nouveau formulaire ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              clearDraft();
+              setShowDraftDialog(false);
+            }}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Nouveau formulaire
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              restoreDraft();
+              setShowDraftDialog(false);
+            }}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Restaurer le brouillon
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -199,6 +297,12 @@ export default function NouvelOrdreTravail() {
                 <Badge className="bg-cyan-500/20 text-cyan-600 border-cyan-500/30">
                   <FileText className="h-3 w-3 mr-1" />
                   Depuis {fromDevisNumber}
+                </Badge>
+              )}
+              {lastSaved && (
+                <Badge variant="outline" className="text-muted-foreground border-muted">
+                  <Save className="h-3 w-3 mr-1" />
+                  Brouillon sauvegardé
                 </Badge>
               )}
             </div>
@@ -294,17 +398,27 @@ export default function NouvelOrdreTravail() {
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-4 pt-4 border-t">
-              <Button variant="outline" onClick={() => navigate("/ordres-travail")}>
-                Annuler
+            <div className="flex justify-between pt-4 border-t">
+              <Button 
+                variant="ghost" 
+                onClick={handleClearForm}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Réinitialiser
               </Button>
-              <Button variant="outline" onClick={handleGeneratePDF} disabled={!client}>
-                <FileText className="h-4 w-4 mr-2" />
-                Aperçu PDF
-              </Button>
-              <Button variant="gradient" onClick={handleCreate} disabled={!client}>
-                Créer l'ordre
-              </Button>
+              <div className="flex gap-4">
+                <Button variant="outline" onClick={() => navigate("/ordres-travail")}>
+                  Annuler
+                </Button>
+                <Button variant="outline" onClick={handleGeneratePDF} disabled={!client}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Aperçu PDF
+                </Button>
+                <Button variant="gradient" onClick={handleCreate} disabled={!client}>
+                  Créer l'ordre
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
