@@ -5,7 +5,11 @@ import { cn } from "@/lib/utils";
 
 const TooltipProvider = TooltipPrimitive.Provider;
 
-const Tooltip = TooltipPrimitive.Root;
+const Tooltip = React.forwardRef<
+  unknown,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Root>
+>((props, _ref) => <TooltipPrimitive.Root {...props} />);
+Tooltip.displayName = "Tooltip";
 
 const TooltipTrigger = TooltipPrimitive.Trigger;
 
