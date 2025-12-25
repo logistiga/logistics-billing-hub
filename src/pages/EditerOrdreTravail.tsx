@@ -239,10 +239,8 @@ export default function EditerOrdreTravail() {
 
     setIsSubmitting(true);
     try {
-      const ordreData = {
+      const ordreData: Record<string, any> = {
         client_id: parseInt(clientId, 10),
-        observations: description || "",
-        type_operation: getPrimaryType(),
         // Lignes de prestations
         lignes_prestations: lignes
           .filter(l => l.operationType !== "none")
@@ -251,8 +249,17 @@ export default function EditerOrdreTravail() {
             quantite: l.quantite,
             prix_unitaire: l.prixUnit,
           })),
-        // Transport si activé
-        transport: hasTransport ? {
+        tax_ids: selectedTaxIds,
+      };
+
+      // Ajouter observations seulement si non vide
+      if (description) {
+        ordreData.observations = description;
+      }
+
+      // Transport si activé
+      if (hasTransport) {
+        ordreData.transport = {
           type_transport: transportData.transportType,
           point_depart: transportData.pointDepart,
           point_arrivee: transportData.pointArrivee,
@@ -263,9 +270,8 @@ export default function EditerOrdreTravail() {
           navire: transportData.navire,
           transitaire: transportData.transitaire,
           representant: transportData.representant,
-        } : null,
-        tax_ids: selectedTaxIds,
-      };
+        };
+      }
 
       await ordresTravailService.update(ordreId, ordreData as any);
       
