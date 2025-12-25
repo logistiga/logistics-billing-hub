@@ -337,6 +337,11 @@ export default function EditerOrdreTravail() {
       return;
     }
 
+    // DEBUG: Afficher les lignes avant envoi
+    console.log("=== DEBUG: Mise à jour OT ===");
+    console.log("Lignes brutes:", lignes);
+    console.log("Lignes filtrées:", lignes.filter(l => l.operationType !== "none" || (l.prixUnit > 0 && l.quantite > 0)));
+
     setIsSubmitting(true);
     try {
       const containersFromLignes = lignes
@@ -378,13 +383,13 @@ export default function EditerOrdreTravail() {
         type: getPrimaryType(),
         description: description || "",
 
-        // Lignes de prestations
+        // Lignes de prestations - inclure si operationType !== "none" OU si prixUnit > 0
         lignes_prestations: lignes
-          .filter((l) => l.operationType !== "none")
+          .filter((l) => l.operationType !== "none" || (l.prixUnit > 0 && l.quantite > 0))
           .map((l) => ({
-            description: l.description || `Prestation ${l.operationType}`,
-            quantite: l.quantite,
-            prix_unitaire: l.prixUnit,
+            description: l.description || (l.operationType !== "none" ? `Prestation ${l.operationType}` : "Prestation"),
+            quantite: l.quantite || 1,
+            prix_unitaire: l.prixUnit || 0,
           })),
 
         tax_ids: selectedTaxIds,
