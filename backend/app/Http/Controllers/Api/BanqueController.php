@@ -16,9 +16,7 @@ class BanqueController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Banque::withCount('transactions')
-            ->withSum('transactions as total_credit', 'credit')
-            ->withSum('transactions as total_debit', 'debit');
+        $query = Banque::query();
 
         // Recherche
         if ($request->has('search')) {
