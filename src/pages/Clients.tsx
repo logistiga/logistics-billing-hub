@@ -77,68 +77,8 @@ interface Client {
   balance: number;
 }
 
-const initialClients: Client[] = [
-  {
-    id: "1",
-    name: "COMILOG SA",
-    nif: "123456789GA",
-    rccm: "LBV/2020/B/12345",
-    address: "Boulevard Triomphal, Immeuble Concorde",
-    city: "Libreville",
-    phone: "+241 01 76 00 00",
-    email: "contact@comilog.ga",
-    contacts: [
-      { name: "Jean Mbou", email: "j.mbou@comilog.ga", phone: "+241 077 00 00 00" },
-    ],
-    totalInvoices: 24,
-    balance: 8500000,
-  },
-  {
-    id: "2",
-    name: "OLAM Gabon",
-    nif: "987654321GA",
-    rccm: "LBV/2018/B/67890",
-    address: "Zone Portuaire d'Owendo",
-    city: "Owendo",
-    phone: "+241 01 70 50 00",
-    email: "info@olamgabon.com",
-    contacts: [
-      { name: "Marie Nzeng", email: "m.nzeng@olamgabon.com", phone: "+241 066 50 00 00" },
-    ],
-    totalInvoices: 18,
-    balance: 4200000,
-  },
-  {
-    id: "3",
-    name: "Total Energies Gabon",
-    nif: "456789123GA",
-    rccm: "POG/2015/B/11111",
-    address: "Cap Lopez, Port-Gentil",
-    city: "Port-Gentil",
-    phone: "+241 01 55 10 00",
-    email: "gabon@totalenergies.com",
-    contacts: [
-      { name: "Pierre Ondo", email: "p.ondo@totalenergies.com", phone: "+241 074 10 00 00" },
-    ],
-    totalInvoices: 42,
-    balance: 15800000,
-  },
-  {
-    id: "4",
-    name: "Assala Energy",
-    nif: "741852963GA",
-    rccm: "POG/2019/B/22222",
-    address: "Quartier du Port",
-    city: "Port-Gentil",
-    phone: "+241 01 55 20 00",
-    email: "contact@assalaenergy.com",
-    contacts: [
-      { name: "Sophie Ella", email: "s.ella@assalaenergy.com", phone: "+241 062 20 00 00" },
-    ],
-    totalInvoices: 15,
-    balance: 6300000,
-  },
-];
+// Données vides - à remplacer par les données de la base de données
+const initialClients: Client[] = [];
 
 const containerVariants = {
   hidden: { opacity: 0 },

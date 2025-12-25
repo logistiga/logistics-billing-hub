@@ -71,63 +71,8 @@ export interface Tax {
   createdAt: string;
 }
 
-const initialTaxes: Tax[] = [
-  {
-    id: "1",
-    name: "TVA Standard",
-    code: "TVA18",
-    rate: 18,
-    isActive: true,
-    isDefault: true,
-    description: "Taxe sur la Valeur Ajoutée - Taux normal applicable au Gabon",
-    applicableOn: ["devis", "ordres", "factures"],
-    createdAt: "2024-01-01",
-  },
-  {
-    id: "2",
-    name: "CSS (Contribution Spéciale de Solidarité)",
-    code: "CSS1",
-    rate: 1,
-    isActive: true,
-    isDefault: true,
-    description: "Contribution spéciale de solidarité - 1% sur les prestations",
-    applicableOn: ["devis", "ordres", "factures"],
-    createdAt: "2024-01-01",
-  },
-  {
-    id: "3",
-    name: "TVA Réduite",
-    code: "TVA10",
-    rate: 10,
-    isActive: true,
-    isDefault: false,
-    description: "Taxe sur la Valeur Ajoutée - Taux réduit pour certains services",
-    applicableOn: ["devis", "ordres", "factures"],
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "4",
-    name: "Exonéré",
-    code: "EXO",
-    rate: 0,
-    isActive: true,
-    isDefault: false,
-    description: "Exonération de TVA pour les opérations internationales",
-    applicableOn: ["devis", "ordres", "factures"],
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "5",
-    name: "Taxe Portuaire",
-    code: "TP2",
-    rate: 2,
-    isActive: false,
-    isDefault: false,
-    description: "Taxe spéciale sur les opérations portuaires",
-    applicableOn: ["ordres", "factures"],
-    createdAt: "2024-02-01",
-  },
-];
+// Données vides - à remplacer par les données de la base de données
+const initialTaxes: Tax[] = [];
 
 const itemVariants = {
   hidden: { opacity: 0, x: -10 },

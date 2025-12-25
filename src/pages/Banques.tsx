@@ -42,35 +42,8 @@ interface BankAccount {
   isDefault: boolean;
 }
 
-const mockBanks: BankAccount[] = [
-  {
-    id: "1",
-    bankName: "BGFI Bank Gabon",
-    accountName: "LOGISTICA SARL",
-    accountNumber: "0001 0000 1234 5678 90",
-    iban: "GA21 0001 0000 1234 5678 9000 000",
-    swift: "BGFIGALIB",
-    isDefault: true,
-  },
-  {
-    id: "2",
-    bankName: "UGB - Union Gabonaise de Banque",
-    accountName: "LOGISTICA SARL",
-    accountNumber: "0002 0000 9876 5432 10",
-    iban: "GA21 0002 0000 9876 5432 1000 000",
-    swift: "UGBAGALX",
-    isDefault: false,
-  },
-  {
-    id: "3",
-    bankName: "Ecobank Gabon",
-    accountName: "LOGISTICA SARL",
-    accountNumber: "0003 0000 5555 6666 77",
-    iban: "GA21 0003 0000 5555 6666 7700 000",
-    swift: "ECOCCGCX",
-    isDefault: false,
-  },
-];
+// Données vides - à remplacer par les données de la base de données
+const mockBanks: BankAccount[] = [];
 
 const containerVariants = {
   hidden: { opacity: 0 },
