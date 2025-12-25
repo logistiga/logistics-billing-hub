@@ -123,54 +123,36 @@ export default function Partenaires() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label>Nom de la compagnie *</Label>
-                          <Input placeholder="Ex: MSC" />
+                          <Input placeholder="Ex: MSC, MAERSK, CMA CGM" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Code SCAC *</Label>
-                          <Input placeholder="Ex: MSCU" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Pays</Label>
-                          <Input placeholder="Ex: Suisse" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Contact</Label>
-                          <Input placeholder="Nom du contact" />
+                          <Label>Type de conteneur *</Label>
+                          <Input placeholder="Ex: 20, 40, Frigo" />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Téléphone</Label>
-                          <Input placeholder="+241 XX XX XX XX" />
+                          <Label>Prix par jour (XAF)</Label>
+                          <Input type="number" placeholder="0" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Email</Label>
-                          <Input type="email" placeholder="contact@example.com" />
+                          <Label>Jours de franchise</Label>
+                          <Input type="number" placeholder="0" />
                         </div>
                       </div>
                     </>
                   )}
                   {activeTab === "transitaires" && (
                     <>
-                      <div className="space-y-2">
-                        <Label>Nom du transitaire *</Label>
-                        <Input placeholder="Ex: Trans Gabon Logistics" />
-                      </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>NIF</Label>
-                          <Input placeholder="Numéro d'identification fiscale" />
+                          <Label>Compagnie *</Label>
+                          <Input placeholder="Nom de la compagnie" />
                         </div>
                         <div className="space-y-2">
-                          <Label>RCCM</Label>
-                          <Input placeholder="GA-LBV-XXXX-X-XXXX" />
+                          <Label>Nom *</Label>
+                          <Input placeholder="Nom du transitaire" />
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Adresse</Label>
-                        <Input placeholder="Adresse complète" />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -183,11 +165,8 @@ export default function Partenaires() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>Prime de transitaire (%)</Label>
-                        <Input type="number" step="0.1" placeholder="0" />
-                        <p className="text-xs text-muted-foreground">
-                          Commission appliquée sur les prestations
-                        </p>
+                        <Label>Adresse</Label>
+                        <Input placeholder="Adresse complète" />
                       </div>
                     </>
                   )}
@@ -195,12 +174,12 @@ export default function Partenaires() {
                     <>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Nom *</Label>
-                          <Input placeholder="Nom de famille" />
+                          <Label>Compagnie *</Label>
+                          <Input placeholder="Nom de la compagnie" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Prénom *</Label>
-                          <Input placeholder="Prénom" />
+                          <Label>Nom *</Label>
+                          <Input placeholder="Nom du représentant" />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -214,15 +193,8 @@ export default function Partenaires() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>Transitaire associé</Label>
-                        <Input placeholder="Nom du transitaire (optionnel)" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Prime de représentant (%)</Label>
-                        <Input type="number" step="0.1" placeholder="0" />
-                        <p className="text-xs text-muted-foreground">
-                          Commission appliquée sur les prestations
-                        </p>
+                        <Label>Adresse</Label>
+                        <Input placeholder="Adresse complète" />
                       </div>
                     </>
                   )}
@@ -257,12 +229,10 @@ export default function Partenaires() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead>Nom</TableHead>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Pays</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Téléphone</TableHead>
-                      <TableHead>Email</TableHead>
+                      <TableHead>Compagnie</TableHead>
+                      <TableHead>Type TC</TableHead>
+                      <TableHead className="text-right">Prix/jour</TableHead>
+                      <TableHead className="text-right">Jours franchise</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -279,10 +249,12 @@ export default function Partenaires() {
                         <TableCell>
                           <Badge variant="outline">{compagnie.code}</Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{compagnie.pays}</TableCell>
-                        <TableCell>{compagnie.contact}</TableCell>
-                        <TableCell className="text-muted-foreground">{compagnie.telephone}</TableCell>
-                        <TableCell className="text-muted-foreground">{compagnie.email}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XAF", minimumFractionDigits: 0 }).format(compagnie.prix || 0)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="secondary">{compagnie.jours || 0} jours</Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -318,12 +290,12 @@ export default function Partenaires() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
+                      <TableHead>Compagnie</TableHead>
                       <TableHead>Nom</TableHead>
-                      <TableHead>NIF</TableHead>
-                      <TableHead>RCCM</TableHead>
                       <TableHead>Téléphone</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead className="text-right">Prime</TableHead>
+                      <TableHead>Adresse</TableHead>
+                      <TableHead className="text-right">Solde</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -336,15 +308,15 @@ export default function Partenaires() {
                         transition={{ delay: index * 0.05 }}
                         className="group hover:bg-muted/50"
                       >
-                        <TableCell className="font-medium">{transitaire.nom}</TableCell>
-                        <TableCell className="text-muted-foreground">{transitaire.nif}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono text-xs">{transitaire.rccm}</Badge>
-                        </TableCell>
+                        <TableCell className="font-medium">{transitaire.compagnie || transitaire.nom}</TableCell>
+                        <TableCell>{transitaire.nom}</TableCell>
                         <TableCell className="text-muted-foreground">{transitaire.telephone}</TableCell>
                         <TableCell className="text-muted-foreground">{transitaire.email}</TableCell>
+                        <TableCell className="text-muted-foreground">{transitaire.adresse}</TableCell>
                         <TableCell className="text-right">
-                          <Badge className="bg-primary/20 text-primary">{transitaire.prime}%</Badge>
+                          <Badge variant={(transitaire.solde || 0) > 0 ? "default" : (transitaire.solde || 0) < 0 ? "destructive" : "secondary"}>
+                            {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XAF", minimumFractionDigits: 0 }).format(transitaire.solde || 0)}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -381,12 +353,12 @@ export default function Partenaires() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
+                      <TableHead>Compagnie</TableHead>
                       <TableHead>Nom</TableHead>
-                      <TableHead>Prénom</TableHead>
                       <TableHead>Téléphone</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Transitaire</TableHead>
-                      <TableHead className="text-right">Prime</TableHead>
+                      <TableHead>Adresse</TableHead>
+                      <TableHead className="text-right">Primes en attente</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -399,19 +371,15 @@ export default function Partenaires() {
                         transition={{ delay: index * 0.05 }}
                         className="group hover:bg-muted/50"
                       >
-                        <TableCell className="font-medium">{rep.nom}</TableCell>
-                        <TableCell>{rep.prenom}</TableCell>
+                        <TableCell className="font-medium">{rep.compagnie || rep.nom}</TableCell>
+                        <TableCell>{rep.nom}</TableCell>
                         <TableCell className="text-muted-foreground">{rep.telephone}</TableCell>
                         <TableCell className="text-muted-foreground">{rep.email}</TableCell>
-                        <TableCell>
-                          {rep.transitaire ? (
-                            <Badge variant="outline">{rep.transitaire}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
+                        <TableCell className="text-muted-foreground">{rep.adresse}</TableCell>
                         <TableCell className="text-right">
-                          <Badge className="bg-success/20 text-success">{rep.prime}%</Badge>
+                          <Badge variant={(rep.solde || 0) > 0 ? "default" : "secondary"}>
+                            {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XAF", minimumFractionDigits: 0 }).format(rep.solde || 0)}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
