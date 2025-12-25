@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 
-interface OrdreTravailData {
+export interface OrdreTravailData {
   type: string;
   subType: string;
   subTypeLabel: string;

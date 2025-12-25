@@ -1,23 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Truck, FileText, Save, RotateCcw, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { Save, RotateCcw, Trash2, Loader2, FileText, AlertCircle } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,31 +16,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { generateOrdrePDF } from "@/lib/generateOrdrePDF";
-import { TransportSection } from "@/components/ordre-travail/TransportSection";
-import { LignesPrestationSection } from "@/components/ordre-travail/LignesPrestationSection";
+import { generateOrdrePDF, type OrdreTravailData } from "@/lib/generateOrdrePDF";
+import { 
+  FormHeader, 
+  ClientSection, 
+  TransportToggleSection, 
+  LignesPrestationWrapper 
+} from "@/components/ordre-travail/shared";
 import { useAutosave } from "@/hooks/useAutosave";
-import {
-  LignePrestation,
-  TransportData,
-  createEmptyLigne,
-  createEmptyTransportData,
-  transportSubTypes,
-} from "@/components/ordre-travail/types";
-import { clientsService, ordresTravailService, devisService, type Client, type Devis } from "@/services/api";
-import { taxesService, type TaxAPI } from "@/services/api/taxes.service";
-import { getFieldErrors } from "@/lib/validations/ordre-travail";
-
-interface DraftData {
-  clientId: string;
-  description: string;
-  hasTransport: boolean;
-  transportData: TransportData;
-  lignes: LignePrestation[];
-}
-
-// Mock des conteneurs existants pour les notes de débit
-export const mockConteneurs: { numeroConteneur: string; ordreId: string; ordreNumber: string; client: string; type: string; date: string }[] = [];
+import { createEmptyLigne } from "@/components/ordre-travail/types";
+import { devisService, type Devis } from "@/services/api";
+import { 
+  useOrdreTravailForm, 
+  useOrdreTravailSubmit, 
+  useOrdreTravailData,
+  type DraftData 
+} from "@/hooks/ordre-travail";
 
 export default function NouvelOrdreTravail() {
   const navigate = useNavigate();
@@ -64,63 +42,53 @@ export default function NouvelOrdreTravail() {
   const [fromDevisNumber, setFromDevisNumber] = useState<string | null>(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
 
-  // API data
-  const [clients, setClients] = useState<Client[]>([]);
-  const [taxes, setTaxes] = useState<TaxAPI[]>([]);
-  const [isLoadingClients, setIsLoadingClients] = useState(true);
-  const [isLoadingTaxes, setIsLoadingTaxes] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Load API data
+  const { clients, taxes, isLoadingClients, isLoadingTaxes, getDefaultTaxIds } = useOrdreTravailData();
 
-  // Client & Description
-  const [clientId, setClientId] = useState("");
-  const [description, setDescription] = useState("");
-  const [selectedTaxIds, setSelectedTaxIds] = useState<number[]>([]);
+  // Form state and actions
+  const { state, actions, helpers } = useOrdreTravailForm({
+    defaultTaxIds: getDefaultTaxIds(),
+  });
 
-  // Transport
-  const [hasTransport, setHasTransport] = useState(false);
-  const [transportData, setTransportData] = useState<TransportData>(createEmptyTransportData());
-
-  // Lignes de prestation
-  const [lignes, setLignes] = useState<LignePrestation[]>([createEmptyLigne()]);
-
-  // Charger les clients depuis l'API
+  // Update default taxes when loaded
   useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        setIsLoadingClients(true);
-        const response = await clientsService.getAll({ per_page: 100 });
-        setClients(response.data || []);
-      } catch (error) {
-        console.error("Erreur chargement clients:", error);
-        toast.error("Erreur lors du chargement des clients");
-      } finally {
-        setIsLoadingClients(false);
+    if (!isLoadingTaxes && taxes.length > 0) {
+      const defaultIds = getDefaultTaxIds();
+      if (defaultIds.length > 0 && state.selectedTaxIds.length === 0) {
+        actions.setSelectedTaxIds(defaultIds);
       }
-    };
-    fetchClients();
-  }, []);
+    }
+  }, [isLoadingTaxes, taxes, getDefaultTaxIds, state.selectedTaxIds.length, actions]);
 
-  // Charger les taxes depuis l'API
+  // Submit handler
+  const { isSubmitting, submit } = useOrdreTravailSubmit({
+    mode: "create",
+    onSuccess: () => clearDraft(),
+  });
+
+  // Autosave
+  const handleRestore = useCallback((data: DraftData) => {
+    actions.restoreFromDraft(data);
+  }, [actions]);
+
+  const { lastSaved, clearDraft, checkForDraft, restoreDraft } = useAutosave<DraftData>({
+    key: "ordre-travail-draft",
+    data: helpers.draftData,
+    debounceMs: 1500,
+    onRestore: handleRestore,
+  });
+
+  // Check for draft on load (only if not from devis)
   useEffect(() => {
-    const fetchTaxes = async () => {
-      try {
-        setIsLoadingTaxes(true);
-        const taxesList = await taxesService.getAll();
-        const activeTaxes = taxesList.filter(t => t.is_active);
-        setTaxes(activeTaxes);
-        // Cocher automatiquement les taxes par défaut
-        const defaultTaxIds = activeTaxes.filter(t => t.is_default).map(t => t.id);
-        setSelectedTaxIds(defaultTaxIds);
-      } catch (error) {
-        console.error("Erreur chargement taxes:", error);
-      } finally {
-        setIsLoadingTaxes(false);
+    if (!fromDevisId) {
+      const draft = checkForDraft();
+      if (draft && (draft.clientId || draft.description || draft.lignes.some(l => l.operationType !== "none"))) {
+        setShowDraftDialog(true);
       }
-    };
-    fetchTaxes();
-  }, []);
+    }
+  }, [fromDevisId, checkForDraft]);
 
-  // Charger le devis depuis l'API si fromDevisId
+  // Load devis if fromDevisId
   useEffect(() => {
     const fetchDevis = async () => {
       if (!fromDevisId) return;
@@ -128,11 +96,11 @@ export default function NouvelOrdreTravail() {
       try {
         const devis: Devis = await devisService.getById(parseInt(fromDevisId, 10));
         setFromDevisNumber(devis.number);
-        setClientId(String(devis.client_id));
-        setDescription(devis.description || "");
+        actions.setClientId(String(devis.client_id));
+        actions.setDescription(devis.description || "");
         
         if (devis.type === "Transport") {
-          setHasTransport(true);
+          actions.setHasTransport(true);
         }
         
         let opType = "none";
@@ -140,7 +108,7 @@ export default function NouvelOrdreTravail() {
         else if (devis.type === "Stockage") opType = "stockage-entrepot";
         else if (devis.type === "Location") opType = "location-engin";
         
-        setLignes([{
+        actions.setLignes([{
           ...createEmptyLigne(),
           operationType: opType,
           description: `Prestation ${devis.type} - Réf. Devis ${devis.number}`,
@@ -156,256 +124,43 @@ export default function NouvelOrdreTravail() {
     };
     
     fetchDevis();
-  }, [fromDevisId]);
+  }, [fromDevisId, actions]);
 
-  // Données pour l'autosave
-  const draftData = useMemo<DraftData>(() => ({
-    clientId,
-    description,
-    hasTransport,
-    transportData,
-    lignes,
-  }), [clientId, description, hasTransport, transportData, lignes]);
-
-  // Callback pour restaurer le brouillon
-  const handleRestore = useCallback((data: DraftData) => {
-    setClientId(data.clientId);
-    setDescription(data.description);
-    setHasTransport(data.hasTransport);
-    setTransportData(data.transportData);
-    setLignes(data.lignes);
-  }, []);
-
-  // Hook d'autosave
-  const { hasDraft, lastSaved, clearDraft, checkForDraft, restoreDraft } = useAutosave<DraftData>({
-    key: "ordre-travail-draft",
-    data: draftData,
-    debounceMs: 1500,
-    onRestore: handleRestore,
-  });
-
-  // Vérifier s'il y a un brouillon au chargement (seulement si pas de devis)
-  useEffect(() => {
-    if (!fromDevisId) {
-      const draft = checkForDraft();
-      if (draft && (draft.clientId || draft.description || draft.lignes.some(l => l.operationType !== "none"))) {
-        setShowDraftDialog(true);
-      }
-    }
-  }, [fromDevisId, checkForDraft]);
-
-  const handleTransportChange = (field: keyof TransportData, value: string | number) => {
-    setTransportData(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Validation
-  const hasOperations = lignes.some(l => l.operationType !== "none");
-  const hasAnyService = hasTransport || hasOperations;
-
-  // Helper pour obtenir le nom du client
-  const getClientName = (id: string): string => {
-    const client = clients.find(c => String(c.id) === id);
-    return client?.name || id;
-  };
-
-  // Type principal pour le PDF
-  const getPrimaryType = (): "Transport" | "Manutention" | "Stockage" | "Location" => {
-    if (hasTransport) return "Transport";
-    const ops = lignes.map(l => l.operationType).filter(o => o !== "none");
-    if (ops.some(o => o.startsWith("manutention"))) return "Manutention";
-    if (ops.some(o => o.startsWith("stockage"))) return "Stockage";
-    if (ops.some(o => o.startsWith("location"))) return "Location";
-    return "Manutention"; // Default
-  };
-
+  // PDF generation
   const handleGeneratePDF = () => {
-    const pdfData = {
-      type: getPrimaryType(),
-      subType: hasTransport ? transportData.transportType : "",
-      subTypeLabel: hasTransport ? transportSubTypes.find(st => st.key === transportData.transportType)?.label || "" : "",
-      client: getClientName(clientId),
-      description,
-      lignes: lignes.map(l => ({
-        ...l,
-        service: l.operationType.split("-")[0] || "autre"
-      })),
-      pointDepart: transportData.pointDepart,
-      pointArrivee: transportData.pointArrivee,
-      dateEnlevement: transportData.dateEnlevement,
-      dateLivraison: transportData.dateLivraison,
-      numeroConnaissement: transportData.numeroConnaissement,
-      numeroConteneur: "",
-      compagnieMaritime: transportData.compagnieMaritime,
-      navire: transportData.navire,
-      transitaire: transportData.transitaire,
-      representant: transportData.representant,
-      primeTransitaire: transportData.primeTransitaire,
-      destinationFinale: transportData.destinationFinale,
-      numeroBooking: transportData.numeroBooking,
-      poidsTotal: transportData.poidsTotal,
-      dimensions: transportData.dimensions,
-      typeEscorte: transportData.typeEscorte,
-      autorisationSpeciale: transportData.autorisationSpeciale,
-      lieuPrestation: "",
-      typeMarchandise: "",
-      datePrestation: "",
-      typeManutention: "",
-      dateEntree: "",
-      dateSortie: "",
-      typeStockage: "",
-      entrepot: "",
-      surface: "",
-      tarifJournalier: "",
-      dateDebut: "",
-      dateFin: "",
-      typeEngin: "",
-      typeVehicule: "",
-      avecChauffeur: "",
-      lieuUtilisation: "",
-    };
-
+    const pdfData = helpers.getPdfData(clients) as OrdreTravailData;
     const doc = generateOrdrePDF(pdfData);
-    doc.save(`ordre-travail-${getPrimaryType().toLowerCase()}-${Date.now()}.pdf`);
+    doc.save(`ordre-travail-${helpers.getPrimaryType().toLowerCase()}-${Date.now()}.pdf`);
     toast.success("PDF généré avec succès");
   };
 
-  // État des erreurs de validation
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
+  // Submit form
   const handleCreate = async () => {
-    // Valider le formulaire
-    const errors = getFieldErrors({
-      clientId,
-      description,
-      hasTransport,
-      transportData,
-      lignes,
-    });
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      // Afficher la première erreur comme toast
-      const firstError = Object.values(errors)[0];
-      toast.error(firstError);
-      return;
-    }
-
-    setFormErrors({});
-
-    setIsSubmitting(true);
-    try {
-      // DEBUG: Afficher les lignes avant envoi
-      console.log("=== DEBUG: Données lignes ===");
-      console.log("Lignes brutes:", lignes);
-      console.log("Lignes avec opération ou prix:", lignes.filter(l => l.operationType !== "none" || (l.prixUnit > 0 && l.quantite > 0)));
-      
-      // Appeler l'API pour créer l'ordre de travail
-      const ordreData: Record<string, any> = {
-        client_id: parseInt(clientId, 10),
-        date: new Date().toISOString().split("T")[0],
-        type: getPrimaryType(),
-        description: description || `Ordre de travail - ${getPrimaryType()}`,
-
-        // Conteneurs
-        containers: [
-          ...lignes
-            .filter((l) => !!l.numeroConteneur)
-            .map((l) => ({
-              numero: l.numeroConteneur,
-              type: l.operationType,
-              description: l.description || null,
-            })),
-          ...(hasTransport && transportData.numeroConteneur
-            ? [
-                {
-                  numero: transportData.numeroConteneur,
-                  type: `transport-${transportData.transportType}`,
-                  description: "Conteneur transport",
-                },
-              ]
-            : []),
-        ],
-
-        // Lignes de prestations (montants) - inclure si operationType !== "none" OU si prixUnit > 0
-        lignes_prestations: lignes
-          .filter(l => l.operationType !== "none" || (l.prixUnit > 0 && l.quantite > 0))
-          .map(l => ({
-            description: l.description || (l.operationType !== "none" ? `Prestation ${l.operationType}` : "Prestation"),
-            quantite: l.quantite || 1,
-            prix_unitaire: l.prixUnit || 0,
-          })),
-
-        // Taxes
-        tax_ids: selectedTaxIds,
-      };
-
-      // Transport
-      if (hasTransport) {
-        const transportNotes = [
-          transportData.numeroConnaissement && `Connaissement: ${transportData.numeroConnaissement}`,
-          transportData.compagnieMaritime && `Compagnie: ${transportData.compagnieMaritime}`,
-          transportData.navire && `Navire: ${transportData.navire}`,
-          transportData.transitaire && `Transitaire: ${transportData.transitaire}`,
-          transportData.representant && `Représentant: ${transportData.representant}`,
-        ]
-          .filter(Boolean)
-          .join(" | ");
-
-        ordreData.transport = {
-          type: transportData.transportType,
-          depart: transportData.pointDepart,
-          arrivee: transportData.pointArrivee,
-          date_depart: transportData.dateEnlevement || null,
-          date_arrivee: transportData.dateLivraison || null,
-          notes: transportNotes || null,
-        };
-      }
-
-      const ordre = await ordresTravailService.create(ordreData as any);
-
-      // DEBUG: Afficher ce que le backend a réellement enregistré
-      console.log("=== DEBUG: Réponse création OT ===");
-      console.log("Payload envoyé:", ordreData);
-      console.log("Réponse backend:", ordre);
-
-      const prestationsCount = Array.isArray((ordre as any).lignes_prestations)
-        ? (ordre as any).lignes_prestations.length
-        : 0;
-      const containersCount = Array.isArray((ordre as any).containers)
-        ? (ordre as any).containers.length
-        : 0;
-      const hasTransportSaved = !!(ordre as any).transport;
-      const totalSaved = Number((ordre as any).total ?? 0) || 0;
-
-      // Générer le PDF localement
-      handleGeneratePDF();
-
-      clearDraft(); // Supprimer le brouillon après création
-      toast.success(`Ordre ${ordre.numero || ""} enregistré`, {
-        description: `Transport: ${hasTransportSaved ? "Oui" : "Non"} • Prestations: ${prestationsCount} • Conteneurs: ${containersCount} • Total: ${totalSaved.toLocaleString("fr-FR")} FCFA`,
-      });
-      navigate("/ordres-travail");
-    } catch (error: any) {
-      console.error("Erreur création ordre:", error);
-      toast.error(error?.message || "Erreur lors de la création de l'ordre de travail");
-    } finally {
-      setIsSubmitting(false);
+    const result = await submit({ state, helpers, clients });
+    if (!result.success && result.errors) {
+      actions.setFormErrors(result.errors);
     }
   };
 
+  // Reset form
   const handleClearForm = () => {
-    setClientId("");
-    setDescription("");
-    setHasTransport(false);
-    setTransportData(createEmptyTransportData());
-    setLignes([createEmptyLigne()]);
+    actions.resetForm();
     clearDraft();
     toast.success("Formulaire réinitialisé");
   };
 
+  // Tax toggle handler
+  const handleTaxToggle = (taxId: number) => {
+    if (state.selectedTaxIds.includes(taxId)) {
+      actions.setSelectedTaxIds(state.selectedTaxIds.filter(id => id !== taxId));
+    } else {
+      actions.setSelectedTaxIds([...state.selectedTaxIds, taxId]);
+    }
+  };
+
   return (
     <PageTransition>
-      {/* Dialog pour restaurer le brouillon */}
+      {/* Draft restore dialog */}
       <AlertDialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -437,44 +192,22 @@ export default function NouvelOrdreTravail() {
       </AlertDialog>
 
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/ordres-travail")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-heading font-bold text-foreground">
-                {isDevisMode ? "Nouveau devis" : "Nouvel ordre de travail"}
-              </h1>
-              {fromDevisNumber && (
-                <Badge className="bg-cyan-500/20 text-cyan-600 border-cyan-500/30">
-                  <FileText className="h-3 w-3 mr-1" />
-                  Depuis {fromDevisNumber}
-                </Badge>
-              )}
-              {lastSaved && (
-                <Badge variant="outline" className="text-muted-foreground border-muted">
-                  <Save className="h-3 w-3 mr-1" />
-                  Brouillon sauvegardé
-                </Badge>
-              )}
-            </div>
-            <p className="text-muted-foreground mt-1">
-              Remplissez les informations du client, activez le transport si nécessaire, puis ajoutez vos lignes de prestation
-            </p>
-          </div>
-        </div>
+        <FormHeader
+          title={isDevisMode ? "Nouveau devis" : "Nouvel ordre de travail"}
+          subtitle="Remplissez les informations du client, activez le transport si nécessaire, puis ajoutez vos lignes de prestation"
+          fromDevisNumber={fromDevisNumber}
+          lastSaved={lastSaved}
+        />
 
         <Card className="border-border/50">
           <CardContent className="p-6 space-y-6">
-            {/* Afficher les erreurs de validation */}
-            {Object.keys(formErrors).length > 0 && (
+            {/* Validation errors */}
+            {Object.keys(state.formErrors).length > 0 && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   <ul className="list-disc list-inside space-y-1">
-                    {Object.values(formErrors).map((error, idx) => (
+                    {Object.values(state.formErrors).map((error, idx) => (
                       <li key={idx}>{error}</li>
                     ))}
                   </ul>
@@ -483,157 +216,39 @@ export default function NouvelOrdreTravail() {
             )}
 
             {/* Section 1: Client */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">1</span>
-                Informations Client
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className={formErrors.clientId ? "text-destructive" : ""}>Client *</Label>
-                  <Select value={clientId} onValueChange={(v) => { setClientId(v); setFormErrors(prev => { const { clientId, ...rest } = prev; return rest; }); }} disabled={isLoadingClients}>
-                    <SelectTrigger className={formErrors.clientId ? "border-destructive" : ""}>
-                      <SelectValue placeholder={isLoadingClients ? "Chargement..." : "Sélectionner un client"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map(c => (
-                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {formErrors.clientId && <p className="text-sm text-destructive">{formErrors.clientId}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label>Description générale</Label>
-                  <Textarea 
-                    placeholder="Description de l'ordre de travail..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-[80px]"
-                  />
-                </div>
-              </div>
-            </div>
+            <ClientSection
+              clientId={state.clientId}
+              description={state.description}
+              clients={clients}
+              isLoadingClients={isLoadingClients}
+              onClientChange={actions.setClientId}
+              onDescriptionChange={actions.setDescription}
+              clientError={state.formErrors.clientId}
+              onClearClientError={() => actions.clearFieldError("clientId")}
+            />
 
             {/* Section 2: Transport */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg flex items-center gap-2">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">2</span>
-                  Transport
-                </h3>
-                <div className="flex items-center gap-3">
-                  <Label htmlFor="transport-toggle" className="text-sm text-muted-foreground">
-                    {hasTransport ? "Activé" : "Désactivé"}
-                  </Label>
-                  <Switch
-                    id="transport-toggle"
-                    checked={hasTransport}
-                    onCheckedChange={setHasTransport}
-                  />
-                </div>
-              </div>
-              
-              {!hasTransport && (
-                <div className="border rounded-lg p-4 bg-muted/30 text-center">
-                  <Truck className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">
-                    Activez le transport si cet ordre inclut une prestation de transport
-                  </p>
-                </div>
-              )}
-
-              <AnimatePresence>
-                {hasTransport && (
-                  <TransportSection 
-                    data={transportData} 
-                    onChange={handleTransportChange} 
-                  />
-                )}
-              </AnimatePresence>
-            </div>
+            <TransportToggleSection
+              hasTransport={state.hasTransport}
+              transportData={state.transportData}
+              onToggle={actions.setHasTransport}
+              onChange={actions.handleTransportChange}
+            />
 
             {/* Section 3: Lignes de prestation */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">3</span>
-                Lignes de prestation
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  (Manutention, Stockage, Location)
-                </span>
-              </h3>
-              
-              <LignesPrestationSection lignes={lignes} onChange={setLignes} isTransport={hasTransport} showValidationErrors={Object.keys(formErrors).length > 0} />
-
-              {/* Sélection des taxes et totaux */}
-              <div className="border rounded-lg p-4 bg-muted/30 mt-4">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-                  <div className="space-y-3">
-                    <Label className="text-base font-medium">Taxes applicables</Label>
-                    {isLoadingTaxes ? (
-                      <div className="text-muted-foreground text-sm">Chargement des taxes...</div>
-                    ) : taxes.length === 0 ? (
-                      <div className="text-muted-foreground text-sm">Aucune taxe configurée</div>
-                    ) : (
-                      <div className="space-y-2">
-                        {taxes.map((tax) => (
-                          <div key={tax.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`tax-${tax.id}`}
-                              checked={selectedTaxIds.includes(tax.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedTaxIds([...selectedTaxIds, tax.id]);
-                                } else {
-                                  setSelectedTaxIds(selectedTaxIds.filter(id => id !== tax.id));
-                                }
-                              }}
-                            />
-                            <label
-                              htmlFor={`tax-${tax.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                            >
-                              {tax.name} ({tax.rate}%)
-                              {tax.is_default && (
-                                <Badge variant="secondary" className="ml-2 text-xs">Par défaut</Badge>
-                              )}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-right space-y-1 min-w-[200px]">
-                    <div className="text-muted-foreground">
-                      Sous-total HT: <span className="font-medium text-foreground">{lignes.reduce((sum, l) => sum + l.total, 0).toLocaleString("fr-FR")} FCFA</span>
-                    </div>
-                    {selectedTaxIds.length > 0 && (() => {
-                      const subtotal = lignes.reduce((sum, l) => sum + l.total, 0);
-                      return selectedTaxIds.map(taxId => {
-                        const tax = taxes.find(t => t.id === taxId);
-                        if (!tax) return null;
-                        const taxAmount = Math.round(subtotal * tax.rate / 100);
-                        return (
-                          <div key={taxId} className="text-muted-foreground">
-                            {tax.name} ({tax.rate}%): <span className="font-medium text-foreground">{taxAmount.toLocaleString("fr-FR")} FCFA</span>
-                          </div>
-                        );
-                      });
-                    })()}
-                    <div className="text-lg font-bold pt-2 border-t">
-                      Total TTC: {(() => {
-                        const subtotal = lignes.reduce((sum, l) => sum + l.total, 0);
-                        const totalTaxes = selectedTaxIds.reduce((sum, taxId) => {
-                          const tax = taxes.find(t => t.id === taxId);
-                          return sum + (tax ? Math.round(subtotal * tax.rate / 100) : 0);
-                        }, 0);
-                        return (subtotal + totalTaxes).toLocaleString("fr-FR");
-                      })()} FCFA
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <LignesPrestationWrapper
+              lignes={state.lignes}
+              hasTransport={state.hasTransport}
+              showValidationErrors={Object.keys(state.formErrors).length > 0}
+              taxes={taxes}
+              selectedTaxIds={state.selectedTaxIds}
+              isLoadingTaxes={isLoadingTaxes}
+              subtotal={helpers.subtotal}
+              onLignesChange={actions.setLignes}
+              onTaxToggle={handleTaxToggle}
+              calculateTaxAmount={helpers.calculateTaxAmount}
+              totalTTC={helpers.totalTTC(taxes)}
+            />
 
             {/* Actions */}
             <div className="flex justify-between pt-4 border-t">
@@ -650,11 +265,11 @@ export default function NouvelOrdreTravail() {
                 <Button variant="outline" onClick={() => navigate("/ordres-travail")} disabled={isSubmitting}>
                   Annuler
                 </Button>
-                <Button variant="outline" onClick={handleGeneratePDF} disabled={!clientId || isSubmitting}>
+                <Button variant="outline" onClick={handleGeneratePDF} disabled={!state.clientId || isSubmitting}>
                   <FileText className="h-4 w-4 mr-2" />
                   Aperçu PDF
                 </Button>
-                <Button variant="gradient" onClick={handleCreate} disabled={!clientId || isSubmitting}>
+                <Button variant="gradient" onClick={handleCreate} disabled={!state.clientId || isSubmitting}>
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
