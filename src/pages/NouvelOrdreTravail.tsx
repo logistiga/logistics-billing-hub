@@ -280,11 +280,9 @@ export default function NouvelOrdreTravail() {
     setIsSubmitting(true);
     try {
       // Appeler l'API pour créer l'ordre de travail
-      const ordreData = {
+      const ordreData: Record<string, any> = {
         client_id: parseInt(clientId, 10),
         date: new Date().toISOString().split("T")[0],
-        observations: description || `Ordre de travail - ${getPrimaryType()}`,
-        type_operation: getPrimaryType(),
         // Ajouter les lignes de prestations selon la structure backend
         lignes_prestations: lignes
           .filter(l => l.operationType !== "none")
@@ -293,8 +291,18 @@ export default function NouvelOrdreTravail() {
             quantite: l.quantite,
             prix_unitaire: l.prixUnit,
           })),
-        // Ajouter le transport si activé
-        transport: hasTransport ? {
+        // Ajouter les taxes sélectionnées
+        tax_ids: selectedTaxIds,
+      };
+
+      // Ajouter observations seulement si description non vide
+      if (description) {
+        ordreData.observations = description;
+      }
+
+      // Ajouter le transport si activé
+      if (hasTransport) {
+        ordreData.transport = {
           type_transport: transportData.transportType,
           point_depart: transportData.pointDepart,
           point_arrivee: transportData.pointArrivee,
@@ -305,10 +313,8 @@ export default function NouvelOrdreTravail() {
           navire: transportData.navire,
           transitaire: transportData.transitaire,
           representant: transportData.representant,
-        } : undefined,
-        // Ajouter les taxes sélectionnées
-        tax_ids: selectedTaxIds,
-      };
+        };
+      }
 
       const ordre = await ordresTravailService.create(ordreData as any);
       
