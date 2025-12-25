@@ -65,6 +65,13 @@ class OrdreTravail extends Model
         return $this->hasMany(NoteDebut::class, 'ordre_travail_id');
     }
 
+    public function taxes()
+    {
+        return $this->belongsToMany(Tax::class, 'ordre_travail_taxes')
+            ->withPivot(['rate', 'amount'])
+            ->withTimestamps();
+    }
+
     // Accessors
     public function getTotalAttribute()
     {

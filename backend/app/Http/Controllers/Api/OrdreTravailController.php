@@ -92,6 +92,8 @@ class OrdreTravailController extends Controller
             'lignes_prestations.*.quantite' => 'required|numeric',
             'lignes_prestations.*.prix_unitaire' => 'required|numeric',
             'transport' => 'nullable|array',
+            'tax_ids' => 'nullable|array',
+            'tax_ids.*' => 'exists:taxes,id',
         ]);
 
         // Générer le numéro
@@ -105,7 +107,8 @@ class OrdreTravailController extends Controller
 
         $lignesPrestations = $validated['lignes_prestations'] ?? [];
         $transport = $validated['transport'] ?? null;
-        unset($validated['lignes_prestations'], $validated['transport']);
+        $taxIds = $validated['tax_ids'] ?? [];
+        unset($validated['lignes_prestations'], $validated['transport'], $validated['tax_ids']);
 
         $ordre = OrdreTravail::create($validated);
 
@@ -119,9 +122,24 @@ class OrdreTravailController extends Controller
             $ordre->transport()->create($transport);
         }
 
+        // Ajouter les taxes
+        if (!empty($taxIds)) {
+            $subtotal = $ordre->total;
+            foreach ($taxIds as $taxId) {
+                $tax = \App\Models\Tax::find($taxId);
+                if ($tax) {
+                    $taxAmount = round($subtotal * $tax->rate / 100, 2);
+                    $ordre->taxes()->attach($taxId, [
+                        'rate' => $tax->rate,
+                        'amount' => $taxAmount,
+                    ]);
+                }
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'data' => $ordre->load(['client', 'lignesPrestations', 'transport']),
+            'data' => $ordre->load(['client', 'lignesPrestations', 'transport', 'taxes']),
             'message' => 'Ordre de travail créé avec succès',
         ], 201);
     }
@@ -133,7 +151,7 @@ class OrdreTravailController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $ordreTravail->load(['client', 'lignesPrestations', 'transport']),
+            'data' => $ordreTravail->load(['client', 'lignesPrestations', 'transport', 'taxes']),
         ]);
     }
 
@@ -157,11 +175,14 @@ class OrdreTravailController extends Controller
             'status' => 'sometimes|in:pending,in_progress,completed,cancelled',
             'lignes_prestations' => 'nullable|array',
             'transport' => 'nullable|array',
+            'tax_ids' => 'nullable|array',
+            'tax_ids.*' => 'exists:taxes,id',
         ]);
 
         $lignesPrestations = $validated['lignes_prestations'] ?? null;
         $transport = $validated['transport'] ?? null;
-        unset($validated['lignes_prestations'], $validated['transport']);
+        $taxIds = $validated['tax_ids'] ?? null;
+        unset($validated['lignes_prestations'], $validated['transport'], $validated['tax_ids']);
 
         $ordreTravail->update($validated);
 
@@ -179,9 +200,25 @@ class OrdreTravailController extends Controller
             $ordreTravail->transport()->create($transport);
         }
 
+        // Mettre à jour les taxes si fournies
+        if ($taxIds !== null) {
+            $ordreTravail->taxes()->detach();
+            $subtotal = $ordreTravail->fresh()->total;
+            foreach ($taxIds as $taxId) {
+                $tax = \App\Models\Tax::find($taxId);
+                if ($tax) {
+                    $taxAmount = round($subtotal * $tax->rate / 100, 2);
+                    $ordreTravail->taxes()->attach($taxId, [
+                        'rate' => $tax->rate,
+                        'amount' => $taxAmount,
+                    ]);
+                }
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'data' => $ordreTravail->fresh()->load(['client', 'lignesPrestations', 'transport']),
+            'data' => $ordreTravail->fresh()->load(['client', 'lignesPrestations', 'transport', 'taxes']),
             'message' => 'Ordre de travail mis à jour',
         ]);
     }
