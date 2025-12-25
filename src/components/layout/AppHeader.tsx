@@ -108,10 +108,10 @@ export function AppHeader({
                 className="flex items-center gap-2 px-2 hover:bg-muted transition-colors"
               >
                 <div className="relative">
-                  <div className="h-9 w-9 rounded-xl gradient-primary flex items-center justify-center shadow-colored">
-                    <User className="h-4 w-4 text-primary-foreground" />
+                  <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+                    <span className="text-sm font-bold text-primary-foreground">LG</span>
                   </div>
-                  <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success border-2 border-card" />
+                  <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-card" />
                 </div>
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-semibold">{user?.name || "Utilisateur"}</p>
