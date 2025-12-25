@@ -86,11 +86,11 @@ export default function Login() {
             className="relative inline-block"
           >
             {/* Logo - Extra Large with white background blend */}
-            <div className="relative bg-white p-2">
+            <div className="relative bg-white">
               <img 
                 src={shipLoaderGif} 
                 alt="LogistiGa" 
-                className="w-72 h-72 object-contain mix-blend-multiply"
+                className="w-96 h-96 object-contain mix-blend-multiply"
               />
             </div>
           </motion.div>
