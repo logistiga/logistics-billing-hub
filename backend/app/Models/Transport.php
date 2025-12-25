@@ -15,18 +15,19 @@ class Transport extends Model
         'vehicule',
         'immatriculation',
         'chauffeur',
-        'telephone_chauffeur',
-        'point_depart',
-        'point_arrivee',
-        'distance',
+        'depart',
+        'arrivee',
+        'date_depart',
+        'date_arrivee',
+        'distance_km',
         'prix',
-        'date_transport',
-        'observations',
+        'notes',
     ];
 
     protected $casts = [
-        'date_transport' => 'date',
-        'distance' => 'decimal:2',
+        'date_depart' => 'date',
+        'date_arrivee' => 'date',
+        'distance_km' => 'decimal:2',
         'prix' => 'decimal:2',
     ];
 

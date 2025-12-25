@@ -150,16 +150,17 @@ export interface LignePrestation {
 export interface Transport {
   id?: number;
   ordre_travail_id?: number;
-  type_transport?: string;
-  point_depart?: string;
-  point_arrivee?: string;
-  date_enlevement?: string;
-  date_livraison?: string;
-  numero_connaissement?: string;
-  compagnie_maritime?: string;
-  navire?: string;
-  transitaire?: string;
-  representant?: string;
+  type?: string;
+  vehicule?: string;
+  immatriculation?: string;
+  chauffeur?: string;
+  depart?: string;
+  arrivee?: string;
+  date_depart?: string;
+  date_arrivee?: string;
+  distance_km?: number;
+  prix?: number;
+  notes?: string;
 }
 
 export interface TaxPivot {
