@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Truck, FileText, Save, RotateCcw, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Truck, FileText, Save, RotateCcw, Trash2, Loader2, AlertCircle } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -41,6 +42,7 @@ import {
 } from "@/components/ordre-travail/types";
 import { clientsService, ordresTravailService, devisService, type Client, type Devis } from "@/services/api";
 import { taxesService, type TaxAPI } from "@/services/api/taxes.service";
+import { getFieldErrors } from "@/lib/validations/ordre-travail";
 
 interface DraftData {
   clientId: string;
@@ -267,15 +269,28 @@ export default function NouvelOrdreTravail() {
     toast.success("PDF généré avec succès");
   };
 
+  // État des erreurs de validation
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
   const handleCreate = async () => {
-    if (!clientId) {
-      toast.error("Veuillez sélectionner un client");
+    // Valider le formulaire
+    const errors = getFieldErrors({
+      clientId,
+      description,
+      hasTransport,
+      transportData,
+      lignes,
+    });
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      // Afficher la première erreur comme toast
+      const firstError = Object.values(errors)[0];
+      toast.error(firstError);
       return;
     }
-    if (!hasAnyService) {
-      toast.error("Veuillez activer le transport ou ajouter une opération aux lignes");
-      return;
-    }
+
+    setFormErrors({});
 
     setIsSubmitting(true);
     try {
@@ -432,6 +447,20 @@ export default function NouvelOrdreTravail() {
 
         <Card className="border-border/50">
           <CardContent className="p-6 space-y-6">
+            {/* Afficher les erreurs de validation */}
+            {Object.keys(formErrors).length > 0 && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <ul className="list-disc list-inside space-y-1">
+                    {Object.values(formErrors).map((error, idx) => (
+                      <li key={idx}>{error}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Section 1: Client */}
             <div className="space-y-4">
               <h3 className="font-semibold text-lg flex items-center gap-2">
@@ -440,9 +469,9 @@ export default function NouvelOrdreTravail() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Client *</Label>
-                  <Select value={clientId} onValueChange={setClientId} disabled={isLoadingClients}>
-                    <SelectTrigger>
+                  <Label className={formErrors.clientId ? "text-destructive" : ""}>Client *</Label>
+                  <Select value={clientId} onValueChange={(v) => { setClientId(v); setFormErrors(prev => { const { clientId, ...rest } = prev; return rest; }); }} disabled={isLoadingClients}>
+                    <SelectTrigger className={formErrors.clientId ? "border-destructive" : ""}>
                       <SelectValue placeholder={isLoadingClients ? "Chargement..." : "Sélectionner un client"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -451,6 +480,7 @@ export default function NouvelOrdreTravail() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {formErrors.clientId && <p className="text-sm text-destructive">{formErrors.clientId}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Description générale</Label>
