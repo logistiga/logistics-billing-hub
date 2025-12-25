@@ -41,9 +41,6 @@ const CreditBancaire = lazy(() => import("./pages/CreditBancaire"));
 const TresoreriePrev = lazy(() => import("./pages/TresoreriePrev"));
 const Emails = lazy(() => import("./pages/Emails"));
 const Profil = lazy(() => import("./pages/Profil"));
-const CompagniesMaritimes = lazy(() => import("./pages/CompagniesMaritimes"));
-const Transitaires = lazy(() => import("./pages/Transitaires"));
-const Representants = lazy(() => import("./pages/Representants"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -103,9 +100,6 @@ const App = () => (
                   <Route path="/tresorerie-prev" element={<TresoreriePrev />} />
                   <Route path="/emails" element={<Emails />} />
                   <Route path="/profil" element={<Profil />} />
-                  <Route path="/compagnies-maritimes" element={<CompagniesMaritimes />} />
-                  <Route path="/transitaires" element={<Transitaires />} />
-                  <Route path="/representants" element={<Representants />} />
                 </Route>
                 
                 <Route path="*" element={<NotFound />} />
