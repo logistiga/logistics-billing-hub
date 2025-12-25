@@ -27,6 +27,7 @@ export interface TransportData {
   transitaire: string;
   representant: string;
   primeTransitaire: number;
+  primeRepresentant: number;
   // Export
   destinationFinale: string;
   numeroBooking: string;
@@ -82,6 +83,7 @@ export const createEmptyTransportData = (): TransportData => ({
   transitaire: "",
   representant: "",
   primeTransitaire: 0,
+  primeRepresentant: 0,
   destinationFinale: "",
   numeroBooking: "",
   poidsTotal: "",
