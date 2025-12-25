@@ -10,6 +10,10 @@ class Kernel extends HttpKernel
      * The application's global HTTP middleware stack.
      */
     protected $middleware = [
+        // CORS doit être global pour que les requêtes OPTIONS (preflight) soient gérées
+        // même si aucune route OPTIONS n'est déclarée.
+        \App\Http\Middleware\Cors::class,
+
         \App\Http\Middleware\SecureHeaders::class,
         \App\Http\Middleware\TrimStrings::class,
         \App\Http\Middleware\ConvertEmptyStringsToNull::class,
@@ -30,7 +34,6 @@ class Kernel extends HttpKernel
 
         'api' => [
             \App\Http\Middleware\ForceJsonResponse::class,
-            \App\Http\Middleware\Cors::class,
             \App\Http\Middleware\LocaleMiddleware::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
