@@ -441,7 +441,7 @@ export default function NouvelOrdreTravail() {
                 </span>
               </h3>
               
-              <LignesPrestationSection lignes={lignes} onChange={setLignes} />
+              <LignesPrestationSection lignes={lignes} onChange={setLignes} isTransport={hasTransport} />
             </div>
 
             {/* Actions */}
