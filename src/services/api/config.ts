@@ -1,7 +1,7 @@
 // Configuration de l'API Laravel
 export const API_CONFIG = {
-  // URL de base de l'API Laravel (ngrok)
-  BASE_URL: import.meta.env.VITE_API_URL || "https://unextradited-monocotyledonous-sena.ngrok-free.app/api",
+  // URL de base de l'API Laravel - configuré via .env (VITE_API_URL)
+  BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
   
   // Timeout des requêtes en millisecondes
   TIMEOUT: 30000,
