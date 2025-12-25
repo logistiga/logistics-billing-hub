@@ -241,19 +241,33 @@ export default function EditerOrdreTravail() {
     try {
       const ordreData = {
         client_id: parseInt(clientId, 10),
-        type: getPrimaryType(),
-        description: description || `Ordre de travail - ${getPrimaryType()}`,
-        containers: lignes
-          .filter(l => l.numeroConteneur)
+        observations: description || "",
+        type_operation: getPrimaryType(),
+        // Lignes de prestations
+        lignes_prestations: lignes
+          .filter(l => l.operationType !== "none")
           .map(l => ({
-            numero: l.numeroConteneur,
-            type: l.operationType,
-            description: l.description,
+            description: l.description || `Prestation ${l.operationType}`,
+            quantite: l.quantite,
+            prix_unitaire: l.prixUnit,
           })),
+        // Transport si activé
+        transport: hasTransport ? {
+          type_transport: transportData.transportType,
+          point_depart: transportData.pointDepart,
+          point_arrivee: transportData.pointArrivee,
+          date_enlevement: transportData.dateEnlevement || null,
+          date_livraison: transportData.dateLivraison || null,
+          numero_connaissement: transportData.numeroConnaissement,
+          compagnie_maritime: transportData.compagnieMaritime,
+          navire: transportData.navire,
+          transitaire: transportData.transitaire,
+          representant: transportData.representant,
+        } : null,
         tax_ids: selectedTaxIds,
       };
 
-      await ordresTravailService.update(ordreId, ordreData);
+      await ordresTravailService.update(ordreId, ordreData as any);
       
       toast.success(`Ordre de travail ${ordreNumero} mis à jour avec succès`);
       navigate("/ordres-travail");
