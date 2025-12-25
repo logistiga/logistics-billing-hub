@@ -12,7 +12,8 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    // Autoriser CORS sur toutes les routes (utile si vos endpoints ne sont pas préfixés par /api)
+    'paths' => ['*'],
 
     'allowed_methods' => ['*'],
 
