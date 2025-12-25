@@ -14,9 +14,13 @@ class OrdreTravail extends Model
 
     protected $fillable = [
         'numero',
+        'number',
         'client_id',
         'invoice_id',
         'date',
+        'type',
+        'description',
+        'amount',
         'reference',
         'navire',
         'voyage',
@@ -53,6 +57,11 @@ class OrdreTravail extends Model
     public function lignesPrestations()
     {
         return $this->hasMany(LignePrestation::class, 'ordre_travail_id');
+    }
+
+    public function containers()
+    {
+        return $this->hasMany(Container::class, 'ordre_travail_id');
     }
 
     public function transport()

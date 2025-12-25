@@ -283,7 +283,30 @@ export default function NouvelOrdreTravail() {
       const ordreData: Record<string, any> = {
         client_id: parseInt(clientId, 10),
         date: new Date().toISOString().split("T")[0],
-        // Ajouter les lignes de prestations selon la structure backend
+        type: getPrimaryType(),
+        description: description || `Ordre de travail - ${getPrimaryType()}`,
+
+        // Conteneurs
+        containers: [
+          ...lignes
+            .filter((l) => !!l.numeroConteneur)
+            .map((l) => ({
+              numero: l.numeroConteneur,
+              type: l.operationType,
+              description: l.description || null,
+            })),
+          ...(hasTransport && transportData.numeroConteneur
+            ? [
+                {
+                  numero: transportData.numeroConteneur,
+                  type: `transport-${transportData.transportType}`,
+                  description: "Conteneur transport",
+                },
+              ]
+            : []),
+        ],
+
+        // Lignes de prestations (montants)
         lignes_prestations: lignes
           .filter(l => l.operationType !== "none")
           .map(l => ({
@@ -291,16 +314,12 @@ export default function NouvelOrdreTravail() {
             quantite: l.quantite,
             prix_unitaire: l.prixUnit,
           })),
-        // Ajouter les taxes sélectionnées
+
+        // Taxes
         tax_ids: selectedTaxIds,
       };
 
-      // Ajouter observations seulement si description non vide
-      if (description) {
-        ordreData.observations = description;
-      }
-
-      // Ajouter le transport si activé
+      // Transport
       if (hasTransport) {
         const transportNotes = [
           transportData.numeroConnaissement && `Connaissement: ${transportData.numeroConnaissement}`,

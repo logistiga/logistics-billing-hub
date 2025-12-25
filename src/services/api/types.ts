@@ -114,26 +114,28 @@ export interface InvoiceItem {
 
 export interface OrdreTravail {
   id: number;
-  numero: string;
+  // Identifiants (selon versions backend)
+  numero?: string;
+  number?: string | null;
+
   client_id: number;
   client?: Client;
   invoice_id?: number;
+
   date: string;
-  reference?: string;
-  navire?: string;
-  voyage?: string;
-  type_operation?: string;
-  marchandise?: string;
-  poids?: number;
-  nombre_colis?: number;
-  lieu_operation?: string;
-  observations?: string;
+  type?: "Transport" | "Manutention" | "Stockage" | "Location" | string;
   status: "pending" | "in_progress" | "completed" | "cancelled";
-  validated_at?: string;
-  total: number;
+
+  description?: string | null;
+  amount?: number | string;
+  total?: number | string;
+
+  // Relations
   lignes_prestations?: LignePrestation[];
+  containers?: Container[];
   transport?: Transport;
   taxes?: TaxPivot[];
+
   created_at: string;
   updated_at: string;
 }

@@ -241,6 +241,29 @@ export default function EditerOrdreTravail() {
     try {
       const ordreData: Record<string, any> = {
         client_id: parseInt(clientId, 10),
+        type: getPrimaryType(),
+        description: description || "",
+
+        // Conteneurs
+        containers: [
+          ...lignes
+            .filter((l) => !!l.numeroConteneur)
+            .map((l) => ({
+              numero: l.numeroConteneur,
+              type: l.operationType,
+              description: l.description || null,
+            })),
+          ...(hasTransport && transportData.numeroConteneur
+            ? [
+                {
+                  numero: transportData.numeroConteneur,
+                  type: `transport-${transportData.transportType}`,
+                  description: "Conteneur transport",
+                },
+              ]
+            : []),
+        ],
+
         // Lignes de prestations
         lignes_prestations: lignes
           .filter(l => l.operationType !== "none")
@@ -249,13 +272,9 @@ export default function EditerOrdreTravail() {
             quantite: l.quantite,
             prix_unitaire: l.prixUnit,
           })),
+
         tax_ids: selectedTaxIds,
       };
-
-      // Ajouter observations seulement si non vide
-      if (description) {
-        ordreData.observations = description;
-      }
 
       // Transport si activé
       if (hasTransport) {

@@ -14,7 +14,7 @@ class OrdreTravailController extends Controller
      */
     public function index(Request $request)
     {
-        $query = OrdreTravail::with(['client', 'lignesPrestations']);
+        $query = OrdreTravail::with(['client', 'lignesPrestations', 'containers']);
 
         // Filtrage par statut
         if ($request->has('status')) {
@@ -78,19 +78,16 @@ class OrdreTravailController extends Controller
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'date' => 'required|date',
-            'reference' => 'nullable|string|max:100',
-            'navire' => 'nullable|string|max:255',
-            'voyage' => 'nullable|string|max:100',
-            'type_operation' => 'nullable|string|max:100',
-            'marchandise' => 'nullable|string|max:255',
-            'poids' => 'nullable|numeric',
-            'nombre_colis' => 'nullable|integer',
-            'lieu_operation' => 'nullable|string|max:255',
-            'observations' => 'nullable|string',
+            'type' => 'nullable|in:Transport,Manutention,Stockage,Location',
+            'description' => 'nullable|string',
             'lignes_prestations' => 'nullable|array',
             'lignes_prestations.*.description' => 'required|string',
             'lignes_prestations.*.quantite' => 'required|numeric',
             'lignes_prestations.*.prix_unitaire' => 'required|numeric',
+            'containers' => 'nullable|array',
+            'containers.*.numero' => 'required|string|max:50',
+            'containers.*.type' => 'nullable|string|max:100',
+            'containers.*.description' => 'nullable|string|max:255',
             'transport' => 'nullable|array',
             'tax_ids' => 'nullable|array',
             'tax_ids.*' => 'exists:taxes,id',
@@ -106,15 +103,21 @@ class OrdreTravailController extends Controller
         $validated['status'] = 'pending';
 
         $lignesPrestations = $validated['lignes_prestations'] ?? [];
+        $containers = $validated['containers'] ?? [];
         $transport = $validated['transport'] ?? null;
         $taxIds = $validated['tax_ids'] ?? [];
-        unset($validated['lignes_prestations'], $validated['transport'], $validated['tax_ids']);
+        unset($validated['lignes_prestations'], $validated['containers'], $validated['transport'], $validated['tax_ids']);
 
         $ordre = OrdreTravail::create($validated);
 
         // Ajouter les lignes de prestations
         foreach ($lignesPrestations as $ligne) {
             $ordre->lignesPrestations()->create($ligne);
+        }
+
+        // Ajouter les conteneurs
+        foreach ($containers as $container) {
+            $ordre->containers()->create($container);
         }
 
         // Ajouter le transport
@@ -139,7 +142,7 @@ class OrdreTravailController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $ordre->load(['client', 'lignesPrestations', 'transport', 'taxes']),
+            'data' => $ordre->load(['client', 'lignesPrestations', 'containers', 'transport', 'taxes']),
             'message' => 'Ordre de travail créé avec succès',
         ], 201);
     }
@@ -151,7 +154,7 @@ class OrdreTravailController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $ordreTravail->load(['client', 'lignesPrestations', 'transport', 'taxes']),
+            'data' => $ordreTravail->load(['client', 'lignesPrestations', 'containers', 'transport', 'taxes']),
         ]);
     }
 
@@ -163,26 +166,21 @@ class OrdreTravailController extends Controller
         $validated = $request->validate([
             'client_id' => 'sometimes|exists:clients,id',
             'date' => 'sometimes|date',
-            'reference' => 'nullable|string|max:100',
-            'navire' => 'nullable|string|max:255',
-            'voyage' => 'nullable|string|max:100',
-            'type_operation' => 'nullable|string|max:100',
-            'marchandise' => 'nullable|string|max:255',
-            'poids' => 'nullable|numeric',
-            'nombre_colis' => 'nullable|integer',
-            'lieu_operation' => 'nullable|string|max:255',
-            'observations' => 'nullable|string',
+            'type' => 'sometimes|in:Transport,Manutention,Stockage,Location',
+            'description' => 'nullable|string',
             'status' => 'sometimes|in:pending,in_progress,completed,cancelled',
             'lignes_prestations' => 'nullable|array',
             'transport' => 'nullable|array',
+            'containers' => 'nullable|array',
             'tax_ids' => 'nullable|array',
             'tax_ids.*' => 'exists:taxes,id',
         ]);
 
         $lignesPrestations = $validated['lignes_prestations'] ?? null;
         $transport = $validated['transport'] ?? null;
+        $containers = $validated['containers'] ?? null;
         $taxIds = $validated['tax_ids'] ?? null;
-        unset($validated['lignes_prestations'], $validated['transport'], $validated['tax_ids']);
+        unset($validated['lignes_prestations'], $validated['transport'], $validated['containers'], $validated['tax_ids']);
 
         $ordreTravail->update($validated);
 
@@ -198,6 +196,14 @@ class OrdreTravailController extends Controller
         if ($transport !== null) {
             $ordreTravail->transport()->delete();
             $ordreTravail->transport()->create($transport);
+        }
+
+        // Mettre à jour les conteneurs si fournis
+        if ($containers !== null) {
+            $ordreTravail->containers()->delete();
+            foreach ($containers as $container) {
+                $ordreTravail->containers()->create($container);
+            }
         }
 
         // Mettre à jour les taxes si fournies
@@ -218,7 +224,7 @@ class OrdreTravailController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $ordreTravail->fresh()->load(['client', 'lignesPrestations', 'transport', 'taxes']),
+            'data' => $ordreTravail->fresh()->load(['client', 'lignesPrestations', 'containers', 'transport', 'taxes']),
             'message' => 'Ordre de travail mis à jour',
         ]);
     }
