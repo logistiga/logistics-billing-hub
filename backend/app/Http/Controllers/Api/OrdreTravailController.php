@@ -94,7 +94,8 @@ class OrdreTravailController extends Controller
         ]);
 
         // Générer le numéro
-        $lastOrder = OrdreTravail::whereYear('created_at', now()->year)
+        $lastOrder = OrdreTravail::withTrashed()
+            ->whereYear('created_at', now()->year)
             ->orderBy('id', 'desc')
             ->first();
         $numero = 'OT-' . now()->format('Y') . '-' . str_pad(($lastOrder ? $lastOrder->id + 1 : 1), 5, '0', STR_PAD_LEFT);
