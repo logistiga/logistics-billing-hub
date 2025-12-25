@@ -83,21 +83,13 @@ export function TransportSection({ data, onChange }: TransportSectionProps) {
       {data.transportType === "import" && (
         <div className="border rounded-lg p-4 border-blue-200 bg-blue-50">
           <h4 className="font-medium mb-3 text-blue-700">Import sur Libreville</h4>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>N° Connaissement (BL) *</Label>
               <Input 
                 placeholder="BL-XXXX"
                 value={data.numeroConnaissement}
                 onChange={(e) => onChange("numeroConnaissement", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>N° Conteneur</Label>
-              <Input 
-                placeholder="MSKU1234567"
-                value={data.numeroConteneur || ""}
-                onChange={(e) => onChange("numeroConteneur", e.target.value.toUpperCase())}
               />
             </div>
             <div className="space-y-2">
