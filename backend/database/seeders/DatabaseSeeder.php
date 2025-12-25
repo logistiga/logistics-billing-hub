@@ -21,6 +21,9 @@ class DatabaseSeeder extends Seeder
             BanquesSeeder::class,
             CaissesSeeder::class,
             PartenairesSeeder::class,
+            CompagniesMaritimesSeeder::class,
+            TransitairesSeeder::class,
+            RepresentantsSeeder::class,
 
             // Business data
             ClientsSeeder::class,

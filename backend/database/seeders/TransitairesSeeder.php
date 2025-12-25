@@ -1,0 +1,113 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Transitaire;
+use Illuminate\Database\Seeder;
+
+class TransitairesSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $data = [
+            ['compagnie' => 'SEPT', 'nom' => 'SEPT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'PIN SHANG', 'nom' => 'COULIBALY', 'tel' => '+241 07870524', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'AUTC', 'nom' => 'AUTC', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'transit 2000', 'nom' => 'TRANSIT2000', 'tel' => '', 'email' => 'transit2000@logistiga.com', 'adresse' => ''],
+            ['compagnie' => 'AUTC', 'nom' => 'MAMADI', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'NV TRANSIT', 'nom' => 'MOHAMED', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'BOCOUM', 'nom' => 'BOCOUM', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'SDV', 'nom' => 'SDV', 'tel' => '', 'email' => 'SDV@LOGISTIGA.COM', 'adresse' => ''],
+            ['compagnie' => 'COULIBALY', 'nom' => 'COULIBALY', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'SYLLA', 'nom' => 'SYLLA', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'ICHAM', 'nom' => 'ICHAM', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'DHL', 'nom' => 'DHL', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'CHAOUKI', 'nom' => 'CHAOUKI', 'tel' => '065303809', 'email' => 'chaoukimas30@gmail.com', 'adresse' => ''],
+            ['compagnie' => 'TMT', 'nom' => 'TMT', 'tel' => '011707363', 'email' => 'contact@tmtransit.com', 'adresse' => ''],
+            ['compagnie' => 'T.M.A.C', 'nom' => 'T.M.A.C', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'AITC', 'nom' => 'AITC', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'CATRAMAC', 'nom' => 'CATRAMAC', 'tel' => '+241 06130554', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'SG-T', 'nom' => 'SGT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'BM TRANSITE', 'nom' => 'BM TRANSITE', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'ETL', 'nom' => 'ETL', 'tel' => '+241 06614100', 'email' => 'commercial.etl241@gmail.com', 'adresse' => ''],
+            ['compagnie' => 'OGTT', 'nom' => 'OGTT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'BOLLORE', 'nom' => 'BOLLORE', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'GETRACO', 'nom' => 'GETRACO', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'TRIANON BTP', 'nom' => 'TRIANON-BTP', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'DELTA TRANSIT', 'nom' => 'DELTA-TRANSIT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'SGTA', 'nom' => 'SGTA', 'tel' => '+241 07501242', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'UCO', 'nom' => 'UCO', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'STSG', 'nom' => 'STSG', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'STARPLY GABON', 'nom' => 'STARPLY GABON', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'FRET TAM', 'nom' => 'FRET TAM', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'STT', 'nom' => 'STT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'ASG', 'nom' => 'ASG', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'SGTM', 'nom' => 'SGTM', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'CAP TRANSIT', 'nom' => 'CAP-TRANSIT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'TATA SHIPING', 'nom' => 'TATA-SHIPING', 'tel' => '077384071', 'email' => 'nomokongoma@yahoo.fr', 'adresse' => ''],
+            ['compagnie' => 'SOMATRANS', 'nom' => 'SOMATRANS', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'MAERSK', 'nom' => 'MAERSK', 'tel' => '', 'email' => 'ga.import@maersk.com', 'adresse' => ''],
+            ['compagnie' => 'MEDLOG', 'nom' => 'MEDLOG', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'GLOBAL TRANSIT', 'nom' => 'GLOBAL-TRANSIT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'TRANSTAR', 'nom' => 'TRANSTAR', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'M.T.L.', 'nom' => 'M.T.L.', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'ITRAMA', 'nom' => 'ITRAMA', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'SOGAT', 'nom' => 'SOGAT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => '2RC-INTER', 'nom' => '2RC-INTER', 'tel' => '+241 07276465', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'STGS', 'nom' => 'STGS', 'tel' => '+241 06589144', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'AUCUN', 'nom' => 'AUCUN', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'TCH', 'nom' => 'TCH', 'tel' => '+241 07892660', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'MTL GABON', 'nom' => 'MTL GABON', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'MCTT', 'nom' => 'MCTT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'SO.GA.TT', 'nom' => 'SO.GA.TT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'BTPS', 'nom' => 'BTPS', 'tel' => '+241 077651570', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'CEM', 'nom' => 'MOUSTAPHA', 'tel' => '+241 05999781', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'T.A.G', 'nom' => 'T.A.G', 'tel' => '+241 077819690', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'ADC', 'nom' => 'ADC', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'GSEZ', 'nom' => 'GSEZ', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'CETAN', 'nom' => 'CETAN', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'LOUIGHY', 'nom' => 'LOUIGHY', 'tel' => '+241 066087311', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'UNIVERSEL TRANSIT', 'nom' => 'UNIVERSEL TRANSIT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'TNS', 'nom' => 'TNS', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'LSG', 'nom' => 'LSG', 'tel' => '011705726', 'email' => 'junior.yenda@lsg-gabon.com', 'adresse' => 'owendo'],
+            ['compagnie' => 'N. V TRANSIT', 'nom' => 'NOUVELLE VISION TRANSIT', 'tel' => '', 'email' => '', 'adresse' => 'owendo'],
+            ['compagnie' => 'GPT', 'nom' => 'GPT', 'tel' => '', 'email' => '', 'adresse' => 'owendo'],
+            ['compagnie' => 'ART', 'nom' => 'A.R.T', 'tel' => '065998151', 'email' => 'k.moutsiga@artgabon.com', 'adresse' => 'owendo'],
+            ['compagnie' => 'THIAM', 'nom' => 'THIAM', 'tel' => '', 'email' => '', 'adresse' => 'owendo'],
+            ['compagnie' => 'FRANCIS', 'nom' => 'FRANCIS', 'tel' => '077317853', 'email' => '', 'adresse' => 'owendo'],
+            ['compagnie' => 'BUSINESS AIR LOGISTICS', 'nom' => 'BUSINESS AIR LOGISTICS', 'tel' => '066198454', 'email' => '', 'adresse' => 'acae'],
+            ['compagnie' => 'MULTI-SERVICE TRANSIT', 'nom' => 'MULTI-SERVICE TRANSIT', 'tel' => '', 'email' => '', 'adresse' => 'oloumi'],
+            ['compagnie' => 'TMAC', 'nom' => 'TMAC', 'tel' => '', 'email' => '', 'adresse' => 'lbv'],
+            ['compagnie' => 'CTI', 'nom' => 'CTI', 'tel' => '062143402', 'email' => '', 'adresse' => 'owendo'],
+            ['compagnie' => 'TRALOG', 'nom' => 'TRALOG', 'tel' => '', 'email' => '', 'adresse' => 'oloumi'],
+            ['compagnie' => 'FORMALIS', 'nom' => 'FORMALIS', 'tel' => '077534576', 'email' => 'drameramamadou2018@gmail.com', 'adresse' => 'lbv'],
+            ['compagnie' => 'KANE', 'nom' => 'KANE', 'tel' => '', 'email' => '', 'adresse' => 'lbv'],
+            ['compagnie' => 'BIC-TRANS', 'nom' => 'BIC-TRANS', 'tel' => '062113504', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'GTGA', 'nom' => 'GTGA', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'TRANSGAB', 'nom' => 'TRANSGAB', 'tel' => '+241 77363618', 'email' => 'giggs504@yahoo.fr', 'adresse' => ''],
+            ['compagnie' => 'INTER-TRANSIT GABON', 'nom' => 'INTER-TRANSIT GABON', 'tel' => '+241 66004341', 'email' => 'intertransitgabon@gmail.com', 'adresse' => ''],
+            ['compagnie' => 'RAPIDE TRANSIT FRET', 'nom' => 'RAPIDE TRANSIT FRET', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'CTAM', 'nom' => 'CTAM', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'NAVI TRANS', 'nom' => 'NAVI TRANS', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'B.A.T', 'nom' => 'B.A.T', 'tel' => '077244347', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'APRETRAC', 'nom' => 'APRETRAC', 'tel' => '+241 66412221', 'email' => 'dissouchr@yahoo.fr', 'adresse' => ''],
+            ['compagnie' => 'SACO', 'nom' => 'SACO', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'DOUKMAT', 'nom' => 'DOUKMAT', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'ISSAIKA', 'nom' => 'ISSIAKA', 'tel' => '+241 66011022', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'GAPS', 'nom' => 'GAPS', 'tel' => '+241 11706289', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'DIAKITE', 'nom' => 'DIAKITE', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'MR SIDY', 'nom' => 'MR SIDY', 'tel' => '+241 62794918', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'MR SALAM', 'nom' => 'MR SALAM', 'tel' => '+241 77870524', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'SACKO DRAMANE', 'nom' => 'SACKO DRAMANE', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'G.E.T', 'nom' => 'G.E.T', 'tel' => '', 'email' => '', 'adresse' => ''],
+            ['compagnie' => 'TRANSEXPORT', 'nom' => 'TRANSEXPORT', 'tel' => '', 'email' => 'TRANSEXPORT@GMAIL.COM', 'adresse' => 'LIBREVILLE'],
+        ];
+
+        foreach ($data as $item) {
+            Transitaire::firstOrCreate(
+                ['compagnie' => $item['compagnie'], 'nom' => $item['nom']],
+                $item
+            );
+        }
+    }
+}
