@@ -362,12 +362,28 @@ export default function NouvelOrdreTravail() {
       }
 
       const ordre = await ordresTravailService.create(ordreData as any);
-      
+
+      // DEBUG: Afficher ce que le backend a réellement enregistré
+      console.log("=== DEBUG: Réponse création OT ===");
+      console.log("Payload envoyé:", ordreData);
+      console.log("Réponse backend:", ordre);
+
+      const prestationsCount = Array.isArray((ordre as any).lignes_prestations)
+        ? (ordre as any).lignes_prestations.length
+        : 0;
+      const containersCount = Array.isArray((ordre as any).containers)
+        ? (ordre as any).containers.length
+        : 0;
+      const hasTransportSaved = !!(ordre as any).transport;
+      const totalSaved = Number((ordre as any).total ?? 0) || 0;
+
       // Générer le PDF localement
       handleGeneratePDF();
-      
+
       clearDraft(); // Supprimer le brouillon après création
-      toast.success(`Ordre de travail ${ordre.numero || ""} créé avec succès`);
+      toast.success(`Ordre ${ordre.numero || ""} enregistré`, {
+        description: `Transport: ${hasTransportSaved ? "Oui" : "Non"} • Prestations: ${prestationsCount} • Conteneurs: ${containersCount} • Total: ${totalSaved.toLocaleString("fr-FR")} FCFA`,
+      });
       navigate("/ordres-travail");
     } catch (error: any) {
       console.error("Erreur création ordre:", error);
