@@ -426,9 +426,26 @@ export default function EditerOrdreTravail() {
         };
       }
 
-      await ordresTravailService.update(ordreId, ordreData as any);
+      const updated = await ordresTravailService.update(ordreId, ordreData as any);
+
+      // DEBUG: Afficher ce que le backend a réellement enregistré
+      console.log("=== DEBUG: Réponse mise à jour OT ===");
+      console.log("Payload envoyé:", ordreData);
+      console.log("Réponse backend:", updated);
+
+      const prestationsCount = Array.isArray((updated as any).lignes_prestations)
+        ? (updated as any).lignes_prestations.length
+        : 0;
+      const containersCount = Array.isArray((updated as any).containers)
+        ? (updated as any).containers.length
+        : 0;
+      const hasTransportSaved = !!(updated as any).transport;
+      const totalSaved = Number((updated as any).total ?? 0) || 0;
+      const numeroSaved = (updated as any).numero || ordreNumero;
       
-      toast.success(`Ordre de travail ${ordreNumero} mis à jour avec succès`);
+      toast.success(`Ordre ${numeroSaved} enregistré`, {
+        description: `Transport: ${hasTransportSaved ? "Oui" : "Non"} • Prestations: ${prestationsCount} • Conteneurs: ${containersCount} • Total: ${totalSaved.toLocaleString("fr-FR")} FCFA`,
+      });
       navigate("/ordres-travail");
     } catch (error: any) {
       console.error("Erreur mise à jour ordre:", error);
