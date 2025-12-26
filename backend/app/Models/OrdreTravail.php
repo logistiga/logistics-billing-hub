@@ -15,6 +15,8 @@ class OrdreTravail extends Model
     protected $fillable = [
         'numero',
         'number',
+        'numero_booking',
+        'numero_connaissement',
         'client_id',
         'invoice_id',
         'date',
@@ -24,6 +26,11 @@ class OrdreTravail extends Model
         'reference',
         'navire',
         'voyage',
+        'compagnie_maritime',
+        'transitaire',
+        'nombre_conteneurs',
+        'prime_transitaire',
+        'prime_representant',
         'type_operation',
         'marchandise',
         'poids',
@@ -31,14 +38,21 @@ class OrdreTravail extends Model
         'lieu_operation',
         'observations',
         'status',
+        'source',
+        'external_id',
+        'synced_at',
         'validated_at',
     ];
 
     protected $casts = [
         'date' => 'date',
         'validated_at' => 'datetime',
+        'synced_at' => 'datetime',
         'poids' => 'decimal:2',
         'nombre_colis' => 'integer',
+        'nombre_conteneurs' => 'integer',
+        'prime_transitaire' => 'decimal:2',
+        'prime_representant' => 'decimal:2',
     ];
 
     protected $appends = ['total'];

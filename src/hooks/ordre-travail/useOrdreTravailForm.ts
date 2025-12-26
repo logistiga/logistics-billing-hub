@@ -103,7 +103,7 @@ export function useOrdreTravailForm(options: UseOrdreTravailFormOptions = {}) {
   }, []);
 
   // Computed values
-  const hasOperations = useMemo(() => lignes.some(l => l.operationType !== "none"), [lignes]);
+  const hasOperations = useMemo(() => lignes.some(l => l.typeOperation !== "none"), [lignes]);
   const hasAnyService = useMemo(() => hasTransport || hasOperations, [hasTransport, hasOperations]);
   const subtotal = useMemo(() => lignes.reduce((sum, l) => sum + l.total, 0), [lignes]);
 
@@ -121,7 +121,7 @@ export function useOrdreTravailForm(options: UseOrdreTravailFormOptions = {}) {
 
   const getPrimaryType = useCallback((): "Transport" | "Manutention" | "Stockage" | "Location" => {
     if (hasTransport) return "Transport";
-    const ops = lignes.map(l => l.operationType).filter(o => o !== "none");
+    const ops = lignes.map(l => l.typeOperation).filter(o => o !== "none");
     if (ops.some(o => o.startsWith("manutention"))) return "Manutention";
     if (ops.some(o => o.startsWith("stockage"))) return "Stockage";
     if (ops.some(o => o.startsWith("location"))) return "Location";
@@ -151,7 +151,7 @@ export function useOrdreTravailForm(options: UseOrdreTravailFormOptions = {}) {
     description,
     lignes: lignes.map(l => ({
       ...l,
-      service: l.operationType.split("-")[0] || "autre"
+      service: l.typeOperation.split("-")[0] || "autre"
     })),
     pointDepart: transportData.pointDepart,
     pointArrivee: transportData.pointArrivee,

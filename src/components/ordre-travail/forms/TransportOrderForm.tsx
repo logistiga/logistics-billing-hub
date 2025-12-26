@@ -100,7 +100,7 @@ export default function TransportOrderForm() {
       description,
       lignes: lignes.map((l) => ({
         ...l,
-        service: l.operationType.split("-")[0] || "autre",
+        service: l.typeOperation.split("-")[0] || "autre",
       })),
       pointDepart: transportData.pointDepart,
       pointArrivee: transportData.pointArrivee,
@@ -182,7 +182,7 @@ export default function TransportOrderForm() {
             .filter((l) => !!l.numeroConteneur)
             .map((l) => ({
               numero: l.numeroConteneur,
-              type: l.operationType,
+              type: l.typeOperation,
               description: l.description || null,
             })),
           ...(transportData.numeroConteneur
@@ -196,9 +196,9 @@ export default function TransportOrderForm() {
             : []),
         ],
         lignes_prestations: lignes
-          .filter((l) => l.operationType !== "none" || (l.prixUnit > 0 && l.quantite > 0))
+          .filter((l) => l.typeOperation !== "none" || (l.prixUnit > 0 && l.quantite > 0))
           .map((l) => ({
-            description: l.description || (l.operationType !== "none" ? `Prestation ${l.operationType}` : "Transport"),
+            description: l.description || (l.typeOperation !== "none" ? `Prestation ${l.typeOperation}` : "Transport"),
             quantite: l.quantite || 1,
             prix_unitaire: l.prixUnit || 0,
           })),
