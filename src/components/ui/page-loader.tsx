@@ -1,8 +1,9 @@
+import { forwardRef } from "react";
 import shipLoaderGif from "@/assets/ship-loader.gif";
 
-export function PageLoader() {
+export const PageLoader = forwardRef<HTMLDivElement>(function PageLoader(_, ref) {
   return (
-    <div className="flex items-center justify-center min-h-[80vh] bg-background">
+    <div ref={ref} className="flex items-center justify-center min-h-[80vh] bg-background">
       <div className="flex flex-col items-center gap-2">
         {/* Logo - Same size as login page with background blend */}
         <div className="relative bg-background">
@@ -18,4 +19,4 @@ export function PageLoader() {
       </div>
     </div>
   );
-}
+});
