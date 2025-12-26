@@ -13,6 +13,12 @@ class LignePrestation extends Model
 
     protected $fillable = [
         'ordre_travail_id',
+        'type_operation',
+        'sous_type',
+        'point_depart',
+        'point_arrivee',
+        'date_debut',
+        'date_fin',
         'description',
         'quantite',
         'prix_unitaire',
@@ -24,6 +30,8 @@ class LignePrestation extends Model
         'quantite' => 'decimal:2',
         'prix_unitaire' => 'decimal:2',
         'tva_rate' => 'decimal:2',
+        'date_debut' => 'date',
+        'date_fin' => 'date',
     ];
 
     protected $appends = ['montant', 'montant_ttc'];

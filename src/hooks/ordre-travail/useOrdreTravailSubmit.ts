@@ -38,7 +38,7 @@ export function useOrdreTravailSubmit(options: UseOrdreTravailSubmitOptions) {
       .filter(l => !!l.numeroConteneur)
       .map(l => ({
         numero: l.numeroConteneur,
-        type: l.operationType || null,
+        type: l.typeOperation || null,
         description: l.description || null,
       }));
 
@@ -72,11 +72,17 @@ export function useOrdreTravailSubmit(options: UseOrdreTravailSubmitOptions) {
       description: description || `Ordre de travail - ${getPrimaryType()}`,
       containers: uniqueContainers,
       lignes_prestations: lignes
-        .filter(l => l.operationType !== "none" || (l.prixUnit > 0 && l.quantite > 0))
+        .filter(l => l.typeOperation !== "none" || (l.prixUnit > 0 && l.quantite > 0))
         .map(l => ({
-          description: l.description || (l.operationType !== "none" ? `Prestation ${l.operationType}` : "Prestation"),
+          description: l.description || (l.typeOperation !== "none" ? `Prestation ${l.typeOperation}` : "Prestation"),
           quantite: l.quantite || 1,
           prix_unitaire: l.prixUnit || 0,
+          type_operation: l.typeOperation !== "none" ? l.typeOperation.split("-")[0] : null,
+          sous_type: l.typeOperation !== "none" ? l.typeOperation.split("-")[1] : null,
+          point_depart: l.pointDepart || null,
+          point_arrivee: l.pointArrivee || null,
+          date_debut: l.dateDebut || null,
+          date_fin: l.dateFin || null,
         })),
       tax_ids: selectedTaxIds,
     };

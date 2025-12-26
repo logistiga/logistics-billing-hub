@@ -1,4 +1,4 @@
-import { Plus, X, Forklift, Warehouse, Car } from "lucide-react";
+import { Plus, X, Truck, Forklift, Warehouse, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LignePrestation, operationTypes, createEmptyLigne } from "./types";
+import { LignePrestation, operationTypes, createEmptyLigne, getFieldsForOperationType } from "./types";
 
 interface LignesPrestationSectionProps {
   lignes: LignePrestation[];
@@ -19,25 +19,6 @@ interface LignesPrestationSectionProps {
   isTransport?: boolean;
   showValidationErrors?: boolean;
 }
-
-// Helper pour déterminer les champs à afficher selon le type d'opération
-const getFieldsForOperationType = (opType: string, isTransport: boolean) => {
-  // Toujours afficher le conteneur pour les transports
-  if (isTransport) {
-    if (opType === "none") return { showConteneur: true, showLot: false, showOperation: false, showDates: false };
-    if (opType.startsWith("manutention")) return { showConteneur: true, showLot: true, showOperation: false, showDates: false };
-    if (opType.startsWith("stockage")) return { showConteneur: true, showLot: true, showOperation: false, showDates: true };
-    if (opType.startsWith("location")) return { showConteneur: true, showLot: false, showOperation: true, showDates: true };
-    return { showConteneur: true, showLot: false, showOperation: false, showDates: false };
-  }
-  
-  // Sans transport, afficher conteneur seulement pour certains types
-  if (opType === "none") return { showConteneur: false, showLot: false, showOperation: false, showDates: false };
-  if (opType.startsWith("manutention")) return { showConteneur: true, showLot: true, showOperation: false, showDates: false };
-  if (opType.startsWith("stockage")) return { showConteneur: true, showLot: true, showOperation: false, showDates: true };
-  if (opType.startsWith("location")) return { showConteneur: false, showLot: false, showOperation: true, showDates: true };
-  return { showConteneur: false, showLot: false, showOperation: false, showDates: false };
-};
 
 export function LignesPrestationSection({ lignes, onChange, isTransport = false, showValidationErrors = false }: LignesPrestationSectionProps) {
   const updateLigne = (index: number, field: keyof LignePrestation, value: string | number) => {
@@ -64,8 +45,8 @@ export function LignesPrestationSection({ lignes, onChange, isTransport = false,
       <h4 className="font-medium mb-3">Lignes de prestation</h4>
       
       {lignes.map((ligne, index) => {
-        const fields = getFieldsForOperationType(ligne.operationType, isTransport);
-        const hasAnyField = fields.showConteneur || fields.showLot || fields.showOperation || fields.showDates;
+        const fields = getFieldsForOperationType(ligne.typeOperation);
+        const hasAnyField = fields.showConteneur || fields.showLot || fields.showOperation || fields.showDates || fields.showPoints;
         
         return (
           <div key={index} className="mb-4 p-4 border rounded-lg bg-muted/30">
@@ -74,14 +55,22 @@ export function LignesPrestationSection({ lignes, onChange, isTransport = false,
               <div className="flex-1 max-w-xs">
                 <Label className="text-xs text-muted-foreground mb-1 block">Type d'opération *</Label>
                 <Select 
-                  value={ligne.operationType} 
-                  onValueChange={(value) => updateLigne(index, "operationType", value)}
+                  value={ligne.typeOperation} 
+                  onValueChange={(value) => updateLigne(index, "typeOperation", value)}
                 >
                   <SelectTrigger className="bg-background">
                     <SelectValue placeholder="Choisir le type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">-- Sélectionner --</SelectItem>
+                    <SelectGroup>
+                      <SelectLabel className="flex items-center gap-2">
+                        <Truck className="h-3 w-3" /> Transport
+                      </SelectLabel>
+                      {operationTypes.filter(o => o.category === "Transport").map(op => (
+                        <SelectItem key={op.key} value={op.key}>{op.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
                     <SelectGroup>
                       <SelectLabel className="flex items-center gap-2">
                         <Forklift className="h-3 w-3" /> Manutention
@@ -144,6 +133,26 @@ export function LignesPrestationSection({ lignes, onChange, isTransport = false,
                     />
                   </div>
                 )}
+                {fields.showPoints && (
+                  <>
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">Point départ</Label>
+                      <Input 
+                        placeholder="Ex: Port d'Owendo"
+                        value={ligne.pointDepart}
+                        onChange={(e) => updateLigne(index, "pointDepart", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">Point arrivée</Label>
+                      <Input 
+                        placeholder="Ex: Libreville"
+                        value={ligne.pointArrivee}
+                        onChange={(e) => updateLigne(index, "pointArrivee", e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
                 {fields.showOperation && (
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1 block">N° Opération</Label>
@@ -188,8 +197,8 @@ export function LignesPrestationSection({ lignes, onChange, isTransport = false,
                 />
               </div>
               <div className="col-span-2">
-                <Label className={`text-xs mb-1 block ${showValidationErrors && ligne.operationType !== "none" && (!ligne.quantite || ligne.quantite <= 0) ? "text-destructive" : "text-muted-foreground"}`}>
-                  Quantité {ligne.operationType !== "none" && "*"}
+                <Label className={`text-xs mb-1 block ${showValidationErrors && ligne.typeOperation !== "none" && (!ligne.quantite || ligne.quantite <= 0) ? "text-destructive" : "text-muted-foreground"}`}>
+                  Quantité {ligne.typeOperation !== "none" && "*"}
                 </Label>
                 <Input 
                   type="number" 
@@ -197,15 +206,15 @@ export function LignesPrestationSection({ lignes, onChange, isTransport = false,
                   min="1"
                   value={ligne.quantite || ""}
                   onChange={(e) => updateLigne(index, "quantite", parseInt(e.target.value) || 0)}
-                  className={showValidationErrors && ligne.operationType !== "none" && (!ligne.quantite || ligne.quantite <= 0) ? "border-destructive" : ""}
+                  className={showValidationErrors && ligne.typeOperation !== "none" && (!ligne.quantite || ligne.quantite <= 0) ? "border-destructive" : ""}
                 />
-                {showValidationErrors && ligne.operationType !== "none" && (!ligne.quantite || ligne.quantite <= 0) && (
+                {showValidationErrors && ligne.typeOperation !== "none" && (!ligne.quantite || ligne.quantite <= 0) && (
                   <p className="text-xs text-destructive mt-1">Requis</p>
                 )}
               </div>
               <div className="col-span-3">
-                <Label className={`text-xs mb-1 block ${showValidationErrors && ligne.operationType !== "none" && (!ligne.prixUnit || ligne.prixUnit <= 0) ? "text-destructive" : "text-muted-foreground"}`}>
-                  Prix unitaire {ligne.operationType !== "none" && "*"}
+                <Label className={`text-xs mb-1 block ${showValidationErrors && ligne.typeOperation !== "none" && (!ligne.prixUnit || ligne.prixUnit <= 0) ? "text-destructive" : "text-muted-foreground"}`}>
+                  Prix unitaire {ligne.typeOperation !== "none" && "*"}
                 </Label>
                 <Input 
                   type="number" 
@@ -213,9 +222,9 @@ export function LignesPrestationSection({ lignes, onChange, isTransport = false,
                   min="0"
                   value={ligne.prixUnit || ""}
                   onChange={(e) => updateLigne(index, "prixUnit", parseInt(e.target.value) || 0)}
-                  className={showValidationErrors && ligne.operationType !== "none" && (!ligne.prixUnit || ligne.prixUnit <= 0) ? "border-destructive" : ""}
+                  className={showValidationErrors && ligne.typeOperation !== "none" && (!ligne.prixUnit || ligne.prixUnit <= 0) ? "border-destructive" : ""}
                 />
-                {showValidationErrors && ligne.operationType !== "none" && (!ligne.prixUnit || ligne.prixUnit <= 0) && (
+                {showValidationErrors && ligne.typeOperation !== "none" && (!ligne.prixUnit || ligne.prixUnit <= 0) && (
                   <p className="text-xs text-destructive mt-1">Requis</p>
                 )}
               </div>

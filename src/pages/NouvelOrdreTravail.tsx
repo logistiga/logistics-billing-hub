@@ -82,7 +82,7 @@ export default function NouvelOrdreTravail() {
   useEffect(() => {
     if (!fromDevisId) {
       const draft = checkForDraft();
-      if (draft && (draft.clientId || draft.description || draft.lignes.some(l => l.operationType !== "none"))) {
+      if (draft && (draft.clientId || draft.description || draft.lignes.some(l => l.typeOperation !== "none"))) {
         setShowDraftDialog(true);
       }
     }
@@ -110,7 +110,7 @@ export default function NouvelOrdreTravail() {
         
         actions.setLignes([{
           ...createEmptyLigne(),
-          operationType: opType,
+          typeOperation: opType,
           description: `Prestation ${devis.type} - Réf. Devis ${devis.number}`,
           prixUnit: devis.amount || 0,
           total: devis.amount || 0
