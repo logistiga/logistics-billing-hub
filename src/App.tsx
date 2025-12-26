@@ -19,7 +19,7 @@ const Factures = lazy(() => import("./pages/Factures"));
 const Devis = lazy(() => import("./pages/Devis"));
 const Avoirs = lazy(() => import("./pages/Avoirs"));
 const OrdresTravail = lazy(() => import("./pages/OrdresTravail"));
-const SelectOrderType = lazy(() => import("./pages/SelectOrderType"));
+
 const NouvelOrdreTravail = lazy(() => import("./pages/NouvelOrdreTravail"));
 const EditerOrdreTravail = lazy(() => import("./pages/EditerOrdreTravail"));
 const OrdresEnAttente = lazy(() => import("./pages/OrdresEnAttente"));
@@ -45,8 +45,6 @@ const Emails = lazy(() => import("./pages/Emails"));
 const Profil = lazy(() => import("./pages/Profil"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Lazy loaded order forms by type
-const TransportOrderForm = lazy(() => import("./components/ordre-travail/forms/TransportOrderForm"));
 
 const queryClient = new QueryClient();
 
@@ -88,9 +86,7 @@ const App = () => (
                 <Route path="/devis" element={<Devis />} />
                 <Route path="/avoirs" element={<Avoirs />} />
                 <Route path="/ordres-travail" element={<OrdresTravail />} />
-                <Route path="/ordres-travail/nouveau" element={<SelectOrderType />} />
-                <Route path="/ordres-travail/nouveau/transport" element={<TransportOrderForm />} />
-                <Route path="/ordres-travail/nouveau/ancien" element={<NouvelOrdreTravail />} />
+                <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
                 <Route path="/ordres-travail/:id/editer" element={<EditerOrdreTravail />} />
                 <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
                 <Route path="/notes-debut" element={<NotesDebut />} />
