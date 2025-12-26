@@ -94,23 +94,14 @@ export default function EditerOrdreTravail() {
               const quantite = Number(l.quantite ?? 1) || 1;
               const prixUnit = Number(l.prix_unitaire ?? 0) || 0;
               const matchingContainer = containersFromApi[idx];
-              // Reconstituer le typeOperation depuis l'API
-              const typeOp = l.type_operation && l.sous_type 
-                ? `${l.type_operation.toLowerCase()}-${l.sous_type}`
-                : defaultOperationTypeForOrdreType(ordre.type);
               return {
                 ...createEmptyLigne(),
-                typeOperation: typeOp,
-                sousType: l.sous_type || "",
+                operationType: defaultOperationTypeForOrdreType(ordre.type),
                 description: l.description || "",
                 quantite,
                 prixUnit,
                 total: quantite * prixUnit,
                 numeroConteneur: matchingContainer ? String(matchingContainer.numero || "").toUpperCase() : "",
-                pointDepart: l.point_depart || "",
-                pointArrivee: l.point_arrivee || "",
-                dateDebut: l.date_debut ? String(l.date_debut).slice(0, 10) : "",
-                dateFin: l.date_fin ? String(l.date_fin).slice(0, 10) : "",
               };
             })
           : [];
@@ -121,7 +112,7 @@ export default function EditerOrdreTravail() {
           .filter((_: any, idx: number) => !usedContainerIndices.has(idx) && idx >= prestationLines.length)
           .map((c: any) => ({
             ...createEmptyLigne(),
-            typeOperation: "none",
+            operationType: "none",
             numeroConteneur: String(c.numero || "").toUpperCase(),
             description: c.description || "",
           }));
