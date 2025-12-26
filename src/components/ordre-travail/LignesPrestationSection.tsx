@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Plus, X, Truck, Forklift, Warehouse, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,8 @@ interface LignesPrestationSectionProps {
   showValidationErrors?: boolean;
 }
 
-export function LignesPrestationSection({ lignes, onChange, isTransport = false, showValidationErrors = false }: LignesPrestationSectionProps) {
+export const LignesPrestationSection = React.forwardRef<HTMLDivElement, LignesPrestationSectionProps>(
+  function LignesPrestationSection({ lignes, onChange, isTransport = false, showValidationErrors = false }, ref) {
   const updateLigne = (index: number, field: keyof LignePrestation, value: string | number) => {
     const newLignes = [...lignes];
     newLignes[index] = { ...newLignes[index], [field]: value };
@@ -257,4 +259,4 @@ export function LignesPrestationSection({ lignes, onChange, isTransport = false,
       </div>
     </div>
   );
-}
+});
