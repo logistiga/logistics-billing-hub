@@ -93,14 +93,17 @@ export function LignesPrestationSection({ lignes, onChange, isTransport = false,
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">-- Sélectionner --</SelectItem>
-                    <SelectGroup>
-                      <SelectLabel className="flex items-center gap-2">
-                        <Truck className="h-3 w-3" /> Transport
-                      </SelectLabel>
-                      {operationTypes.filter(o => o.category === "Transport").map(op => (
-                        <SelectItem key={op.key} value={op.key}>{op.label}</SelectItem>
-                      ))}
-                    </SelectGroup>
+                    {/* Afficher Transport seulement si mode Transport n'est pas activé */}
+                    {!isTransport && (
+                      <SelectGroup>
+                        <SelectLabel className="flex items-center gap-2">
+                          <Truck className="h-3 w-3" /> Transport
+                        </SelectLabel>
+                        {operationTypes.filter(o => o.category === "Transport").map(op => (
+                          <SelectItem key={op.key} value={op.key}>{op.label}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
                     <SelectGroup>
                       <SelectLabel className="flex items-center gap-2">
                         <Forklift className="h-3 w-3" /> Manutention
