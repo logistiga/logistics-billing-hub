@@ -320,22 +320,28 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
     try {
       // Use first container's OT id
       const firstContainer = containerLines[0];
+      const jours = nombreJours();
+      const tarif = parseFloat(tarifJournalier) || 0;
+      const montant = noteType === "reparation" 
+        ? parseFloat(montantReparation) || 0 
+        : jours * tarif * containerLines.length;
 
       await notesDebutService.create({
         client_id: parseInt(selectedClient),
         type: noteType,
         ordre_travail_id: firstContainer.otId,
-        date: dateDebut, // Date principale requise
-        bl_number: blNumber,
+        date: dateDebut,
         conteneur: firstContainer.numero,
-        date_debut_detention: noteType === "detention" ? dateDebut : undefined,
-        date_fin_detention: noteType === "detention" ? dateFin : undefined,
-        date_ouverture: noteType === "ouverture_port" ? dateDebut : undefined,
-        frais_ouverture: noteType === "ouverture_port" ? parseFloat(tarifJournalier) * nombreJours() : undefined,
-        montant_detention: noteType === "detention" ? parseFloat(tarifJournalier) * nombreJours() : undefined,
-        date_reparation: noteType === "reparation" ? dateDebut : undefined,
-        cout_reparation: noteType === "reparation" ? parseFloat(montantReparation) : undefined,
-        notes: description || undefined,
+        date_arrivee: dateDebut || undefined,
+        date_sortie: dateFin || undefined,
+        jours_detention: jours > 0 ? jours : undefined,
+        montant_detention: montant > 0 ? montant : undefined,
+        observations: description || undefined,
+        details: {
+          bl_number: blNumber,
+          tarif_journalier: tarif,
+          containers: containerLines.map(c => c.numero),
+        },
       });
 
       toast({
