@@ -73,10 +73,14 @@ class ApiClient {
       }
 
       if (response.status >= 500) {
-        error.message = "Erreur serveur";
+        const isDev = import.meta.env.DEV;
+        // En dev, conserver le message détaillé du backend (utile pour le debug).
+        // En prod, fallback sur un message générique.
+        error.message =
+          isDev && error.message && error.message !== "Une erreur est survenue"
+            ? error.message
+            : "Erreur serveur";
       }
-
-      throw error;
     }
 
     // Handle empty responses (204 No Content)
