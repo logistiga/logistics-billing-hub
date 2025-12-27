@@ -10,6 +10,7 @@ interface CreateNoteDebutData {
   client_id: number;
   type: NoteDebut["type"];
   ordre_travail_id?: number;
+  date: string;
   reference?: string;
   navire?: string;
   voyage?: string;
