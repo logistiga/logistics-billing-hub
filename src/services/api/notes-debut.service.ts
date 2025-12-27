@@ -9,13 +9,27 @@ import type {
 interface CreateNoteDebutData {
   client_id: number;
   type: NoteDebut["type"];
-  ordres_travail: string[];
-  bl_number: string;
-  container_number: string;
-  date_debut: string;
-  date_fin: string;
-  tarif_journalier: number;
-  description?: string;
+  ordre_travail_id?: number;
+  date: string;
+  reference?: string;
+  conteneur?: string;
+  type_conteneur?: string;
+  navire?: string;
+  armateur?: string;
+  bl_number?: string;
+  port_chargement?: string;
+  port_dechargement?: string;
+  date_arrivee?: string;
+  date_debut_detention?: string;
+  date_fin_detention?: string;
+  date_ouverture?: string;
+  date_reparation?: string;
+  montant_detention?: number;
+  frais_ouverture?: number;
+  cout_reparation?: number;
+  nature_avarie?: string;
+  reparations_effectuees?: string;
+  notes?: string;
 }
 
 class NotesDebutService {
