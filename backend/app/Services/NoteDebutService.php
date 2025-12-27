@@ -15,9 +15,8 @@ class NoteDebutService
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
-                $q->where('numero', 'like', "%{$search}%")
+                $q->where('number', 'like', "%{$search}%")
                     ->orWhere('conteneur', 'like', "%{$search}%")
-                    ->orWhere('bl_number', 'like', "%{$search}%")
                     ->orWhereHas('client', function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%");
                     });
@@ -58,7 +57,7 @@ class NoteDebutService
 
     public function create(array $data): NoteDebut
     {
-        $data['numero'] = $this->generateNumero($data['type']);
+        $data['number'] = $this->generateNumero($data['type']);
 
         return NoteDebut::create($data);
     }
@@ -92,7 +91,7 @@ class NoteDebutService
             ->first();
 
         $number = 1;
-        if ($lastNote && preg_match('/(\d+)$/', $lastNote->numero, $matches)) {
+        if ($lastNote && preg_match('/(\d+)$/', $lastNote->number, $matches)) {
             $number = (int) $matches[1] + 1;
         }
 
