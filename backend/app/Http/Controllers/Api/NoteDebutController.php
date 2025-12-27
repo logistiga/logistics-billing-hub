@@ -43,7 +43,7 @@ class NoteDebutController extends Controller
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('numero', 'like', "%{$search}%")
+                $q->where('number', 'like', "%{$search}%")
                   ->orWhere('reference', 'like', "%{$search}%")
                   ->orWhereHas('client', function ($q) use ($search) {
                       $q->where('name', 'like', "%{$search}%");
@@ -94,10 +94,11 @@ class NoteDebutController extends Controller
             ->first();
         $numero = $prefix . '-' . now()->format('Y') . '-' . str_pad(($lastNote ? $lastNote->id + 1 : 1), 5, '0', STR_PAD_LEFT);
 
-        $note = NoteDebut::create(array_merge($validated, [
-            'number' => $numero,
-            'status' => 'draft',
-        ]));
+        $note = new NoteDebut();
+        $note->fill($validated);
+        $note->number = $numero;
+        $note->status = 'draft';
+        $note->save();
 
         return response()->json([
             'success' => true,
@@ -192,7 +193,7 @@ class NoteDebutController extends Controller
             'note' => $noteDebut,
         ]);
 
-        return $pdf->download("note-{$noteDebut->numero}.pdf");
+        return $pdf->download("note-{$noteDebut->number}.pdf");
     }
 
     /**
