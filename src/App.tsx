@@ -77,7 +77,7 @@ const AppRoutes = () => (
       <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
       <Route path="/ordres-travail/:id/editer" element={<EditerOrdreTravail />} />
       <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
-      <Route path="/notes-debut" element={<NotesDebut />} />
+      <Route path="/notes-debut" element={<NotesDebutPage />} />
       <Route path="/notes-debut/nouvelle" element={<NouvelleNoteDebut />} />
       <Route path="/notes-debut/ouverture-port" element={<NouvelleNoteOuverturePort />} />
       <Route path="/notes-debut/detention" element={<NouvelleNoteDetention />} />
