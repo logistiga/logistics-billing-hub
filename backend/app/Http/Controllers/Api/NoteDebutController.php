@@ -97,7 +97,7 @@ class NoteDebutController extends Controller
         $note = new NoteDebut();
         $note->fill($validated);
         $note->number = $numero;
-        $note->status = 'draft';
+        $note->status = 'pending';
         $note->save();
 
         return response()->json([
@@ -132,7 +132,7 @@ class NoteDebutController extends Controller
             'jours_detention' => 'nullable|integer|min:0',
             'montant_detention' => 'nullable|numeric|min:0',
             'details' => 'nullable|array',
-            'status' => 'sometimes|in:draft,validated,cancelled',
+            'status' => 'sometimes|in:pending,invoiced,paid,cancelled,partial',
         ]);
 
         $noteDebut->update($validated);
