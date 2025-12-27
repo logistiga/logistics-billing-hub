@@ -17,7 +17,6 @@ class NoteDebut extends Model
         'type',
         'client_id',
         'ordre_travail_id',
-        'date',
         'reference',
         'navire',
         'voyage',
@@ -36,7 +35,6 @@ class NoteDebut extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
         'date_arrivee' => 'date',
         'date_sortie' => 'date',
         'validated_at' => 'datetime',
