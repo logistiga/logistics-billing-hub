@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -15,9 +15,11 @@ import {
   ReceiptText,
   FileText,
   Clock,
-  AlertCircle,
   CheckCircle2,
   CheckSquare,
+  Loader2,
+  ArrowRight,
+  ClipboardList,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -27,13 +29,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -49,11 +44,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PaymentDialog, type PayableDocument, type Payment } from "@/components/PaymentDialog";
 import { PaymentHistory, mockPaymentHistory, type PaymentRecord } from "@/components/PaymentHistory";
 import { CreateAvoirDialog, type InvoiceForAvoir } from "@/components/CreateAvoirDialog";
 import { toast } from "@/hooks/use-toast";
 import { DocumentPDFGenerator, type DocumentData } from "@/lib/generateDocumentPDF";
+import { invoicesService, ordresTravailService, type Invoice as ApiInvoice, type OrdreTravail } from "@/services/api";
 
 interface Invoice {
   id: string;
@@ -69,8 +82,15 @@ interface Invoice {
   type: "Manutention" | "Transport" | "Stockage" | "Location";
 }
 
-// Données vides - à remplacer par les données de la base de données
-const initialInvoices: Invoice[] = [];
+interface OTForConversion {
+  id: number;
+  number: string;
+  client: string;
+  clientId: number;
+  date: string;
+  amount: number;
+  type: string;
+}
 
 const statusConfig = {
   paid: {
@@ -97,10 +117,18 @@ const statusConfig = {
 
 export default function Factures() {
   const navigate = useNavigate();
-  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
+  // OT Import dialog
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [availableOTs, setAvailableOTs] = useState<OTForConversion[]>([]);
+  const [loadingOTs, setLoadingOTs] = useState(false);
+  const [selectedOTId, setSelectedOTId] = useState<number | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
   
   // Payment dialog states
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -114,6 +142,132 @@ export default function Factures() {
   // Avoir dialog states
   const [avoirDialogOpen, setAvoirDialogOpen] = useState(false);
   const [selectedInvoiceForAvoir, setSelectedInvoiceForAvoir] = useState<InvoiceForAvoir | null>(null);
+
+  // Load invoices from API
+  useEffect(() => {
+    const loadInvoices = async () => {
+      try {
+        setIsLoading(true);
+        const response = await invoicesService.getAll();
+        const invoicesList = response.data || [];
+        
+        const mapped: Invoice[] = invoicesList.map((inv: ApiInvoice) => ({
+          id: String(inv.id),
+          number: inv.number,
+          client: inv.client?.name || `Client #${inv.client_id}`,
+          clientId: String(inv.client_id),
+          date: new Date(inv.date).toLocaleDateString("fr-FR"),
+          dueDate: new Date(inv.due_date).toLocaleDateString("fr-FR"),
+          amount: inv.amount || 0,
+          paid: inv.paid || 0,
+          advance: inv.advance || 0,
+          status: inv.status,
+          type: inv.type,
+        }));
+
+        setInvoices(mapped);
+      } catch (error) {
+        console.error("Erreur chargement factures:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les factures",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInvoices();
+  }, []);
+
+  // Load available OTs for conversion
+  const loadAvailableOTs = async () => {
+    try {
+      setLoadingOTs(true);
+      const response = await ordresTravailService.getAll({ status: "completed" });
+      const otsList = response.data || [];
+      
+      const mapped: OTForConversion[] = otsList.map((ot: OrdreTravail) => ({
+        id: ot.id,
+        number: ot.numero || ot.number || `OT-${ot.id}`,
+        client: ot.client?.name || `Client #${ot.client_id}`,
+        clientId: ot.client_id,
+        date: new Date(ot.date || ot.created_at).toLocaleDateString("fr-FR"),
+        amount: Number(ot.total) || Number(ot.amount) || 0,
+        type: ot.type || "Manutention",
+      }));
+
+      setAvailableOTs(mapped);
+    } catch (error) {
+      console.error("Erreur chargement OT:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les ordres de travail",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingOTs(false);
+    }
+  };
+
+  const handleOpenImportDialog = () => {
+    setImportDialogOpen(true);
+    loadAvailableOTs();
+  };
+
+  const handleConvertOT = async (otId: number) => {
+    setSelectedOTId(otId);
+  };
+
+  const confirmConvertOT = async () => {
+    if (!selectedOTId) return;
+    
+    setIsConverting(true);
+    try {
+      const result = await ordresTravailService.convertToInvoice(selectedOTId);
+      toast({
+        title: "Conversion réussie",
+        description: `Facture ${result.invoice_number} créée`,
+      });
+      
+      // Reload invoices
+      const response = await invoicesService.getAll();
+      const invoicesList = response.data || [];
+      const mapped: Invoice[] = invoicesList.map((inv: ApiInvoice) => ({
+        id: String(inv.id),
+        number: inv.number,
+        client: inv.client?.name || `Client #${inv.client_id}`,
+        clientId: String(inv.client_id),
+        date: new Date(inv.date).toLocaleDateString("fr-FR"),
+        dueDate: new Date(inv.due_date).toLocaleDateString("fr-FR"),
+        amount: inv.amount || 0,
+        paid: inv.paid || 0,
+        advance: inv.advance || 0,
+        status: inv.status,
+        type: inv.type,
+      }));
+      setInvoices(mapped);
+      
+      // Remove converted OT from list
+      setAvailableOTs(prev => prev.filter(ot => ot.id !== selectedOTId));
+      setSelectedOTId(null);
+      
+      if (availableOTs.length <= 1) {
+        setImportDialogOpen(false);
+      }
+    } catch (error) {
+      console.error("Erreur conversion:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de convertir l'ordre de travail",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConverting(false);
+      setSelectedOTId(null);
+    }
+  };
 
   const handleViewHistory = (invoice: Invoice) => {
     setSelectedInvoiceForHistory(invoice);
@@ -231,12 +385,6 @@ export default function Factures() {
     setPaymentDialogOpen(true);
   };
 
-  const handleAdvancePayment = (invoice: Invoice) => {
-    setPaymentDocuments([toPayableDocument(invoice)]);
-    setPaymentMode("advance");
-    setPaymentDialogOpen(true);
-  };
-
   const handleGroupPayment = () => {
     const selectedInvoices = invoices.filter((inv) => selectedIds.includes(inv.id));
     if (selectedInvoices.length < 2) {
@@ -248,12 +396,11 @@ export default function Factures() {
       return;
     }
     
-    // Vérifier que toutes les factures sont du même client
     const clientIds = new Set(selectedInvoices.map((inv) => inv.clientId));
     if (clientIds.size > 1) {
       toast({
         title: "Clients différents",
-        description: "Le paiement groupé n'est possible que pour un seul client. Sélectionnez des factures du même client.",
+        description: "Le paiement groupé n'est possible que pour un seul client",
         variant: "destructive",
       });
       return;
@@ -265,7 +412,6 @@ export default function Factures() {
   };
 
   const handlePaymentComplete = (payment: Payment, updatedDocs: PayableDocument[]) => {
-    // Update invoices with new payment amounts
     setInvoices((prev) =>
       prev.map((inv) => {
         const updatedDoc = updatedDocs.find((d) => d.id === inv.id);
@@ -319,7 +465,6 @@ export default function Factures() {
     },
   ];
 
-  // Stats enrichies
   const statsData = {
     total: invoices.length,
     paid: invoices.filter(i => i.status === "paid").length,
@@ -329,6 +474,112 @@ export default function Factures() {
 
   return (
     <PageTransition>
+      {/* OT Conversion confirmation */}
+      <AlertDialog open={!!selectedOTId} onOpenChange={() => setSelectedOTId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Convertir en facture
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedOTId && (() => {
+                const ot = availableOTs.find(o => o.id === selectedOTId);
+                return ot ? (
+                  <>
+                    Convertir l'ordre de travail <strong>{ot.number}</strong> en facture ?
+                    <br /><br />
+                    <span className="text-muted-foreground">
+                      Client: {ot.client}<br />
+                      Montant: {formatCurrency(ot.amount)} FCFA
+                    </span>
+                  </>
+                ) : null;
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isConverting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmConvertOT} disabled={isConverting}>
+              {isConverting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Conversion...
+                </>
+              ) : (
+                <>
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Convertir
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* OT Import Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              Importer depuis un ordre de travail
+            </DialogTitle>
+            <DialogDescription>
+              Sélectionnez un ordre de travail complété pour le convertir en facture
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-auto">
+            {loadingOTs ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : availableOTs.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Aucun ordre de travail complété disponible</p>
+                <Button variant="outline" className="mt-4" onClick={() => navigate("/ordres-travail")}>
+                  Voir les ordres de travail
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {availableOTs.map((ot) => (
+                  <motion.div
+                    key={ot.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{ot.number}</span>
+                        <Badge variant="outline" className="text-xs">{ot.type}</Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {ot.client} • {ot.date}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="font-semibold">{formatCurrency(ot.amount)} FCFA</span>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleConvertOT(ot.id)}
+                        className="gap-1"
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                        → Facture
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="space-y-6">
         {/* Header Premium */}
         <PageHeader
@@ -348,6 +599,10 @@ export default function Factures() {
                 Paiement groupé ({selectedIds.length})
               </Button>
             )}
+            <Button variant="outline" onClick={handleOpenImportDialog}>
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Importer OT
+            </Button>
             <Button variant="gradient" onClick={() => navigate("/ordres-travail/nouveau")}>
               <Plus className="h-4 w-4 mr-2" />
               Nouvelle facture
@@ -479,98 +734,112 @@ export default function Factures() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredInvoices.map((invoice, index) => {
-                  const status = statusConfig[invoice.status];
-                  const remaining = invoice.amount - invoice.paid - invoice.advance;
-                  const isSelected = selectedIds.includes(invoice.id);
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                      <p className="text-muted-foreground mt-2">Chargement...</p>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredInvoices.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      Aucune facture trouvée
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredInvoices.map((invoice, index) => {
+                    const status = statusConfig[invoice.status];
+                    const remaining = invoice.amount - invoice.paid - invoice.advance;
+                    const isSelected = selectedIds.includes(invoice.id);
 
-                  return (
-                    <motion.tr
-                      key={invoice.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`group hover:bg-muted/50 cursor-pointer ${
-                        isSelected ? "bg-primary/5" : ""
-                      }`}
-                    >
-                      <TableCell>
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => handleSelectOne(invoice.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {invoice.number}
-                      </TableCell>
-                      <TableCell>{invoice.client}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-normal">
-                          {invoice.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {invoice.date}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {invoice.dueDate}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {formatCurrency(invoice.amount)} FCFA
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex flex-col items-end">
-                          {invoice.paid > 0 && (
-                            <span className="text-success text-sm">
-                              {formatCurrency(invoice.paid)}
-                            </span>
-                          )}
-                          {invoice.advance > 0 && (
-                            <span className="text-cyan-600 text-xs">
-                              +{formatCurrency(invoice.advance)} avance
-                            </span>
-                          )}
-                          {remaining > 0 && (
-                            <span className="text-muted-foreground text-xs">
-                              Reste: {formatCurrency(remaining)}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={status.class}>{status.label}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Voir détails & historique" onClick={() => handleViewHistory(invoice)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700" title="Modifier">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Télécharger PDF" onClick={() => handleDownloadPDF(invoice)}>
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-700" title="Envoyer par email">
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500 hover:text-emerald-700" title="Enregistrer paiement / avance" onClick={() => handleSinglePayment(invoice)}>
-                            <CreditCard className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-500 hover:text-orange-700" title="Créer un avoir" onClick={() => handleCreateAvoir(invoice)}>
-                            <ReceiptText className="h-4 w-4" />
-                          </Button>
-                          {/* Ne pas supprimer si paiement existant */}
-                          {invoice.paid === 0 && invoice.advance === 0 && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" title="Supprimer">
-                              <Trash2 className="h-4 w-4" />
+                    return (
+                      <motion.tr
+                        key={invoice.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={`group hover:bg-muted/50 cursor-pointer ${
+                          isSelected ? "bg-primary/5" : ""
+                        }`}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => handleSelectOne(invoice.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {invoice.number}
+                        </TableCell>
+                        <TableCell>{invoice.client}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal">
+                            {invoice.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {invoice.date}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {invoice.dueDate}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {formatCurrency(invoice.amount)} FCFA
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-col items-end">
+                            {invoice.paid > 0 && (
+                              <span className="text-success text-sm">
+                                {formatCurrency(invoice.paid)}
+                              </span>
+                            )}
+                            {invoice.advance > 0 && (
+                              <span className="text-cyan-600 text-xs">
+                                +{formatCurrency(invoice.advance)} avance
+                              </span>
+                            )}
+                            {remaining > 0 && (
+                              <span className="text-muted-foreground text-xs">
+                                Reste: {formatCurrency(remaining)}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={status.class}>{status.label}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Voir détails & historique" onClick={() => handleViewHistory(invoice)}>
+                              <Eye className="h-4 w-4" />
                             </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </motion.tr>
-                  );
-                })}
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Modifier">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Télécharger PDF" onClick={() => handleDownloadPDF(invoice)}>
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Envoyer par email">
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary/80" title="Enregistrer paiement" onClick={() => handleSinglePayment(invoice)}>
+                              <CreditCard className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Créer un avoir" onClick={() => handleCreateAvoir(invoice)}>
+                              <ReceiptText className="h-4 w-4" />
+                            </Button>
+                            {invoice.paid === 0 && invoice.advance === 0 && (
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" title="Supprimer">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </CardContent>
