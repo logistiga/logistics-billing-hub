@@ -27,6 +27,9 @@ import {
   ReceiptText,
   LineChart,
   X,
+  Forklift,
+  Warehouse,
+  Car,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import shipLoaderGif from "@/assets/ship-loader.gif";
@@ -55,9 +58,9 @@ const navItems: NavItem[] = [
     icon: ClipboardList,
     children: [
       { title: "Transport", href: "/ordres-travail/transport", icon: Truck },
-      { title: "Manutention", href: "/ordres-travail/manutention", icon: ClipboardList },
-      { title: "Stockage", href: "/ordres-travail/stockage", icon: ClipboardList },
-      { title: "Location", href: "/ordres-travail/location", icon: ClipboardList },
+      { title: "Manutention", href: "/ordres-travail/manutention", icon: Forklift },
+      { title: "Stockage", href: "/ordres-travail/stockage", icon: Warehouse },
+      { title: "Location", href: "/ordres-travail/location", icon: Car },
       { title: "Tous les OT", href: "/ordres-travail", icon: ClipboardList },
       { title: "En attente", href: "/ordres-en-attente", icon: Clock },
       { title: "Notes de début", href: "/notes-debut", icon: FileText },
