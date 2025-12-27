@@ -21,6 +21,11 @@ class OrdreTravailController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Filtrage par type
+        if ($request->has('type')) {
+            $query->where('type', $request->type);
+        }
+
         // Filtrage par client
         if ($request->has('client_id')) {
             $query->where('client_id', $request->client_id);
