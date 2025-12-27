@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -11,6 +11,7 @@ import {
   Wrench,
   Save,
   X,
+  Loader2,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +37,10 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { clientsService } from "@/services/api/clients.service";
+import { ordresTravailService } from "@/services/api/ordres-travail.service";
+import { notesDebutService } from "@/services/api/notes-debut.service";
+import type { Client, OrdreTravail } from "@/services/api/types";
 
 export type NoteType = "ouverture_port" | "detention" | "reparation";
 
@@ -57,16 +62,11 @@ export const typeConfig = {
   },
 };
 
-// OT data will come from backend
-export const mockOrdresTravail: { id: string; client: string; clientKey: string; date: string; type: string; containers: { numero: string; description: string }[]; compagnie: string }[] = [];
-
-// Clients will come from backend
-export const mockClients: { key: string; name: string }[] = [];
-
 interface ContainerLine {
   id: string;
   numero: string;
-  otId: string;
+  otId: number;
+  otNumero: string;
   description: string;
 }
 
@@ -79,6 +79,13 @@ interface NoteDebutFormProps {
 export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps) {
   const navigate = useNavigate();
   
+  // API data
+  const [clients, setClients] = useState<Client[]>([]);
+  const [ordresTravail, setOrdresTravail] = useState<OrdreTravail[]>([]);
+  const [isLoadingClients, setIsLoadingClients] = useState(true);
+  const [isLoadingOTs, setIsLoadingOTs] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   // Multi OT/Container support
   const [containerLines, setContainerLines] = useState<ContainerLine[]>([]);
   
@@ -88,10 +95,57 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
   const [currentContainers, setCurrentContainers] = useState<string[]>([]);
   const [availableContainers, setAvailableContainers] = useState<{ numero: string; description: string }[]>([]);
   
+  // Load clients on mount
+  useEffect(() => {
+    const loadClients = async () => {
+      try {
+        const response = await clientsService.getAll({ per_page: 100 });
+        setClients(response.data);
+      } catch (error) {
+        console.error("Erreur chargement clients:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les clients",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingClients(false);
+      }
+    };
+    loadClients();
+  }, []);
+
+  // Load OTs when client is selected
+  useEffect(() => {
+    if (!selectedClient) {
+      setOrdresTravail([]);
+      return;
+    }
+    
+    const loadOTs = async () => {
+      setIsLoadingOTs(true);
+      try {
+        const response = await ordresTravailService.getAll({ 
+          client_id: parseInt(selectedClient), 
+          per_page: 100 
+        });
+        setOrdresTravail(response.data);
+      } catch (error) {
+        console.error("Erreur chargement OTs:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les ordres de travail",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingOTs(false);
+      }
+    };
+    loadOTs();
+  }, [selectedClient]);
+  
   // Filtered OTs based on selected client
-  const filteredOTs = selectedClient 
-    ? mockOrdresTravail.filter(ot => ot.clientKey === selectedClient)
-    : [];
+  const filteredOTs = ordresTravail;
   
   // Common fields
   const [blNumber, setBlNumber] = useState("");
@@ -109,16 +163,13 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
   // Derived values
   const getClientName = () => {
     if (selectedClient) {
-      return mockClients.find(c => c.key === selectedClient)?.name || "";
+      return clients.find(c => c.id === parseInt(selectedClient))?.name || "";
     }
     return "";
   };
 
   const getCompagnie = () => {
-    if (containerLines.length > 0) {
-      const firstOT = mockOrdresTravail.find(ot => ot.id === containerLines[0].otId);
-      return firstOT?.compagnie || "";
-    }
+    // The backend OTs may not have compagnie field yet
     return "";
   };
 
@@ -152,10 +203,12 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
   const handleOTChange = (otId: string) => {
     setCurrentOT(otId);
     setCurrentContainers([]);
-    const ot = mockOrdresTravail.find(o => o.id === otId);
-    if (ot) {
+    const ot = ordresTravail.find(o => o.id === parseInt(otId));
+    if (ot && ot.containers) {
       const usedContainers = containerLines.map(c => c.numero);
-      const available = ot.containers.filter(c => !usedContainers.includes(c.numero));
+      const available = ot.containers
+        .filter(c => !usedContainers.includes(c.numero))
+        .map(c => ({ numero: c.numero, description: c.description || "" }));
       setAvailableContainers(available);
     } else {
       setAvailableContainers([]);
@@ -182,12 +235,12 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
       return;
     }
 
-    const ot = mockOrdresTravail.find(o => o.id === currentOT);
+    const ot = ordresTravail.find(o => o.id === parseInt(currentOT));
     if (!ot) return;
 
     if (containerLines.length > 0) {
-      const existingOT = mockOrdresTravail.find(o => o.id === containerLines[0].otId);
-      if (existingOT && existingOT.clientKey !== ot.clientKey) {
+      const existingOT = ordresTravail.find(o => o.id === containerLines[0].otId);
+      if (existingOT && existingOT.client_id !== ot.client_id) {
         toast({
           title: "Client différent",
           description: "Tous les OT doivent appartenir au même client",
@@ -198,11 +251,12 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
     }
 
     const newLines: ContainerLine[] = currentContainers.map(containerNumero => {
-      const container = ot.containers.find(c => c.numero === containerNumero);
+      const container = ot.containers?.find(c => c.numero === containerNumero);
       return {
         id: `${currentOT}-${containerNumero}`,
         numero: containerNumero,
-        otId: currentOT,
+        otId: ot.id,
+        otNumero: ot.numero,
         description: container?.description || "",
       };
     });
@@ -224,7 +278,7 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
   };
 
   // Submit form
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (containerLines.length === 0) {
       toast({
         title: "Aucun conteneur",
@@ -261,11 +315,42 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
       return;
     }
 
-    toast({
-      title: "Note créée",
-      description: `La note de début a été créée avec ${containerLines.length} conteneur(s)`,
-    });
-    navigate("/notes-debut");
+    setIsSubmitting(true);
+
+    try {
+      // Get unique OT numbers
+      const uniqueOTs = [...new Set(containerLines.map(c => c.otNumero))];
+      
+      // Use first container as main container (backend expects single container)
+      const firstContainer = containerLines[0];
+
+      await notesDebutService.create({
+        client_id: parseInt(selectedClient),
+        type: noteType,
+        ordres_travail: uniqueOTs,
+        bl_number: blNumber,
+        container_number: firstContainer.numero,
+        date_debut: dateDebut,
+        date_fin: dateFin,
+        tarif_journalier: parseFloat(tarifJournalier) || 0,
+        description: description || undefined,
+      });
+
+      toast({
+        title: "Note créée",
+        description: `La note de début a été créée avec ${containerLines.length} conteneur(s)`,
+      });
+      navigate("/notes-debut");
+    } catch (error: any) {
+      console.error("Erreur création note:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de créer la note",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const config = typeConfig[noteType];
@@ -322,11 +407,15 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
                       <SelectValue placeholder="Sélectionner un client" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockClients.map((client) => (
-                        <SelectItem key={client.key} value={client.key}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
+                      {isLoadingClients ? (
+                        <SelectItem value="loading" disabled>Chargement...</SelectItem>
+                      ) : (
+                        clients.map((client) => (
+                          <SelectItem key={client.id} value={String(client.id)}>
+                            {client.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   {containerLines.length > 0 && (
@@ -345,11 +434,17 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
                         <SelectValue placeholder={selectedClient ? "Sélectionner un OT" : "Sélectionnez d'abord un client"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {filteredOTs.map((ot) => (
-                          <SelectItem key={ot.id} value={ot.id}>
-                            {ot.id} - {ot.type}
-                          </SelectItem>
-                        ))}
+                        {isLoadingOTs ? (
+                          <SelectItem value="loading" disabled>Chargement...</SelectItem>
+                        ) : filteredOTs.length === 0 ? (
+                          <SelectItem value="empty" disabled>Aucun OT disponible</SelectItem>
+                        ) : (
+                          filteredOTs.map((ot) => (
+                            <SelectItem key={ot.id} value={String(ot.id)}>
+                              {ot.numero} - {ot.type}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -420,7 +515,7 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
                       {containerLines.map((line) => (
                         <TableRow key={line.id}>
                           <TableCell className="font-mono font-medium">{line.numero}</TableCell>
-                          <TableCell>{line.otId}</TableCell>
+                          <TableCell>{line.otNumero}</TableCell>
                           <TableCell className="text-muted-foreground">{line.description}</TableCell>
                           <TableCell>
                             <Button
@@ -637,10 +732,19 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
                 variant="gradient" 
                 className="flex-1"
                 onClick={handleSubmit}
-                disabled={containerLines.length === 0}
+                disabled={containerLines.length === 0 || isSubmitting}
               >
-                <Save className="h-4 w-4 mr-2" />
-                Créer la note
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Création...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Créer la note
+                  </>
+                )}
               </Button>
             </div>
           </div>
