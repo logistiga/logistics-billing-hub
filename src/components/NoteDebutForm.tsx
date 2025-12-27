@@ -347,7 +347,6 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
       await notesDebutService.create({
         client_id: parseInt(selectedClient),
         type: noteType,
-        date: firstContainer.dateDebut || new Date().toISOString().split('T')[0],
         conteneur: firstContainer.numero,
         date_arrivee: firstContainer.dateDebut || undefined,
         date_sortie: firstContainer.dateFin || undefined,
