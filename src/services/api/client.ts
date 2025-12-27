@@ -81,6 +81,8 @@ class ApiClient {
             ? error.message
             : "Erreur serveur";
       }
+
+      throw error;
     }
 
     // Handle empty responses (204 No Content)
