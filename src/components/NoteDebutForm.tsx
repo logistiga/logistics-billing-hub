@@ -329,7 +329,7 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
       await notesDebutService.create({
         client_id: parseInt(selectedClient),
         type: noteType,
-        ordre_travail_id: firstContainer.otId,
+        // ordre_travail_id: firstContainer.otId, // Colonne manquante en BDD - à ajouter via migration
         date: dateDebut,
         conteneur: firstContainer.numero,
         date_arrivee: dateDebut || undefined,
@@ -341,6 +341,7 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
           bl_number: blNumber,
           tarif_journalier: tarif,
           containers: containerLines.map(c => c.numero),
+          ordre_travail_ids: containerLines.map(c => c.otId), // Stocké dans details temporairement
         },
       });
 
