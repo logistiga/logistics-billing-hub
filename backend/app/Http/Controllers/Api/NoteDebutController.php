@@ -71,7 +71,6 @@ class NoteDebutController extends Controller
             'type' => 'required|in:debut,detention,ouverture_port,reparation',
             'client_id' => 'required|exists:clients,id',
             'ordre_travail_id' => 'nullable|exists:ordres_travail,id',
-            'date' => 'required|date',
             'reference' => 'nullable|string|max:100',
             'navire' => 'nullable|string|max:255',
             'voyage' => 'nullable|string|max:100',
