@@ -318,22 +318,24 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
     setIsSubmitting(true);
 
     try {
-      // Get unique OT numbers
-      const uniqueOTs = [...new Set(containerLines.map(c => c.otNumero))];
-      
-      // Use first container as main container (backend expects single container)
+      // Use first container's OT id
       const firstContainer = containerLines[0];
 
       await notesDebutService.create({
         client_id: parseInt(selectedClient),
         type: noteType,
-        ordres_travail: uniqueOTs,
+        ordre_travail_id: firstContainer.otId,
+        date: dateDebut, // Date principale requise
         bl_number: blNumber,
-        container_number: firstContainer.numero,
-        date_debut: dateDebut,
-        date_fin: dateFin,
-        tarif_journalier: parseFloat(tarifJournalier) || 0,
-        description: description || undefined,
+        conteneur: firstContainer.numero,
+        date_debut_detention: noteType === "detention" ? dateDebut : undefined,
+        date_fin_detention: noteType === "detention" ? dateFin : undefined,
+        date_ouverture: noteType === "ouverture_port" ? dateDebut : undefined,
+        frais_ouverture: noteType === "ouverture_port" ? parseFloat(tarifJournalier) * nombreJours() : undefined,
+        montant_detention: noteType === "detention" ? parseFloat(tarifJournalier) * nombreJours() : undefined,
+        date_reparation: noteType === "reparation" ? dateDebut : undefined,
+        cout_reparation: noteType === "reparation" ? parseFloat(montantReparation) : undefined,
+        notes: description || undefined,
       });
 
       toast({
