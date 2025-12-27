@@ -299,7 +299,7 @@ export function OrdresTravailList({ type, title, icon: Icon }: OrdresTravailList
           title={title}
           subtitle={`Gérez vos ordres de travail de type ${type.toLowerCase()}`}
         >
-          <Button onClick={() => navigate(`/ordres-travail/nouveau?type=${type}`)}>
+          <Button onClick={() => navigate(`/ordres-travail/${type.toLowerCase()}/nouveau`)}>
             <Plus className="h-4 w-4 mr-2" />
             Nouvel ordre
           </Button>

@@ -27,6 +27,10 @@ const OTManutention = lazy(() => import("./pages/ordres-travail/OTManutention"))
 const OTStockage = lazy(() => import("./pages/ordres-travail/OTStockage"));
 const OTLocation = lazy(() => import("./pages/ordres-travail/OTLocation"));
 const NouvelOrdreTravail = lazy(() => import("./pages/NouvelOrdreTravail"));
+const NouvelOTTransport = lazy(() => import("./pages/ordres-travail/NouvelOTTransport"));
+const NouvelOTManutention = lazy(() => import("./pages/ordres-travail/NouvelOTManutention"));
+const NouvelOTStockage = lazy(() => import("./pages/ordres-travail/NouvelOTStockage"));
+const NouvelOTLocation = lazy(() => import("./pages/ordres-travail/NouvelOTLocation"));
 const EditerOrdreTravail = lazy(() => import("./pages/EditerOrdreTravail"));
 const OrdresEnAttente = lazy(() => import("./pages/OrdresEnAttente"));
 const NouvelleNoteDebut = lazy(() => import("./pages/NouvelleNoteDebut"));
@@ -83,6 +87,10 @@ const AppRoutes = () => (
       <Route path="/ordres-travail/stockage" element={<OTStockage />} />
       <Route path="/ordres-travail/location" element={<OTLocation />} />
       <Route path="/ordres-travail/nouveau" element={<NouvelOrdreTravail />} />
+      <Route path="/ordres-travail/transport/nouveau" element={<NouvelOTTransport />} />
+      <Route path="/ordres-travail/manutention/nouveau" element={<NouvelOTManutention />} />
+      <Route path="/ordres-travail/stockage/nouveau" element={<NouvelOTStockage />} />
+      <Route path="/ordres-travail/location/nouveau" element={<NouvelOTLocation />} />
       <Route path="/ordres-travail/:id/editer" element={<EditerOrdreTravail />} />
       <Route path="/ordres-en-attente" element={<OrdresEnAttente />} />
       <Route path="/notes-debut" element={<NotesDebutPage />} />
