@@ -13,7 +13,7 @@ class NoteDebut extends Model
     protected $table = 'notes_debut';
 
     protected $fillable = [
-        'numero',
+        'number',
         'type',
         'client_id',
         'ordre_travail_id',

@@ -94,7 +94,7 @@ class NoteDebutController extends Controller
             ->first();
         $numero = $prefix . '-' . now()->format('Y') . '-' . str_pad(($lastNote ? $lastNote->id + 1 : 1), 5, '0', STR_PAD_LEFT);
 
-        $validated['numero'] = $numero;
+        $validated['number'] = $numero;
         $validated['status'] = 'draft';
 
         $note = NoteDebut::create($validated);
