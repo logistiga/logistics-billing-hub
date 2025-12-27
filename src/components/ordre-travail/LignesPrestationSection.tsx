@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { differenceInDays, parseISO } from "date-fns";
 import { LignePrestation, operationTypes, createEmptyLigne, getFieldsForOperationType } from "./types";
 
 interface LignesPrestationSectionProps {
@@ -20,10 +21,39 @@ interface LignesPrestationSectionProps {
   showValidationErrors?: boolean;
 }
 
+// Helper pour calculer le nombre de jours entre deux dates
+const calculateDaysBetweenDates = (dateDebut: string, dateFin: string): number => {
+  if (!dateDebut || !dateFin) return 0;
+  try {
+    const start = parseISO(dateDebut);
+    const end = parseISO(dateFin);
+    const days = differenceInDays(end, start);
+    return days >= 0 ? days + 1 : 0; // +1 pour inclure le jour de début
+  } catch {
+    return 0;
+  }
+};
+
 export function LignesPrestationSection({ lignes, onChange, isTransport = false, showValidationErrors = false }: LignesPrestationSectionProps) {
   const updateLigne = (index: number, field: keyof LignePrestation, value: string | number) => {
     const newLignes = [...lignes];
     newLignes[index] = { ...newLignes[index], [field]: value };
+    
+    // Calcul automatique des jours pour les types avec dates (stockage, location)
+    if (field === "dateDebut" || field === "dateFin") {
+      const ligne = newLignes[index];
+      const [category] = ligne.typeOperation.split("-");
+      
+      // Appliquer seulement pour stockage et location
+      if (category === "stockage" || category === "location") {
+        const days = calculateDaysBetweenDates(ligne.dateDebut, ligne.dateFin);
+        if (days > 0) {
+          newLignes[index].quantite = days;
+          newLignes[index].total = days * newLignes[index].prixUnit;
+        }
+      }
+    }
+    
     if (field === "quantite" || field === "prixUnit") {
       newLignes[index].total = newLignes[index].quantite * newLignes[index].prixUnit;
     }
