@@ -10,6 +10,9 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PageLoader } from "@/components/ui/page-loader";
 
+// Eager import: avoids runtime failure when fetching a lazy module
+import NotesDebutPage from "./pages/NotesDebut";
+
 // Lazy loaded pages
 const Login = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -22,7 +25,6 @@ const OrdresTravail = lazy(() => import("./pages/OrdresTravail"));
 const NouvelOrdreTravail = lazy(() => import("./pages/NouvelOrdreTravail"));
 const EditerOrdreTravail = lazy(() => import("./pages/EditerOrdreTravail"));
 const OrdresEnAttente = lazy(() => import("./pages/OrdresEnAttente"));
-const NotesDebut = lazy(() => import("./pages/NotesDebut"));
 const NouvelleNoteDebut = lazy(() => import("./pages/NouvelleNoteDebut"));
 const NouvelleNoteOuverturePort = lazy(() => import("./pages/NouvelleNoteOuverturePort"));
 const NouvelleNoteDetention = lazy(() => import("./pages/NouvelleNoteDetention"));
