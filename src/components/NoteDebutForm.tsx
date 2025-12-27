@@ -68,6 +68,8 @@ interface ContainerLine {
   otId: number;
   otNumero: string;
   description: string;
+  dateDebut: string;
+  dateFin: string;
 }
 
 interface NoteDebutFormProps {
@@ -149,8 +151,6 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
   
   // Common fields
   const [blNumber, setBlNumber] = useState("");
-  const [dateDebut, setDateDebut] = useState("");
-  const [dateFin, setDateFin] = useState("");
   const [tarifJournalier, setTarifJournalier] = useState("");
   const [description, setDescription] = useState("");
   
@@ -173,7 +173,7 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
     return "";
   };
 
-  const nombreJours = () => {
+  const calculateJours = (dateDebut: string, dateFin: string) => {
     if (dateDebut && dateFin) {
       const start = new Date(dateDebut);
       const end = new Date(dateFin);
@@ -183,13 +183,19 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
     return 0;
   };
 
+  const totalJours = () => {
+    return containerLines.reduce((sum, line) => sum + calculateJours(line.dateDebut, line.dateFin), 0);
+  };
+
   const montantTotal = () => {
     if (noteType === "reparation") {
       return parseFloat(montantReparation) || 0;
     }
-    const jours = nombreJours();
     const tarif = parseFloat(tarifJournalier) || 0;
-    return jours * tarif * containerLines.length;
+    return containerLines.reduce((sum, line) => {
+      const jours = calculateJours(line.dateDebut, line.dateFin);
+      return sum + (jours * tarif);
+    }, 0);
   };
 
   const formatCurrency = (value: number) => {
@@ -258,6 +264,8 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
         otId: ot.id,
         otNumero: ot.numero,
         description: container?.description || "",
+        dateDebut: "",
+        dateFin: "",
       };
     });
 
@@ -297,13 +305,26 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
       return;
     }
 
-    if ((noteType === "ouverture_port" || noteType === "detention") && (!dateDebut || !dateFin || !tarifJournalier)) {
+    if ((noteType === "ouverture_port" || noteType === "detention") && !tarifJournalier) {
       toast({
-        title: "Informations manquantes",
-        description: "Veuillez remplir les dates et le tarif journalier",
+        title: "Tarif requis",
+        description: "Veuillez saisir le tarif journalier",
         variant: "destructive",
       });
       return;
+    }
+
+    // Vérifier que chaque conteneur a ses dates
+    if ((noteType === "ouverture_port" || noteType === "detention")) {
+      const missingDates = containerLines.some(line => !line.dateDebut || !line.dateFin);
+      if (missingDates) {
+        toast({
+          title: "Dates manquantes",
+          description: "Veuillez renseigner les dates pour chaque conteneur",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (noteType === "reparation" && !montantReparation) {
@@ -320,28 +341,29 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
     try {
       // Use first container's OT id
       const firstContainer = containerLines[0];
-      const jours = nombreJours();
       const tarif = parseFloat(tarifJournalier) || 0;
-      const montant = noteType === "reparation" 
-        ? parseFloat(montantReparation) || 0 
-        : jours * tarif * containerLines.length;
+      const montant = montantTotal();
 
       await notesDebutService.create({
         client_id: parseInt(selectedClient),
         type: noteType,
-        // ordre_travail_id: firstContainer.otId, // Colonne manquante en BDD - à ajouter via migration
-        date: dateDebut,
+        date: firstContainer.dateDebut || new Date().toISOString().split('T')[0],
         conteneur: firstContainer.numero,
-        date_arrivee: dateDebut || undefined,
-        date_sortie: dateFin || undefined,
-        jours_detention: jours > 0 ? jours : undefined,
+        date_arrivee: firstContainer.dateDebut || undefined,
+        date_sortie: firstContainer.dateFin || undefined,
+        jours_detention: totalJours() > 0 ? totalJours() : undefined,
         montant_detention: montant > 0 ? montant : undefined,
         observations: description || undefined,
         details: {
           bl_number: blNumber,
           tarif_journalier: tarif,
-          containers: containerLines.map(c => c.numero),
-          ordre_travail_ids: containerLines.map(c => c.otId), // Stocké dans details temporairement
+          containers: containerLines.map(c => ({
+            numero: c.numero,
+            dateDebut: c.dateDebut,
+            dateFin: c.dateFin,
+            jours: calculateJours(c.dateDebut, c.dateFin),
+          })),
+          ordre_travail_ids: containerLines.map(c => c.otId),
         },
       });
 
@@ -516,16 +538,52 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
                       <TableRow>
                         <TableHead>N° Conteneur</TableHead>
                         <TableHead>OT</TableHead>
-                        <TableHead>Description</TableHead>
+                        {(noteType === "ouverture_port" || noteType === "detention") && (
+                          <>
+                            <TableHead>Date début</TableHead>
+                            <TableHead>Date fin</TableHead>
+                            <TableHead>Jours</TableHead>
+                          </>
+                        )}
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {containerLines.map((line) => (
+                      {containerLines.map((line, index) => (
                         <TableRow key={line.id}>
                           <TableCell className="font-mono font-medium">{line.numero}</TableCell>
                           <TableCell>{line.otNumero}</TableCell>
-                          <TableCell className="text-muted-foreground">{line.description}</TableCell>
+                          {(noteType === "ouverture_port" || noteType === "detention") && (
+                            <>
+                              <TableCell>
+                                <Input 
+                                  type="date" 
+                                  value={line.dateDebut}
+                                  onChange={(e) => {
+                                    const newLines = [...containerLines];
+                                    newLines[index].dateDebut = e.target.value;
+                                    setContainerLines(newLines);
+                                  }}
+                                  className="w-[130px]"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input 
+                                  type="date" 
+                                  value={line.dateFin}
+                                  onChange={(e) => {
+                                    const newLines = [...containerLines];
+                                    newLines[index].dateFin = e.target.value;
+                                    setContainerLines(newLines);
+                                  }}
+                                  className="w-[130px]"
+                                />
+                              </TableCell>
+                              <TableCell className="text-center font-medium">
+                                {calculateJours(line.dateDebut, line.dateFin) || "-"}
+                              </TableCell>
+                            </>
+                          )}
                           <TableCell>
                             <Button
                               variant="ghost"
@@ -586,38 +644,10 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Clock className="h-5 w-5" />
-                    Période et tarification
+                    Tarification
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Date début *</Label>
-                      <Input 
-                        type="date" 
-                        value={dateDebut}
-                        onChange={(e) => setDateDebut(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Date fin *</Label>
-                      <Input 
-                        type="date" 
-                        value={dateFin}
-                        onChange={(e) => setDateFin(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Nombre de jours</Label>
-                    <Input 
-                      type="number" 
-                      value={nombreJours()} 
-                      disabled 
-                      className="bg-muted"
-                    />
-                  </div>
-                  <Separator />
                   <div className="space-y-2">
                     <Label>Tarif journalier (FCFA) *</Label>
                     <Input 
@@ -630,7 +660,7 @@ export function NoteDebutForm({ noteType, title, subtitle }: NoteDebutFormProps)
                   <div className="p-3 bg-primary/10 rounded-lg">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">
-                        {nombreJours()} jours × {formatCurrency(parseFloat(tarifJournalier) || 0)} FCFA × {containerLines.length} conteneur(s)
+                        {totalJours()} jours × {formatCurrency(parseFloat(tarifJournalier) || 0)} FCFA
                       </span>
                     </div>
                     <div className="text-2xl font-bold text-primary mt-1">
