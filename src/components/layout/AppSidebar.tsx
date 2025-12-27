@@ -50,13 +50,24 @@ const navItems: NavItem[] = [
     icon: Users,
   },
   {
+    title: "Ordres de Travail",
+    href: "/ordres-travail",
+    icon: ClipboardList,
+    children: [
+      { title: "Transport", href: "/ordres-travail/transport", icon: Truck },
+      { title: "Manutention", href: "/ordres-travail/manutention", icon: ClipboardList },
+      { title: "Stockage", href: "/ordres-travail/stockage", icon: ClipboardList },
+      { title: "Location", href: "/ordres-travail/location", icon: ClipboardList },
+      { title: "Tous les OT", href: "/ordres-travail", icon: ClipboardList },
+      { title: "En attente", href: "/ordres-en-attente", icon: Clock },
+      { title: "Notes de début", href: "/notes-debut", icon: FileText },
+    ],
+  },
+  {
     title: "Facturation",
     href: "/facturation",
     icon: FileText,
     children: [
-      { title: "Ordres de travail", href: "/ordres-travail", icon: ClipboardList },
-      { title: "Ordres en attente", href: "/ordres-en-attente", icon: Clock },
-      { title: "Notes de début", href: "/notes-debut", icon: FileText },
       { title: "Factures", href: "/factures", icon: FileCheck },
       { title: "Devis", href: "/devis", icon: Receipt },
       { title: "Avoirs", href: "/avoirs", icon: ReceiptText },
