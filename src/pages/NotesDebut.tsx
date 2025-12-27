@@ -593,7 +593,6 @@ export default function NotesDebut() {
                   })
                 )}
               </TableBody>
-              </TableBody>
             </Table>
           </CardContent>
         </Card>
