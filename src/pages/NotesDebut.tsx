@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -47,6 +47,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { PaymentDialog, type PayableDocument, type Payment } from "@/components/PaymentDialog";
 import { PaymentHistory, mockPaymentHistory, type PaymentRecord } from "@/components/PaymentHistory";
+import { notesDebutService } from "@/services/api/notes-debut.service";
 
 interface NoteDebut {
   id: string;
@@ -122,10 +123,108 @@ const mockOrdresTravail: { id: string; client: string; clientKey: string; date: 
 export default function NotesDebut() {
   const navigate = useNavigate();
   const [notes, setNotes] = useState<NoteDebut[]>(initialNotes);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  // SEO (title, description, canonical)
+  useEffect(() => {
+    document.title = "Notes de début | Gestion portuaire";
+
+    const description =
+      "Gérez les notes de début : ouverture de port, détention et réparation de conteneur.";
+
+    const ensureMeta = (name: string, content: string) => {
+      let meta = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.setAttribute("name", name);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute("content", content);
+    };
+
+    const ensureLink = (rel: string, href: string) => {
+      let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement("link");
+        link.setAttribute("rel", rel);
+        document.head.appendChild(link);
+      }
+      link.setAttribute("href", href);
+    };
+
+    ensureMeta("description", description);
+    ensureLink("canonical", `${window.location.origin}${window.location.pathname}`);
+  }, []);
+
+  // Load notes from API
+  useEffect(() => {
+    let cancelled = false;
+
+    const toStr = (v: unknown) => (v === null || v === undefined ? "" : String(v));
+    const toNum = (v: unknown) => {
+      if (v === null || v === undefined || v === "") return 0;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+    const formatDate = (v: unknown) => {
+      const s = toStr(v);
+      if (!s) return "";
+      return s.includes("T") ? s.split("T")[0] : s;
+    };
+
+    const mapApiToNote = (api: any): NoteDebut => {
+      const details = api?.details ?? {};
+      const firstContainerFromDetails = details?.containers?.[0]?.numero;
+
+      return {
+        id: toStr(api?.id),
+        number: toStr(api?.number ?? api?.numero),
+        client: toStr(api?.client?.name ?? api?.client_name ?? api?.client),
+        clientId: toStr(api?.client_id ?? api?.clientId),
+        type: (api?.type ?? "ouverture_port") as NoteDebut["type"],
+        ordresTravail: (api?.ordres_travail ?? details?.ordre_travail_ids ?? []).map(toStr),
+        blNumber: toStr(api?.bl_number ?? details?.bl_number),
+        containerNumber: toStr(api?.container_number ?? api?.conteneur ?? firstContainerFromDetails),
+        dateDebut: formatDate(api?.date_debut ?? api?.date_arrivee),
+        dateFin: formatDate(api?.date_fin ?? api?.date_sortie),
+        nombreJours: toNum(api?.nombre_jours ?? api?.jours_detention),
+        tarifJournalier: toNum(api?.tarif_journalier ?? details?.tarif_journalier),
+        montantTotal: toNum(api?.montant_total ?? api?.montant_detention),
+        paid: toNum(api?.paid),
+        advance: toNum(api?.advance),
+        status: (api?.status ?? "pending") as NoteDebut["status"],
+        description: toStr(api?.observations ?? api?.description),
+      };
+    };
+
+    const loadNotes = async () => {
+      setIsLoading(true);
+      try {
+        const res: any = await notesDebutService.getAll({ per_page: 100 });
+        const raw = Array.isArray(res?.data) ? res.data : res?.data?.data ?? [];
+        const mapped = raw.map(mapApiToNote);
+        if (!cancelled) setNotes(mapped);
+      } catch (error: any) {
+        if (!cancelled) {
+          toast({
+            title: "Erreur",
+            description: error?.message || "Impossible de charger les notes",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    loadNotes();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Payment dialog states
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -391,94 +490,109 @@ export default function NotesDebut() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredNotes.map((note, index) => {
-                  const typeInfo = typeConfig[note.type];
-                  const TypeIcon = typeInfo.icon;
-                  const status = statusConfig[note.status];
-                  const isSelected = selectedIds.includes(note.id);
-                  const remaining = note.montantTotal - note.paid - note.advance;
-                  return (
-                    <motion.tr
-                      key={note.id}
-                      variants={itemVariants}
-                      initial="hidden"
-                      animate="visible"
-                      transition={{ delay: index * 0.05 }}
-                      className={`group hover:bg-muted/50 cursor-pointer ${isSelected ? "bg-primary/5" : ""}`}
-                    >
-                      <TableCell>
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => handleSelectOne(note.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{note.number}</TableCell>
-                      <TableCell>{note.client}</TableCell>
-                      <TableCell>
-                        <Badge className={`${typeInfo.color} border`}>
-                          <TypeIcon className="h-3 w-3 mr-1" />
-                          {typeInfo.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{note.containerNumber}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {note.dateDebut} → {note.dateFin}
-                      </TableCell>
-                      <TableCell className="text-center font-semibold">{note.nombreJours}</TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {formatCurrency(note.montantTotal)} FCFA
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex flex-col items-end">
-                          {note.paid > 0 && (
-                            <span className="text-success text-sm">
-                              {formatCurrency(note.paid)}
-                            </span>
-                          )}
-                          {note.advance > 0 && (
-                            <span className="text-cyan-600 text-xs">
-                              +{formatCurrency(note.advance)} avance
-                            </span>
-                          )}
-                          {remaining > 0 && (
-                            <span className="text-muted-foreground text-xs">
-                              Reste: {formatCurrency(remaining)}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={status.class}>{status.label}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Voir détails & historique" onClick={() => handleViewHistory(note)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700" title="Modifier">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Télécharger PDF">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-700" title="Envoyer par email">
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500 hover:text-emerald-700" title="Enregistrer paiement / avance" onClick={() => handleSinglePayment(note)}>
-                            <CreditCard className="h-4 w-4" />
-                          </Button>
-                          {/* Note de début ne se convertit pas en facture */}
-                          {/* Ne pas supprimer si paiement existant */}
-                          {note.paid === 0 && note.advance === 0 && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" title="Supprimer">
-                              <Trash2 className="h-4 w-4" />
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={11} className="py-10 text-center text-muted-foreground">
+                      Chargement...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredNotes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={11} className="py-10 text-center text-muted-foreground">
+                      Aucune note de début trouvée.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredNotes.map((note, index) => {
+                    const typeInfo = typeConfig[note.type];
+                    const TypeIcon = typeInfo.icon;
+                    const status = statusConfig[note.status];
+                    const isSelected = selectedIds.includes(note.id);
+                    const remaining = note.montantTotal - note.paid - note.advance;
+                    return (
+                      <motion.tr
+                        key={note.id}
+                        variants={itemVariants}
+                        initial="hidden"
+                        animate="visible"
+                        transition={{ delay: index * 0.05 }}
+                        className={`group hover:bg-muted/50 cursor-pointer ${isSelected ? "bg-primary/5" : ""}`}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => handleSelectOne(note.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{note.number}</TableCell>
+                        <TableCell>{note.client}</TableCell>
+                        <TableCell>
+                          <Badge className={`${typeInfo.color} border`}>
+                            <TypeIcon className="h-3 w-3 mr-1" />
+                            {typeInfo.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{note.containerNumber}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {note.dateDebut} → {note.dateFin}
+                        </TableCell>
+                        <TableCell className="text-center font-semibold">{note.nombreJours}</TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {formatCurrency(note.montantTotal)} FCFA
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-col items-end">
+                            {note.paid > 0 && (
+                              <span className="text-success text-sm">
+                                {formatCurrency(note.paid)}
+                              </span>
+                            )}
+                            {note.advance > 0 && (
+                              <span className="text-cyan-600 text-xs">
+                                +{formatCurrency(note.advance)} avance
+                              </span>
+                            )}
+                            {remaining > 0 && (
+                              <span className="text-muted-foreground text-xs">
+                                Reste: {formatCurrency(remaining)}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={status.class}>{status.label}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Voir détails & historique" onClick={() => handleViewHistory(note)}>
+                              <Eye className="h-4 w-4" />
                             </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </motion.tr>
-                  );
-                })}
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700" title="Modifier">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700" title="Télécharger PDF">
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-700" title="Envoyer par email">
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500 hover:text-emerald-700" title="Enregistrer paiement / avance" onClick={() => handleSinglePayment(note)}>
+                              <CreditCard className="h-4 w-4" />
+                            </Button>
+                            {/* Note de début ne se convertit pas en facture */}
+                            {/* Ne pas supprimer si paiement existant */}
+                            {note.paid === 0 && note.advance === 0 && (
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" title="Supprimer">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    );
+                  })
+                )}
+              </TableBody>
               </TableBody>
             </Table>
           </CardContent>
