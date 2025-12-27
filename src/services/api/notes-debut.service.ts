@@ -12,24 +12,18 @@ interface CreateNoteDebutData {
   ordre_travail_id?: number;
   date: string;
   reference?: string;
+  navire?: string;
+  voyage?: string;
   conteneur?: string;
   type_conteneur?: string;
-  navire?: string;
+  taille_conteneur?: string;
   armateur?: string;
-  bl_number?: string;
-  port_chargement?: string;
-  port_dechargement?: string;
   date_arrivee?: string;
-  date_debut_detention?: string;
-  date_fin_detention?: string;
-  date_ouverture?: string;
-  date_reparation?: string;
+  date_sortie?: string;
+  jours_detention?: number;
   montant_detention?: number;
-  frais_ouverture?: number;
-  cout_reparation?: number;
-  nature_avarie?: string;
-  reparations_effectuees?: string;
-  notes?: string;
+  observations?: string;
+  details?: Record<string, unknown>;
 }
 
 class NotesDebutService {
