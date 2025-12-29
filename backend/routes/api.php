@@ -21,6 +21,8 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\CaisseController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\TaxController;
+use App\Http\Controllers\Api\ApiKeyController;
+use App\Http\Controllers\Api\ExternalApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +42,33 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
+});
+
+// ==========================================
+// API EXTERNE (Authentification par clé API)
+// ==========================================
+Route::prefix('external')->middleware(['api.key'])->group(function () {
+    // Health check
+    Route::get('/health', [ExternalApiController::class, 'health']);
+    Route::get('/stats', [ExternalApiController::class, 'stats']);
+    
+    // Clients
+    Route::get('/clients', [ExternalApiController::class, 'clients'])->middleware('api.key:clients:read');
+    Route::get('/clients/{id}', [ExternalApiController::class, 'showClient'])->middleware('api.key:clients:read');
+    Route::post('/clients', [ExternalApiController::class, 'createClient'])->middleware('api.key:clients:write');
+    Route::put('/clients/{id}', [ExternalApiController::class, 'updateClient'])->middleware('api.key:clients:write');
+    
+    // Ordres de travail
+    Route::get('/ordres-travail', [ExternalApiController::class, 'ordresTravail'])->middleware('api.key:ordres:read');
+    Route::get('/ordres-travail/{id}', [ExternalApiController::class, 'showOrdreTravail'])->middleware('api.key:ordres:read');
+    Route::post('/ordres-travail', [ExternalApiController::class, 'createOrdreTravail'])->middleware('api.key:ordres:write');
+    Route::put('/ordres-travail/{id}', [ExternalApiController::class, 'updateOrdreTravail'])->middleware('api.key:ordres:write');
+    Route::put('/ordres-travail/{id}/status', [ExternalApiController::class, 'updateStatus'])->middleware('api.key:ordres:status');
+    Route::post('/ordres-travail/{id}/notes', [ExternalApiController::class, 'addNote'])->middleware('api.key:ordres:write');
+    
+    // Factures (lecture seule)
+    Route::get('/invoices', [ExternalApiController::class, 'invoices'])->middleware('api.key:invoices:read');
+    Route::get('/invoices/{id}', [ExternalApiController::class, 'showInvoice'])->middleware('api.key:invoices:read');
 });
 
 // Routes protégées (nécessitent authentification)
@@ -324,6 +353,19 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post('/{role}/sync-permissions', [RoleController::class, 'syncPermissions']);
         });
         Route::apiResource('roles', RoleController::class);
+
+        // ==========================================
+        // CLÉS API (Admin only)
+        // ==========================================
+        Route::prefix('api-keys')->group(function () {
+            Route::get('/', [ApiKeyController::class, 'index']);
+            Route::post('/', [ApiKeyController::class, 'store']);
+            Route::get('/permissions', [ApiKeyController::class, 'permissions']);
+            Route::get('/{apiKey}', [ApiKeyController::class, 'show']);
+            Route::put('/{apiKey}', [ApiKeyController::class, 'update']);
+            Route::delete('/{apiKey}', [ApiKeyController::class, 'destroy']);
+            Route::post('/{apiKey}/regenerate', [ApiKeyController::class, 'regenerate']);
+        });
     });
 
     // ==========================================
