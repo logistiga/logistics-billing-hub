@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Force CORS preflight handling FIRST (fixes ngrok issues)
+        $middleware->prepend(\App\Http\Middleware\ForceCorsPreflight::class);
+        
         $middleware->statefulApi();
 
         // Laravel 11: les aliases de middleware se déclarent ici (pas dans Kernel.php)
