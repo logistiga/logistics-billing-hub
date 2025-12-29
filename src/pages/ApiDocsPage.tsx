@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 const endpoints = [
   { method: "GET", path: "/api/external/health", desc: "Vérifier la connexion", perm: "-" },
   { method: "GET", path: "/api/external/stats", desc: "Statistiques globales", perm: "-" },
+  { method: "POST", path: "/api/external/containers", desc: "Envoyer des conteneurs (groupés par booking)", perm: "containers:write" },
+  { method: "GET", path: "/api/external/containers/pending", desc: "Liste conteneurs en attente", perm: "containers:read" },
   { method: "GET", path: "/api/external/clients", desc: "Liste des clients", perm: "clients:read" },
   { method: "GET", path: "/api/external/clients/{id}", desc: "Détails d'un client", perm: "clients:read" },
   { method: "POST", path: "/api/external/clients", desc: "Créer un client", perm: "clients:write" },
