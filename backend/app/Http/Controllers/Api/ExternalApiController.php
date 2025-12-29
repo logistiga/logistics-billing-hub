@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\OrdreTravail;
 use App\Models\LignePrestation;
+use App\Models\PendingContainer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -563,6 +564,150 @@ class ExternalApiController extends Controller
                     'paid' => Invoice::where('status', 'paid')->count(),
                 ],
             ],
+        ]);
+    }
+
+    // ==========================================
+    // CONTENEURS EN ATTENTE - Réception depuis app externe
+    // ==========================================
+
+    /**
+     * Recevoir des conteneurs depuis l'application externe
+     * Les conteneurs avec le même booking_number seront groupés
+     */
+    public function receiveContainers(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'containers' => 'required|array|min:1',
+            'containers.*.booking_number' => 'required|string|max:100',
+            'containers.*.container_number' => 'required|string|max:50',
+            'containers.*.container_type' => 'nullable|string|max:20',
+            'containers.*.container_size' => 'nullable|string|max:10',
+            'containers.*.weight' => 'nullable|numeric|min:0',
+            'containers.*.seal_number' => 'nullable|string|max:50',
+            'containers.*.description' => 'nullable|string|max:500',
+            'containers.*.external_id' => 'nullable|string|max:100',
+            // Informations booking (peuvent être sur chaque conteneur ou globales)
+            'client_name' => 'nullable|string|max:255',
+            'client_id' => 'nullable|exists:clients,id',
+            'vessel_name' => 'nullable|string|max:255',
+            'voyage_number' => 'nullable|string|max:100',
+            'shipping_line' => 'nullable|string|max:255',
+            'port_origin' => 'nullable|string|max:255',
+            'port_destination' => 'nullable|string|max:255',
+            'eta' => 'nullable|date',
+            'etd' => 'nullable|date',
+            'operation_type' => 'nullable|string|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $createdContainers = [];
+            $skippedContainers = [];
+
+            foreach ($request->containers as $containerData) {
+                // Vérifier si le conteneur existe déjà (même booking + même numéro)
+                $existing = PendingContainer::where('booking_number', $containerData['booking_number'])
+                    ->where('container_number', $containerData['container_number'])
+                    ->where('status', 'pending')
+                    ->first();
+
+                if ($existing) {
+                    $skippedContainers[] = [
+                        'booking_number' => $containerData['booking_number'],
+                        'container_number' => $containerData['container_number'],
+                        'reason' => 'Already exists',
+                    ];
+                    continue;
+                }
+
+                $container = PendingContainer::create([
+                    'booking_number' => $containerData['booking_number'],
+                    'container_number' => $containerData['container_number'],
+                    'container_type' => $containerData['container_type'] ?? null,
+                    'container_size' => $containerData['container_size'] ?? null,
+                    'weight' => $containerData['weight'] ?? null,
+                    'seal_number' => $containerData['seal_number'] ?? null,
+                    'description' => $containerData['description'] ?? null,
+                    'external_id' => $containerData['external_id'] ?? null,
+                    // Infos globales ou par conteneur
+                    'client_name' => $containerData['client_name'] ?? $request->client_name,
+                    'client_id' => $containerData['client_id'] ?? $request->client_id,
+                    'vessel_name' => $containerData['vessel_name'] ?? $request->vessel_name,
+                    'voyage_number' => $containerData['voyage_number'] ?? $request->voyage_number,
+                    'shipping_line' => $containerData['shipping_line'] ?? $request->shipping_line,
+                    'port_origin' => $containerData['port_origin'] ?? $request->port_origin,
+                    'port_destination' => $containerData['port_destination'] ?? $request->port_destination,
+                    'eta' => $containerData['eta'] ?? $request->eta,
+                    'etd' => $containerData['etd'] ?? $request->etd,
+                    'operation_type' => $containerData['operation_type'] ?? $request->operation_type ?? 'transport_import',
+                    'status' => 'pending',
+                    'source' => 'external_api',
+                ]);
+
+                $createdContainers[] = [
+                    'id' => $container->id,
+                    'booking_number' => $container->booking_number,
+                    'container_number' => $container->container_number,
+                ];
+            }
+
+            DB::commit();
+
+            // Compter les bookings uniques créés
+            $uniqueBookings = collect($createdContainers)->pluck('booking_number')->unique()->count();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Containers received successfully',
+                'data' => [
+                    'created' => $createdContainers,
+                    'skipped' => $skippedContainers,
+                ],
+                'summary' => [
+                    'created_count' => count($createdContainers),
+                    'skipped_count' => count($skippedContainers),
+                    'unique_bookings' => $uniqueBookings,
+                ],
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to receive containers',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Récupérer les conteneurs en attente (pour l'app externe)
+     */
+    public function pendingContainers(Request $request)
+    {
+        $query = PendingContainer::where('status', 'pending');
+
+        if ($request->has('booking_number')) {
+            $query->where('booking_number', $request->booking_number);
+        }
+
+        $containers = $query->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $containers,
+            'count' => $containers->count(),
         ]);
     }
 }

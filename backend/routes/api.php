@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\TaxController;
 use App\Http\Controllers\Api\ApiKeyController;
 use App\Http\Controllers\Api\ExternalApiController;
+use App\Http\Controllers\Api\PendingContainerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,6 +70,19 @@ Route::prefix('external')->middleware(['api.key'])->group(function () {
     // Factures (lecture seule)
     Route::get('/invoices', [ExternalApiController::class, 'invoices'])->middleware('api.key:invoices:read');
     Route::get('/invoices/{id}', [ExternalApiController::class, 'showInvoice'])->middleware('api.key:invoices:read');
+    
+    // Conteneurs en attente (endpoint principal pour l'autre application)
+    Route::post('/containers', [ExternalApiController::class, 'receiveContainers'])->middleware('api.key:containers:write');
+    Route::get('/containers/pending', [ExternalApiController::class, 'pendingContainers'])->middleware('api.key:containers:read');
+});
+
+// Routes conteneurs en attente (authentification utilisateur)
+Route::middleware(['auth:sanctum', 'active'])->prefix('pending-containers')->group(function () {
+    Route::get('/', [PendingContainerController::class, 'index']);
+    Route::get('/stats', [PendingContainerController::class, 'stats']);
+    Route::post('/create-ordre', [PendingContainerController::class, 'createOrdreTravail']);
+    Route::post('/bulk-create', [PendingContainerController::class, 'bulkCreateOrdresTravail']);
+    Route::post('/{bookingNumber}/reject', [PendingContainerController::class, 'reject']);
 });
 
 // Routes protégées (nécessitent authentification)

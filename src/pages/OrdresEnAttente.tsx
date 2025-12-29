@@ -1,20 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Search,
-  Filter,
   RefreshCw,
   Plus,
   Eye,
   Clock,
   Truck,
-  Forklift,
-  Warehouse,
+  Ship,
   Package,
   AlertCircle,
   CheckCircle2,
   Loader2,
+  Container,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Anchor,
+  MapPin,
 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,13 +36,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -50,168 +48,134 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { toast } from "sonner";
-
-// Interface pour les ordres en attente (données externes)
-interface PendingOrder {
-  id: string;
-  externalRef: string;
-  client: string;
-  type: string;
-  subType: string;
-  requestDate: string;
-  estimatedAmount: number;
-  description: string;
-  priority: "low" | "medium" | "high";
-  source: string;
-}
-
-// Données mockées simulant l'API externe
-const mockPendingOrders: PendingOrder[] = [
-  {
-    id: "ext-001",
-    externalRef: "REQ-2024-1234",
-    client: "COMILOG SA",
-    type: "Transport",
-    subType: "Hors Libreville",
-    requestDate: "2024-12-20",
-    estimatedAmount: 3500000,
-    description: "Transport de 50 tonnes de manganèse vers Owendo",
-    priority: "high",
-    source: "Système central",
-  },
-  {
-    id: "ext-002",
-    externalRef: "REQ-2024-1235",
-    client: "OLAM Gabon",
-    type: "Manutention",
-    subType: "Chargement/Déchargement",
-    requestDate: "2024-12-19",
-    estimatedAmount: 1200000,
-    description: "Déchargement containers huile de palme",
-    priority: "medium",
-    source: "Portail client",
-  },
-  {
-    id: "ext-003",
-    externalRef: "REQ-2024-1236",
-    client: "Total Energies",
-    type: "Stockage",
-    subType: "Entrepôt sécurisé",
-    requestDate: "2024-12-18",
-    estimatedAmount: 2800000,
-    description: "Stockage temporaire équipements offshore",
-    priority: "high",
-    source: "Système central",
-  },
-  {
-    id: "ext-004",
-    externalRef: "REQ-2024-1237",
-    client: "Assala Energy",
-    type: "Transport",
-    subType: "Exceptionnel",
-    requestDate: "2024-12-17",
-    estimatedAmount: 5200000,
-    description: "Transport convoi exceptionnel - Turbine",
-    priority: "high",
-    source: "Email",
-  },
-  {
-    id: "ext-005",
-    externalRef: "REQ-2024-1238",
-    client: "SEEG",
-    type: "Location",
-    subType: "Location engin",
-    requestDate: "2024-12-16",
-    estimatedAmount: 950000,
-    description: "Location grue pour chantier électrique",
-    priority: "low",
-    source: "Portail client",
-  },
-];
-
-const typeConfig = {
-  Manutention: {
-    icon: Forklift,
-    color: "bg-blue-100 text-blue-700 border-blue-200",
-  },
-  Transport: {
-    icon: Truck,
-    color: "bg-amber-100 text-amber-700 border-amber-200",
-  },
-  Stockage: {
-    icon: Warehouse,
-    color: "bg-purple-100 text-purple-700 border-purple-200",
-  },
-  Location: {
-    icon: Package,
-    color: "bg-green-100 text-green-700 border-green-200",
-  },
-};
-
-const priorityConfig = {
-  low: { label: "Basse", class: "bg-muted text-muted-foreground" },
-  medium: { label: "Moyenne", class: "bg-warning/20 text-warning" },
-  high: { label: "Haute", class: "bg-destructive/20 text-destructive" },
-};
+import { pendingContainersService, type PendingBookingGroup } from "@/services/api/pending-containers.service";
 
 export default function OrdresEnAttente() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
-  const [isLoading, setIsLoading] = useState(false);
-  const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>(mockPendingOrders);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<PendingOrder | null>(null);
-  const [creatingOrderId, setCreatingOrderId] = useState<string | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<PendingBookingGroup | null>(null);
+  const [expandedBookings, setExpandedBookings] = useState<string[]>([]);
 
-  // Simuler le refresh depuis l'API externe
-  const handleRefresh = async () => {
-    setIsLoading(true);
-    // Simulation d'appel API
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    toast.success("Données synchronisées", {
-      description: "Les ordres en attente ont été actualisés depuis le système externe",
-    });
-    setIsLoading(false);
-  };
+  // Récupérer les conteneurs en attente
+  const { data, isLoading, refetch, isRefetching } = useQuery({
+    queryKey: ["pending-containers", searchTerm],
+    queryFn: () => pendingContainersService.getAll({ search: searchTerm || undefined }),
+  });
 
-  const filteredOrders = pendingOrders.filter((order) => {
-    const matchesSearch =
-      order.externalRef.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === "all" || order.type === typeFilter;
-    const matchesPriority = priorityFilter === "all" || order.priority === priorityFilter;
-    return matchesSearch && matchesType && matchesPriority;
+  // Récupérer les stats
+  const { data: statsData } = useQuery({
+    queryKey: ["pending-containers-stats"],
+    queryFn: () => pendingContainersService.getStats(),
+  });
+
+  // Mutation pour créer un ordre de travail
+  const createOrderMutation = useMutation({
+    mutationFn: (bookingNumber: string) => 
+      pendingContainersService.createOrdreTravail({ booking_number: bookingNumber }),
+    onSuccess: (result) => {
+      toast.success("Ordre de travail créé", {
+        description: `${result.data.containers_count} conteneur(s) ajouté(s)`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["pending-containers"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-containers-stats"] });
+    },
+    onError: (error: any) => {
+      toast.error("Erreur", {
+        description: error.message || "Impossible de créer l'ordre de travail",
+      });
+    },
+  });
+
+  // Mutation pour créer en lot
+  const bulkCreateMutation = useMutation({
+    mutationFn: (bookingNumbers: string[]) => 
+      pendingContainersService.bulkCreateOrdresTravail(bookingNumbers),
+    onSuccess: (result) => {
+      const { created_count, failed_count } = result.summary;
+      if (created_count > 0) {
+        toast.success(`${created_count} ordre(s) créé(s)`, {
+          description: failed_count > 0 ? `${failed_count} en erreur` : undefined,
+        });
+      }
+      if (failed_count > 0 && created_count === 0) {
+        toast.error("Erreur", {
+          description: "Aucun ordre n'a pu être créé",
+        });
+      }
+      setSelectedBookings([]);
+      queryClient.invalidateQueries({ queryKey: ["pending-containers"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-containers-stats"] });
+    },
+    onError: (error: any) => {
+      toast.error("Erreur", {
+        description: error.message || "Impossible de créer les ordres",
+      });
+    },
+  });
+
+  // Mutation pour rejeter
+  const rejectMutation = useMutation({
+    mutationFn: (bookingNumber: string) => 
+      pendingContainersService.reject(bookingNumber),
+    onSuccess: () => {
+      toast.success("Conteneurs rejetés");
+      queryClient.invalidateQueries({ queryKey: ["pending-containers"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-containers-stats"] });
+      setViewDialogOpen(false);
+    },
+  });
+
+  const bookings = data?.data || [];
+  const stats = statsData?.data;
+
+  const filteredBookings = bookings.filter((booking) => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      booking.booking_number.toLowerCase().includes(search) ||
+      booking.client_name?.toLowerCase().includes(search) ||
+      booking.vessel_name?.toLowerCase().includes(search) ||
+      booking.containers.some(c => c.container_number.toLowerCase().includes(search))
+    );
   });
 
   const handleSelectAll = () => {
-    if (selectedIds.length === filteredOrders.length) {
-      setSelectedIds([]);
+    if (selectedBookings.length === filteredBookings.length) {
+      setSelectedBookings([]);
     } else {
-      setSelectedIds(filteredOrders.map((o) => o.id));
+      setSelectedBookings(filteredBookings.map((b) => b.booking_number));
     }
   };
 
-  const handleSelectOne = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+  const handleSelectOne = (bookingNumber: string) => {
+    setSelectedBookings((prev) =>
+      prev.includes(bookingNumber)
+        ? prev.filter((b) => b !== bookingNumber)
+        : [...prev, bookingNumber]
     );
   };
 
-  const isAllSelected = selectedIds.length === filteredOrders.length && filteredOrders.length > 0;
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("fr-GA", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-    }).format(value);
+  const toggleExpanded = (bookingNumber: string) => {
+    setExpandedBookings((prev) =>
+      prev.includes(bookingNumber)
+        ? prev.filter((b) => b !== bookingNumber)
+        : [...prev, bookingNumber]
+    );
   };
 
-  const formatDate = (dateStr: string) => {
+  const isAllSelected = selectedBookings.length === filteredBookings.length && filteredBookings.length > 0;
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "-";
     return new Date(dateStr).toLocaleDateString("fr-FR", {
       day: "2-digit",
       month: "2-digit",
@@ -219,40 +183,18 @@ export default function OrdresEnAttente() {
     });
   };
 
-  const handleViewDetails = (order: PendingOrder) => {
-    setSelectedOrder(order);
+  const handleViewDetails = (booking: PendingBookingGroup) => {
+    setSelectedBooking(booking);
     setViewDialogOpen(true);
   };
 
-  const handleCreateOrder = async (order: PendingOrder) => {
-    setCreatingOrderId(order.id);
-    // Simulation de création d'ordre
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    toast.success("Ordre de travail créé", {
-      description: `L'ordre ${order.externalRef} a été créé avec succès`,
-    });
-    
-    // Retirer l'ordre de la liste des attentes
-    setPendingOrders((prev) => prev.filter((o) => o.id !== order.id));
-    setSelectedIds((prev) => prev.filter((id) => id !== order.id));
-    setCreatingOrderId(null);
+  const handleCreateOrder = (bookingNumber: string) => {
+    createOrderMutation.mutate(bookingNumber);
   };
 
-  const handleCreateSelected = async () => {
-    if (selectedIds.length === 0) return;
-    
-    setIsLoading(true);
-    // Simulation de création groupée
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    toast.success(`${selectedIds.length} ordre(s) créé(s)`, {
-      description: "Les ordres de travail ont été créés avec succès",
-    });
-    
-    setPendingOrders((prev) => prev.filter((o) => !selectedIds.includes(o.id)));
-    setSelectedIds([]);
-    setIsLoading(false);
+  const handleCreateSelected = () => {
+    if (selectedBookings.length === 0) return;
+    bulkCreateMutation.mutate(selectedBookings);
   };
 
   return (
@@ -262,24 +204,24 @@ export default function OrdresEnAttente() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-heading font-bold text-foreground">
-              Ordres en attente
+              Conteneurs en attente
             </h1>
             <p className="text-muted-foreground mt-1">
-              Ordres récupérés du système externe en attente de création
+              Conteneurs reçus de l'application externe, groupés par numéro de booking
             </p>
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={handleRefresh}
-              disabled={isLoading}
+              onClick={() => refetch()}
+              disabled={isRefetching}
             >
-              {isLoading ? (
+              {isRefetching ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <RefreshCw className="h-4 w-4 mr-2" />
               )}
-              Synchroniser
+              Actualiser
             </Button>
           </div>
         </div>
@@ -290,41 +232,43 @@ export default function OrdresEnAttente() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-primary" />
+                  <Ship className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{pendingOrders.length}</p>
-                  <p className="text-sm text-muted-foreground">En attente</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {stats?.total_bookings || bookings.length}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Bookings</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-destructive/5 to-destructive/10 border-destructive/20">
+          <Card className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-destructive/20 flex items-center justify-center">
-                  <AlertCircle className="h-5 w-5 text-destructive" />
+                <div className="h-10 w-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <Container className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">
-                    {pendingOrders.filter((o) => o.priority === "high").length}
+                    {stats?.total_containers || data?.total_containers || 0}
                   </p>
-                  <p className="text-sm text-muted-foreground">Priorité haute</p>
+                  <p className="text-sm text-muted-foreground">Conteneurs</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
+          <Card className="bg-gradient-to-br from-amber-500/5 to-amber-500/10 border-amber-500/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-warning/20 flex items-center justify-center">
-                  <Truck className="h-5 w-5 text-warning" />
+                <div className="h-10 w-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-amber-500" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">
-                    {pendingOrders.filter((o) => o.type === "Transport").length}
+                    {stats?.recent_count || 0}
                   </p>
-                  <p className="text-sm text-muted-foreground">Transports</p>
+                  <p className="text-sm text-muted-foreground">Dernières 24h</p>
                 </div>
               </div>
             </CardContent>
@@ -337,57 +281,30 @@ export default function OrdresEnAttente() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">
-                    {formatCurrency(pendingOrders.reduce((sum, o) => sum + o.estimatedAmount, 0))}
+                    {selectedBookings.length}
                   </p>
-                  <p className="text-sm text-muted-foreground">FCFA estimé</p>
+                  <p className="text-sm text-muted-foreground">Sélectionnés</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filters */}
+        {/* Search */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Rechercher par référence, client ou description..."
+              placeholder="Rechercher par booking, conteneur, client ou navire..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les types</SelectItem>
-              <SelectItem value="Transport">Transport</SelectItem>
-              <SelectItem value="Manutention">Manutention</SelectItem>
-              <SelectItem value="Stockage">Stockage</SelectItem>
-              <SelectItem value="Location">Location</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Priorité" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toutes priorités</SelectItem>
-              <SelectItem value="high">Haute</SelectItem>
-              <SelectItem value="medium">Moyenne</SelectItem>
-              <SelectItem value="low">Basse</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtres
-          </Button>
         </div>
 
         {/* Selection Actions */}
-        {selectedIds.length > 0 && (
+        {selectedBookings.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -396,25 +313,25 @@ export default function OrdresEnAttente() {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">
-                {selectedIds.length} ordre(s) sélectionné(s)
+                {selectedBookings.length} booking(s) sélectionné(s)
               </span>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setSelectedIds([])}>
+              <Button size="sm" variant="outline" onClick={() => setSelectedBookings([])}>
                 Annuler
               </Button>
               <Button
                 size="sm"
                 variant="gradient"
                 onClick={handleCreateSelected}
-                disabled={isLoading}
+                disabled={bulkCreateMutation.isPending}
               >
-                {isLoading ? (
+                {bulkCreateMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Plus className="h-4 w-4 mr-2" />
                 )}
-                Créer les ordres sélectionnés
+                Créer les ordres de travail
               </Button>
             </div>
           </motion.div>
@@ -432,117 +349,173 @@ export default function OrdresEnAttente() {
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
-                  <TableHead>Référence</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                  <TableHead>N° Booking</TableHead>
                   <TableHead>Client</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Priorité</TableHead>
-                  <TableHead>Date demande</TableHead>
-                  <TableHead>Montant estimé</TableHead>
-                  <TableHead>Source</TableHead>
+                  <TableHead>Navire</TableHead>
+                  <TableHead>Compagnie</TableHead>
+                  <TableHead>Conteneurs</TableHead>
+                  <TableHead>ETA</TableHead>
+                  <TableHead>Reçu le</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.length === 0 ? (
+                {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      {isLoading ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                          Chargement des données...
-                        </div>
-                      ) : (
-                        "Aucun ordre en attente"
-                      )}
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Chargement des données...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredBookings.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      {searchTerm ? "Aucun résultat pour cette recherche" : "Aucun conteneur en attente"}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredOrders.map((order, index) => {
-                    const typeInfo = typeConfig[order.type as keyof typeof typeConfig];
-                    const TypeIcon = typeInfo?.icon || Package;
-                    const priorityInfo = priorityConfig[order.priority];
-
+                  filteredBookings.map((booking, index) => {
+                    const isExpanded = expandedBookings.includes(booking.booking_number);
+                    
                     return (
-                      <motion.tr
-                        key={order.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="group hover:bg-muted/30 transition-colors"
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedIds.includes(order.id)}
-                            onCheckedChange={() => handleSelectOne(order.id)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium text-foreground">
-                            {order.externalRef}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">{order.client}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={`${typeInfo?.color || ""} flex items-center gap-1 w-fit`}
+                      <Collapsible key={booking.booking_number} asChild>
+                        <>
+                          <motion.tr
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.03 }}
+                            className="group hover:bg-muted/30 transition-colors"
                           >
-                            <TypeIcon className="h-3 w-3" />
-                            {order.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={priorityInfo.class}>
-                            {priorityInfo.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{formatDate(order.requestDate)}</TableCell>
-                        <TableCell className="font-medium">
-                          {formatCurrency(order.estimatedAmount)} FCFA
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {order.source}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-1">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedBookings.includes(booking.booking_number)}
+                                onCheckedChange={() => handleSelectOne(booking.booking_number)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <CollapsibleTrigger asChild>
                                 <Button
                                   variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleViewDetails(order)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Voir détails</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="gradient"
                                   size="sm"
-                                  onClick={() => handleCreateOrder(order)}
-                                  disabled={creatingOrderId === order.id}
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => toggleExpanded(booking.booking_number)}
                                 >
-                                  {creatingOrderId === order.id ? (
+                                  {isExpanded ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </CollapsibleTrigger>
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium text-foreground font-mono">
+                                {booking.booking_number}
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {booking.client_name || "-"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Ship className="h-3 w-3 text-muted-foreground" />
+                                {booking.vessel_name || "-"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {booking.shipping_line || "-"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="font-mono">
+                                <Container className="h-3 w-3 mr-1" />
+                                {booking.container_count}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {formatDate(booking.eta)}
+                            </TableCell>
+                            <TableCell>
+                              {formatDate(booking.received_at)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0"
+                                      onClick={() => handleViewDetails(booking)}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Voir détails</TooltipContent>
+                                </Tooltip>
+                                <Button
+                                  size="sm"
+                                  variant="gradient"
+                                  onClick={() => handleCreateOrder(booking.booking_number)}
+                                  disabled={createOrderMutation.isPending}
+                                >
+                                  {createOrderMutation.isPending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
                                     <>
                                       <Plus className="h-4 w-4 mr-1" />
-                                      Créer
+                                      Créer OT
                                     </>
                                   )}
                                 </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Créer l'ordre de travail</TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TableCell>
-                      </motion.tr>
+                              </div>
+                            </TableCell>
+                          </motion.tr>
+                          <CollapsibleContent asChild>
+                            <tr className="bg-muted/20">
+                              <td colSpan={10} className="p-4">
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    {booking.port_origin && (
+                                      <span className="flex items-center gap-1">
+                                        <MapPin className="h-3 w-3" />
+                                        Origine: {booking.port_origin}
+                                      </span>
+                                    )}
+                                    {booking.port_destination && (
+                                      <span className="flex items-center gap-1">
+                                        <Anchor className="h-3 w-3" />
+                                        Destination: {booking.port_destination}
+                                      </span>
+                                    )}
+                                    {booking.voyage_number && (
+                                      <span>Voyage: {booking.voyage_number}</span>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                                    {booking.containers.map((container) => (
+                                      <div
+                                        key={container.id}
+                                        className="bg-background rounded-lg p-3 border"
+                                      >
+                                        <div className="font-mono font-medium text-sm">
+                                          {container.container_number}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          {container.container_type || container.container_size || "Type N/A"}
+                                          {container.weight && ` • ${container.weight} kg`}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          </CollapsibleContent>
+                        </>
+                      </Collapsible>
                     );
                   })
                 )}
@@ -551,66 +524,116 @@ export default function OrdresEnAttente() {
           </CardContent>
         </Card>
 
-        {/* View Details Dialog */}
+        {/* Dialog détails */}
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Détails de la demande</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Booking {selectedBooking?.booking_number}
+              </DialogTitle>
               <DialogDescription>
-                Référence externe: {selectedOrder?.externalRef}
+                Détails du booking et liste des conteneurs
               </DialogDescription>
             </DialogHeader>
-            {selectedOrder && (
+
+            {selectedBooking && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                {/* Infos booking */}
+                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
                   <div>
-                    <p className="text-sm text-muted-foreground">Client</p>
-                    <p className="font-medium">{selectedOrder.client}</p>
+                    <p className="text-xs text-muted-foreground">Client</p>
+                    <p className="font-medium">{selectedBooking.client_name || "-"}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Type</p>
-                    <p className="font-medium">{selectedOrder.type} - {selectedOrder.subType}</p>
+                    <p className="text-xs text-muted-foreground">Navire</p>
+                    <p className="font-medium">{selectedBooking.vessel_name || "-"}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Date de demande</p>
-                    <p className="font-medium">{formatDate(selectedOrder.requestDate)}</p>
+                    <p className="text-xs text-muted-foreground">Compagnie maritime</p>
+                    <p className="font-medium">{selectedBooking.shipping_line || "-"}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Montant estimé</p>
-                    <p className="font-medium">{formatCurrency(selectedOrder.estimatedAmount)} FCFA</p>
+                    <p className="text-xs text-muted-foreground">Voyage</p>
+                    <p className="font-medium">{selectedBooking.voyage_number || "-"}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Priorité</p>
-                    <Badge className={priorityConfig[selectedOrder.priority].class}>
-                      {priorityConfig[selectedOrder.priority].label}
-                    </Badge>
+                    <p className="text-xs text-muted-foreground">Port d'origine</p>
+                    <p className="font-medium">{selectedBooking.port_origin || "-"}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Source</p>
-                    <p className="font-medium">{selectedOrder.source}</p>
+                    <p className="text-xs text-muted-foreground">Port de destination</p>
+                    <p className="font-medium">{selectedBooking.port_destination || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">ETA</p>
+                    <p className="font-medium">{formatDate(selectedBooking.eta)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">ETD</p>
+                    <p className="font-medium">{formatDate(selectedBooking.etd)}</p>
                   </div>
                 </div>
+
+                {/* Liste conteneurs */}
                 <div>
-                  <p className="text-sm text-muted-foreground">Description</p>
-                  <p className="font-medium">{selectedOrder.description}</p>
+                  <h4 className="font-medium mb-2">
+                    Conteneurs ({selectedBooking.container_count})
+                  </h4>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {selectedBooking.containers.map((container) => (
+                      <div
+                        key={container.id}
+                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Container className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="font-mono font-medium">
+                              {container.container_number}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {container.container_type || container.container_size || "Type N/A"}
+                              {container.seal_number && ` • Scellé: ${container.seal_number}`}
+                            </p>
+                          </div>
+                        </div>
+                        {container.weight && (
+                          <Badge variant="outline">{container.weight} kg</Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
-                Fermer
+
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (selectedBooking) {
+                    rejectMutation.mutate(selectedBooking.booking_number);
+                  }
+                }}
+                disabled={rejectMutation.isPending}
+                className="text-destructive hover:text-destructive"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Rejeter
               </Button>
               <Button
                 variant="gradient"
                 onClick={() => {
-                  if (selectedOrder) {
-                    handleCreateOrder(selectedOrder);
+                  if (selectedBooking) {
+                    handleCreateOrder(selectedBooking.booking_number);
                     setViewDialogOpen(false);
                   }
                 }}
+                disabled={createOrderMutation.isPending}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Créer l'ordre
+                Créer l'ordre de travail
               </Button>
             </DialogFooter>
           </DialogContent>
