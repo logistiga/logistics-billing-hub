@@ -59,6 +59,7 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\CheckAdmin::class,
         'active' => \App\Http\Middleware\CheckActiveUser::class,
         'log.api' => \App\Http\Middleware\LogApiRequests::class,
+        'api.key' => \App\Http\Middleware\ApiKeyMiddleware::class,
     ];
 
     /**

@@ -52,6 +52,8 @@ const CreditBancaire = lazy(() => import("./pages/CreditBancaire"));
 const TresoreriePrev = lazy(() => import("./pages/TresoreriePrev"));
 const Emails = lazy(() => import("./pages/Emails"));
 const Profil = lazy(() => import("./pages/Profil"));
+const ApiKeysPage = lazy(() => import("./pages/ApiKeysPage"));
+const ApiDocsPage = lazy(() => import("./pages/ApiDocsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -113,6 +115,8 @@ const AppRoutes = () => (
       <Route path="/tresorerie-prev" element={<TresoreriePrev />} />
       <Route path="/emails" element={<Emails />} />
       <Route path="/profil" element={<Profil />} />
+      <Route path="/api-keys" element={<ApiKeysPage />} />
+      <Route path="/api-docs" element={<ApiDocsPage />} />
     </Route>
     
     <Route path="*" element={
