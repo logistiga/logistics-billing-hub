@@ -3,11 +3,12 @@ const API_URL_KEY = "logistiga_api_url";
 
 // Fonction pour récupérer l'URL de l'API (priorité: localStorage > env > fallback)
 const getApiBaseUrl = (): string => {
-  const storedUrl = localStorage.getItem(API_URL_KEY);
-  if (storedUrl) {
-    return storedUrl;
+  let url = localStorage.getItem(API_URL_KEY);
+  if (!url) {
+    url = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
   }
-  return import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+  // Remove trailing slash to avoid double slashes
+  return url.replace(/\/+$/, '');
 };
 
 export const API_CONFIG = {
