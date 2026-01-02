@@ -11,12 +11,14 @@ interface RequestOptions {
 }
 
 class ApiClient {
-  private baseUrl: string;
   private defaultHeaders: Record<string, string>;
 
   constructor() {
-    this.baseUrl = API_CONFIG.BASE_URL;
     this.defaultHeaders = API_CONFIG.DEFAULT_HEADERS;
+  }
+
+  private get baseUrl(): string {
+    return API_CONFIG.BASE_URL;
   }
 
   private getAuthToken(): string | null {
