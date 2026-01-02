@@ -1,16 +1,18 @@
 // Login page component
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Loader2, Mail, Lock, AlertCircle, Shield } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Lock, AlertCircle, Shield, Settings, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import shipLoaderGif from "@/assets/ship-loader.gif";
 
 const loginSchema = z.object({
@@ -20,11 +22,41 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+const API_URL_KEY = "logistiga_api_url";
+
 export default function Login() {
   const navigate = useNavigate();
   const { login, isLoading } = useAuthContext();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiUrl, setApiUrl] = useState<string>(() => {
+    return localStorage.getItem(API_URL_KEY) || import.meta.env.VITE_API_URL || "";
+  });
+  const [tempApiUrl, setTempApiUrl] = useState<string>(apiUrl);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Update environment variable dynamically
+  useEffect(() => {
+    const storedUrl = localStorage.getItem(API_URL_KEY);
+    if (storedUrl) {
+      // Override the API URL in the window for the session
+      (window as any).__API_URL__ = storedUrl;
+    }
+  }, []);
+
+  const handleSaveApiUrl = () => {
+    localStorage.setItem(API_URL_KEY, tempApiUrl);
+    setApiUrl(tempApiUrl);
+    (window as any).__API_URL__ = tempApiUrl;
+    setIsSettingsOpen(false);
+    toast({
+      title: "URL Backend mise à jour",
+      description: "L'URL de l'API a été modifiée. Rechargez la page pour appliquer.",
+    });
+    // Reload to apply the new URL
+    window.location.reload();
+  };
 
   const {
     register,
@@ -60,6 +92,59 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white relative overflow-hidden px-4">
+      {/* Settings Button - Top Right */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 z-20 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            title="Configurer l'URL du backend"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configuration Backend</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="api-url">URL de l'API Backend</Label>
+              <Input
+                id="api-url"
+                type="url"
+                placeholder="https://example.trycloudflare.com/api"
+                value={tempApiUrl}
+                onChange={(e) => setTempApiUrl(e.target.value)}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Entrez l'URL complète de votre API Laravel (ex: https://tunnel.trycloudflare.com/api)
+              </p>
+            </div>
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground">
+                <strong>URL actuelle:</strong>{" "}
+                <span className="font-mono break-all">{apiUrl || "Non configurée"}</span>
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <DialogClose asChild>
+              <Button variant="outline" size="sm">
+                <X className="h-4 w-4 mr-1" />
+                Annuler
+              </Button>
+            </DialogClose>
+            <Button onClick={handleSaveApiUrl} size="sm">
+              <Check className="h-4 w-4 mr-1" />
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Subtle Background Pattern */}
       <div className="absolute inset-0 opacity-[0.02]">
         <div 
