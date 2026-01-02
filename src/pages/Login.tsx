@@ -24,6 +24,24 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 const API_URL_KEY = "logistiga_api_url";
 
+const normalizeApiUrlInput = (raw: string): string => {
+  const cleaned = (raw ?? "").trim().replace(/\/+$/, "");
+  if (!cleaned) return "";
+
+  // Si l'utilisateur saisit seulement le domaine, on ajoute /api (routes/api.php)
+  try {
+    const u = new URL(cleaned);
+    const path = u.pathname.replace(/\/+$/, "");
+    if (path === "" || path === "/") {
+      u.pathname = "/api";
+      return u.toString().replace(/\/+$/, "");
+    }
+    return cleaned;
+  } catch {
+    return cleaned;
+  }
+};
+
 export default function Login() {
   const navigate = useNavigate();
   const { login, isLoading } = useAuthContext();
@@ -31,7 +49,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiUrl, setApiUrl] = useState<string>(() => {
-    return localStorage.getItem(API_URL_KEY) || import.meta.env.VITE_API_URL || "";
+    const raw = localStorage.getItem(API_URL_KEY) || import.meta.env.VITE_API_URL || "";
+    return normalizeApiUrlInput(raw);
   });
   const [tempApiUrl, setTempApiUrl] = useState<string>(apiUrl);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -40,15 +59,21 @@ export default function Login() {
   useEffect(() => {
     const storedUrl = localStorage.getItem(API_URL_KEY);
     if (storedUrl) {
+      const normalized = normalizeApiUrlInput(storedUrl);
+      // Persist normalization so the API client uses the right baseUrl (/api)
+      if (normalized && normalized !== storedUrl) {
+        localStorage.setItem(API_URL_KEY, normalized);
+      }
       // Override the API URL in the window for the session
-      (window as any).__API_URL__ = storedUrl;
+      (window as any).__API_URL__ = normalized;
     }
   }, []);
 
   const handleSaveApiUrl = () => {
-    localStorage.setItem(API_URL_KEY, tempApiUrl);
-    setApiUrl(tempApiUrl);
-    (window as any).__API_URL__ = tempApiUrl;
+    const normalized = normalizeApiUrlInput(tempApiUrl);
+    localStorage.setItem(API_URL_KEY, normalized);
+    setApiUrl(normalized);
+    (window as any).__API_URL__ = normalized;
     setIsSettingsOpen(false);
     toast({
       title: "URL Backend mise à jour",
